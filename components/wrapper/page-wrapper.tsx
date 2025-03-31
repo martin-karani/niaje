@@ -1,22 +1,11 @@
 "use client"
-import { api } from '@/convex/_generated/api';
-import { useAuth } from '@clerk/nextjs';
-import { useMutation, useQuery } from 'convex/react';
-import { useEffect } from 'react';
+import { useIsAuthenticated } from '@/lib/better-auth';
 import Footer from './footer';
 import NavBar from './navbar';
 
 export default function PageWrapper({ children }: { children: React.ReactNode }) {
-  const { isSignedIn } = useAuth();
-  const user = useQuery(api.users.getUser);
-  const storeUser = useMutation(api.users.store);
-
-  useEffect(() => {
-    if (user && isSignedIn) {
-      storeUser();
-    }
-  }, [user, isSignedIn, storeUser]);
-
+  // Use the isAuthenticated hook from better-auth instead of Convex
+  const isAuthenticated = useIsAuthenticated();
 
   return (
     <>
