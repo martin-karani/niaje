@@ -8,7 +8,6 @@ import {
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@clerk/nextjs";
 import { Dialog } from "@radix-ui/react-dialog";
 import { motion } from "framer-motion";
 import { Github, Menu, Sparkles, Twitter, Youtube } from "lucide-react";
@@ -22,7 +21,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "../ui/sheet";
-import { UserProfile } from "../user-profile";
+import { useAuth } from "@/lib/better-auth";
+import UserProfilePage from "../user-profile";
 
 const components: { title: string; href: string; description: string }[] = [
   {
@@ -207,7 +207,7 @@ export default function NavBar() {
               </Button>
             </Link>
           )}
-          {userId && <UserProfile />}
+          {userId && <UserProfilePage />}
         </div>
       </div>
     </motion.div>
