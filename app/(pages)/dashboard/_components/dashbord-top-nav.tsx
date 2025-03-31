@@ -5,29 +5,51 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogClose } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator'
 import { SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
-import { UserProfile } from '@/components/user-profile'
-import { api } from '@/convex/_generated/api'
+import UserProfile from '@/components/user-profile'
 import { HamburgerMenuIcon } from '@radix-ui/react-icons'
-import { useAction, useQuery } from 'convex/react'
-import { Banknote, Folder, HomeIcon, Settings } from 'lucide-react'
+import { Banknote, HomeIcon, Settings } from 'lucide-react'
 import Link from 'next/link'
-import { ReactNode } from 'react'
+import { ReactNode, useState } from 'react'
+import { apiClient } from '@/lib/api-client'
+import { useAuth } from '@/providers/auth-provider'
 
 export default function DashboardTopNav({ children }: { children: ReactNode }) {
-  const subscription = useQuery(api.subscriptions.getUserSubscription);
+  const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [subscription, setSubscription] = useState<any>(null);
 
-  const getDashboardUrl = useAction(api.subscriptions.getUserDashboardUrl);
+  // Fetch subscription data when needed
+  const fetchSubscription = async () => {
+    try {
+      const data = await apiClient.getUserSubscription();
+      setSubscription(data);
+      return data;
+    } catch (error) {
+      console.error("Error fetching subscription data:", error);
+      return null;
+    }
+  };
 
   const handleManageSubscription = async () => {
+    setIsLoading(true);
     try {
-      const result = await getDashboardUrl({
-        customerId: subscription?.customerId!
-      });
+      // Fetch subscription if not already loaded
+      const sub = subscription || await fetchSubscription();
+      
+      if (!sub?.customerId) {
+        console.error("No customer ID found");
+        return;
+      }
+      
+      const result = await apiClient.getSubscriptionDashboardUrl(sub.customerId);
+      
       if (result?.url) {
         window.location.href = result.url;
       }
     } catch (error) {
       console.error("Error getting dashboard URL:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -77,8 +99,16 @@ export default function DashboardTopNav({ children }: { children: ReactNode }) {
           </SheetContent>
         </Dialog>
         <div className="flex justify-center items-center gap-2 ml-auto">
-          <Button variant={"outline"} onClick={handleManageSubscription}>Manage Subscription</Button>
-          {<UserProfile />}
+          {user && (
+            <Button 
+              variant={"outline"} 
+              onClick={handleManageSubscription}
+              disabled={isLoading}
+            >
+              {isLoading ? "Loading..." : "Manage Subscription"}
+            </Button>
+          )}
+          <UserProfile />
           <ModeToggle />
         </div>
       </header>
