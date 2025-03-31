@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { ViewTransitions } from "next-view-transitions";
-import { Analytics } from "@vercel/analytics/react";
 import NavBar from "@/components/wrapper/navbar";
 
 
@@ -31,7 +30,6 @@ export default function RootLayout({
             {children}
           </main>
           <Footer />
-          <Analytics />
         </div>
       </div>
     </ViewTransitions>
