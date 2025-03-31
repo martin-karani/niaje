@@ -1,36 +1,46 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
-import { fetchQuery } from 'convex/nextjs';
+// middleware.ts
 import { NextResponse } from 'next/server';
-import { api } from './convex/_generated/api';
+import type { NextRequest } from 'next/server';
 
-const isProtectedRoute = createRouteMatcher(['/dashboard(.*)'])
+// Function to check if a route is protected
+const isProtectedRoute = (pathname: string): boolean => {
+  return pathname.startsWith('/dashboard');
+};
 
-export default clerkMiddleware(async (auth, req) => {
+// Function to check if route is authentication related
+const isAuthRoute = (pathname: string): boolean => {
+  return pathname === '/sign-in' || pathname === '/sign-up';
+};
 
-  const token = (await (await auth()).getToken({ template: "convex" }))
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  
+  // Get access token from cookies if available
+  // Note: In our implementation, we're using localStorage for tokens in the client
+  // but for SSR/middleware, we need to use cookies
+  const accessToken = request.cookies.get('accessToken')?.value;
 
-
-  const { hasActiveSubscription } = await fetchQuery(api.subscriptions.getUserSubscriptionStatus, {
-  }, {
-    token: token!,
-  });
-
-  const isDashboard = req.nextUrl.href.includes(`/dashboard`)
-
-  if (isDashboard && !hasActiveSubscription) {
-    const pricingUrl = new URL('/pricing', req.nextUrl.origin)
-    // Redirect to the pricing page
-    return NextResponse.redirect(pricingUrl);
+  // Check if we're trying to access a protected route without being authenticated
+  if (isProtectedRoute(pathname) && !accessToken) {
+    // Redirect to login page with a return_to parameter
+    const url = new URL('/sign-in', request.url);
+    url.searchParams.set('return_to', pathname);
+    return NextResponse.redirect(url);
   }
 
-  if (isProtectedRoute(req)) await auth.protect()
-})
+  // Check if we're trying to access auth pages while already authenticated
+  if (isAuthRoute(pathname) && accessToken) {
+    // Redirect to dashboard if already logged in
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
 
+  return NextResponse.next();
+}
+
+// Specify which routes this middleware should run on
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    // Always run for API routes
-    '/(api|trpc)(.*)',
+    // Match all routes except for static files, api, favicon, etc.
+    '/((?!api|_next/static|_next/image|favicon.ico|static).*)',
   ],
-}
+};
