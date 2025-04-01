@@ -1,11 +1,21 @@
 // lib/better-auth.ts
-import { betterAuth as BetterAuth, BetterAuthOptions } from 'better-auth'
+import { betterAuth } from 'better-auth'  // Assuming this is the correct import
 
 // API Base URL for your NestJS backend
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
 // Initialize better-auth with configuration
-export const auth = new BetterAuth({
+export const {
+  useAuth,
+  useUser,
+  useSignIn,
+  useSignUp,
+  useSignOut,
+  useRefreshToken,
+  useIsAuthenticated,
+  useFetch,
+  AuthProvider
+} = betterAuth({
   baseURL: API_URL,
   endpoints: {
     // Auth endpoints
@@ -51,18 +61,3 @@ export const auth = new BetterAuth({
     },
   },
 })
-
-// Export auth hooks for easy access
-export const {
-  useAuth,
-  useUser,
-  useSignIn,
-  useSignUp,
-  useSignOut,
-  useRefreshToken,
-  useIsAuthenticated,
-  useAuthFetch,
-} = auth.hooks
-
-// Export auth provider for wrapping the application
-export const AuthProvider = auth.Provider
