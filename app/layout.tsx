@@ -1,37 +1,35 @@
+// app/layout.tsx
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { GeistSans } from "geist/font/sans";
 import type { Metadata } from "next";
 import "./globals.css";
-import { AuthTokenSync } from "@/lib/auth-sync";
-import { AuthProvider } from "@/providers/auth-provider";
+import { AuthProvider } from "@/lib/auth-client";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://nextstarter.xyz/"),
+  metadataBase: new URL("https://property-manager.co.ke/"),
   title: {
-    default: 'Next Starter',
-    template: `%s | Next Starter`
+    default: 'Kenya Property Manager',
+    template: `%s | Kenya Property Manager`
   },
   description:
-    "The Ultimate Nextjs 15 Starter Kit for quickly building your SaaS, giving you time to focus on what really matters",
+    "Property management system for Kenyan landlords, caretakers, and agents. Manage properties, tenants, and payments with ease.",
   openGraph: {
     description:
-      "The Ultimate Nextjs 15 Starter Kit for quickly building your SaaS, giving you time to focus on what really matters",
+      "Property management system for Kenyan landlords, caretakers, and agents. Manage properties, tenants, and payments with ease.",
     images: [
-      "https://dwdwn8b5ye.ufs.sh/f/MD2AM9SEY8GucGJl7b5qyE7FjNDKYduLOG2QHWh3f5RgSi0c",
+      "/images/og-image.png",
     ],
-    url: "https://nextstarter.xyz/",
+    url: "https://property-manager.co.ke/",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Nextjs Starter Kit",
+    title: "Kenya Property Manager",
     description:
-      "The Ultimate Nextjs 15 Starter Kit for quickly building your SaaS, giving you time to focus on what really matters",
-    siteId: "",
-    creator: "@rasmickyy",
-    creatorId: "",
+      "Property management system for Kenyan landlords, caretakers, and agents. Manage properties, tenants, and payments with ease.",
+    creator: "@kenyapropertymanager",
     images: [
-      "https://dwdwn8b5ye.ufs.sh/f/MD2AM9SEY8GucGJl7b5qyE7FjNDKYduLOG2QHWh3f5RgSi0c",
+      "/images/twitter-image.png",
     ],
   },
 };
@@ -45,16 +43,18 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={GeistSans.className}>
         <AuthProvider>
-          {/* Component to sync localStorage auth tokens with cookies for SSR */}
-          <AuthTokenSync />
-          
           <ThemeProvider
             attribute="class"
-            defaultTheme="dark"
+            defaultTheme="system"
             enableSystem
             disableTransitionOnChange
           >
-            {children}
+            <div className="relative min-h-screen flex flex-col">
+              {/* <MainNavigation /> */}
+              <main className="flex-1">
+                {children}
+              </main>
+            </div>
             <Toaster />
           </ThemeProvider>
         </AuthProvider>

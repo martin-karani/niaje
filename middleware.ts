@@ -2,45 +2,64 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// Function to check if a route is protected
-const isProtectedRoute = (pathname: string): boolean => {
-  return pathname.startsWith('/dashboard');
-};
+// Define which routes require authentication
+const PROTECTED_ROUTES = ['/dashboard']; // Add any other protected route prefixes
 
-// Function to check if route is authentication related
-const isAuthRoute = (pathname: string): boolean => {
-  return pathname === '/sign-in' || pathname === '/sign-up';
-};
+// Define authentication routes (login, signup)
+const AUTH_ROUTES = ['/sign-in', '/sign-up'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
-  // Get access token from cookies if available
-  // Note: In our implementation, we're using localStorage for tokens in the client
-  // but for SSR/middleware, we need to use cookies
-  const accessToken = request.cookies.get('accessToken')?.value;
 
-  // Check if we're trying to access a protected route without being authenticated
-  if (isProtectedRoute(pathname) && !accessToken) {
-    // Redirect to login page with a return_to parameter
-    const url = new URL('/sign-in', request.url);
-    url.searchParams.set('return_to', pathname);
-    return NextResponse.redirect(url);
+  // Check if the route is protected
+  const isProtectedRoute = PROTECTED_ROUTES.some((prefix) =>
+    pathname.startsWith(prefix)
+  );
+  // Check if the route is an authentication route
+  const isAuthRoute = AUTH_ROUTES.includes(pathname);
+
+  // Attempt to get the access token cookie (set by AuthTokenSync)
+  const accessTokenCookie = request.cookies.get('accessToken'); // Use the same name as in AuthTokenSync
+
+  // --- Protection Logic ---
+
+  // 1. If accessing a protected route AND no access token cookie exists:
+  //    Redirect to the login page, preserving the intended destination.
+  if (isProtectedRoute && !accessTokenCookie) {
+    const loginUrl = new URL('/sign-in', request.url);
+    loginUrl.searchParams.set('redirect', pathname); // Pass intended path
+    console.log(`Middleware: No token for protected route ${pathname}, redirecting to login.`);
+    return NextResponse.redirect(loginUrl);
   }
 
-  // Check if we're trying to access auth pages while already authenticated
-  if (isAuthRoute(pathname) && accessToken) {
-    // Redirect to dashboard if already logged in
+  // 2. If accessing an auth route (login/signup) AND an access token cookie *does* exist:
+  //    Redirect authenticated users away from login/signup pages to the dashboard.
+  if (isAuthRoute && accessTokenCookie) {
+    console.log(`Middleware: Authenticated user accessing ${pathname}, redirecting to dashboard.`);
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
+  // --- Allow Request ---
+  // If none of the above conditions are met, allow the request to proceed.
   return NextResponse.next();
 }
 
-// Specify which routes this middleware should run on
+// Configuration: Apply middleware to specified paths
 export const config = {
   matcher: [
-    // Match all routes except for static files, api, favicon, etc.
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - static (custom static assets folder if you have one)
+     */
     '/((?!api|_next/static|_next/image|favicon.ico|static).*)',
+    // Include specific pages if needed, but the negative lookahead above is often sufficient
+    // '/dashboard/:path*',
+    // '/settings',
+    // '/sign-in',
+    // '/sign-up',
   ],
 };
