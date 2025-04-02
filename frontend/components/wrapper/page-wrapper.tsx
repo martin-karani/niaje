@@ -1,11 +1,10 @@
 "use client"
-import { useIsAuthenticated } from '@/lib/better-auth';
+
 import Footer from './footer';
 import NavBar from './navbar';
 
 export default function PageWrapper({ children }: { children: React.ReactNode }) {
-  // Use the isAuthenticated hook from better-auth instead of Convex
-  const isAuthenticated = useIsAuthenticated();
+
 
   return (
     <>

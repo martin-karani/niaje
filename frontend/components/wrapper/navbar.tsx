@@ -21,8 +21,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "../ui/sheet";
-import { useAuth } from "@/lib/better-auth";
 import UserProfilePage from "../user-profile";
+import { useAuth } from "@/providers/auth-provider";
 
 const components: { title: string; href: string; description: string }[] = [
   {
@@ -43,7 +43,8 @@ const components: { title: string; href: string; description: string }[] = [
 ];
 
 export default function NavBar() {
-  const { userId } = useAuth();
+  const { user } = useAuth();
+
 
   return (
     <motion.div
@@ -129,7 +130,7 @@ export default function NavBar() {
                   </Link>
                 </div>
 
-                {!userId && (
+                {!user && (
                   <div className="px-2 py-4 border-t mt-auto">
                     <Link href="/sign-in" prefetch={true}>
                       <Button className="w-full bg-blue-600 hover:bg-blue-500">
@@ -197,7 +198,7 @@ export default function NavBar() {
         {/* Right Side */}
         <div className="flex items-center gap-2">
           <ModeToggle />
-          {!userId && (
+          {!user && (
             <Link href="/sign-in" prefetch={true}>
               <Button
                 variant="default"
@@ -207,7 +208,7 @@ export default function NavBar() {
               </Button>
             </Link>
           )}
-          {userId && <UserProfilePage />}
+          {user && <UserProfilePage />}
         </div>
       </div>
     </motion.div>

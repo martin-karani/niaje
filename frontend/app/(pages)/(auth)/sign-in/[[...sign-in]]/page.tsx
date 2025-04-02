@@ -14,7 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 export default function SignInPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, isLoading, error, clearError, user } = useAuth();
+  const { login, clearError, isLoading, error, user } = useAuth();
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

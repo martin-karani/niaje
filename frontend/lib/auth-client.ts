@@ -1,10 +1,10 @@
-"use client";
-
 import { createAuthClient } from "better-auth/react";
 
-export const authClient = createAuthClient({
+export const { signIn, signOut, signUp, useSession, getSession} = createAuthClient({
   // Base URL for API requests - should match what's in auth.ts
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
+  baseURL: process.env.PUBLIC_API_URL || 'http://localhost:3001',
+
+  credentials: 'include',
   
   // Define the specific endpoints
   endpoints: {
@@ -29,7 +29,11 @@ export const authClient = createAuthClient({
       name: 'refreshToken',
     },
   },
-  
+  email: {
+    verificationRequired: true,
+    verificationEndpoint: '/auth/verify-email',
+    verificationSuccessRedirect: '/dashboard',
+  },
   // Options configuration
   options: {
     redirects: {
@@ -49,16 +53,3 @@ export const authClient = createAuthClient({
     },
   },
 });
-
-// Export hooks from better-auth
-export const {
-  useAuth,
-  useUser,
-  useSignIn,
-  useSignUp,
-  useSignOut,
-  useRefreshToken,
-  useIsAuthenticated,
-  useFetch,
-  AuthProvider,
-} = authClient;

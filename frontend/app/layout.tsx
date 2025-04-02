@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { GeistSans } from "geist/font/sans";
 import type { Metadata } from "next";
 import "./globals.css";
-import { AuthProvider } from "@/lib/auth-client";
+import { AuthProvider } from "@/providers/auth-provider";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://property-manager.co.ke/"),
