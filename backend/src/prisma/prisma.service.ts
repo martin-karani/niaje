@@ -32,10 +32,8 @@ export class PrismaService
     // Add models to truncate here
     const models = ['Token', 'Session', 'Property', 'User'];
 
-    // Disable foreign key checks and truncate tables
     return Promise.all(
       models.map(async (model) => {
-        // @ts-ignore - Dynamically access model
         return this[model[0].toLowerCase() + model.slice(1)].deleteMany();
       }),
     );

@@ -4,9 +4,8 @@ import { AuthGuard } from './guards/auth-guard'; // Assuming you have this guard
 import { CurrentUser } from './decorators/current-user.decorator'; // Assuming decorator exists
 import { User } from '@prisma/client';
 
-@Controller('auth') // Base path /api/auth handled by middleware
+@Controller('auth')
 export class AuthController {
-  // Inject AuthService if needed for custom endpoints, otherwise remove
   constructor(private readonly authService: AuthService) {}
 
   // Example custom endpoint: Get simplified session status

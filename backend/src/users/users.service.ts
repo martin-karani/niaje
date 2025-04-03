@@ -6,8 +6,6 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { User, UserRole, Account } from '@prisma/client';
-// Remove PrismaAuthAdapter dependency
-// import { PrismaAuthAdapter } from '../auth/config/prisma-adapter';
 
 @Injectable()
 export class UsersService {

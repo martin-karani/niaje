@@ -17,10 +17,12 @@ export class AuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<Request>();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const request = context.switchToHttp().getRequest();
 
     try {
       // Get session from Better Auth using fromNodeHeaders
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
       const session = await this.auth.api.getSession({
         headers: fromNodeHeaders(request.headers), // Use fromNodeHeaders here
       });

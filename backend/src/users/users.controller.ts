@@ -2,12 +2,9 @@ import {
   Controller,
   Get,
   Post,
-  Put,
   Body,
   Param,
   UseGuards,
-  BadRequestException,
-  NotFoundException,
   ForbiddenException,
   HttpCode,
   HttpStatus,
@@ -18,53 +15,11 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User, UserRole } from '@prisma/client';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { AuthGuard } from '../auth/guards/auth-guard'; // Corrected path
+import { AdminCreateUserDto } from './dto/create-user.dto';
+import { UpdateUserProfileDto } from './dto/update-user.dto';
 
-import {
-  IsEmail,
-  IsString,
-  IsOptional,
-  IsEnum,
-  MinLength,
-} from 'class-validator';
-
-// --- DTOs ---
-// Define DTOs here or in separate files (e.g., src/users/dto/)
-
-export class AdminCreateUserDto {
-  @IsEmail()
-  email: string;
-
-  @IsString()
-  @MinLength(2)
-  name: string;
-
-  @IsEnum(UserRole)
-  @IsOptional()
-  role?: UserRole;
-
-  @IsString()
-  @IsOptional()
-  phone?: string;
-
-  @IsString()
-  @IsOptional()
-  address?: string;
-
-  @IsString()
-  @IsOptional()
-  city?: string;
-
-  @IsString()
-  @IsOptional()
-  country?: string;
-}
-
-// --- Controller ---
-
-@ApiTags('Users') // Optional: For Swagger documentation
-@ApiBearerAuth() // Optional: Indicates bearer token auth (JWT/Session)
 @Controller('users')
-@UseGuards(AuthGuard) // Apply AuthGuard globally to this controller
+@UseGuards(AuthGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
@@ -134,14 +89,6 @@ export class UsersController {
   @Post()
   @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a new user (Admin only)' })
-  @ApiBody({ type: AdminCreateUserDto })
-  @ApiResponse({ status: 201, description: 'User created successfully.' })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad request (e.g., email exists).',
-  })
-  @ApiResponse({ status: 403, description: 'Forbidden.' })
   async createUser(@Body() userData: AdminCreateUserDto) {
     // Use the DTO
     // Service method is now adminCreateUser and doesn't handle password
