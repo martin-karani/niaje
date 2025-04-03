@@ -2,8 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { PrismaAuthAdapter } from './config/prisma-adapter';
 import { PrismaService } from '../prisma/prisma.service';
 import { User, UserRole } from '@prisma/client';
-import { CreateAuthDto } from './dto/create-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
+import { fromNodeHeaders } from 'better-auth/node';
 
 @Injectable()
 export class AuthService {
@@ -16,7 +15,10 @@ export class AuthService {
   // Validate if a user session exists
   async validateSession(headers: any) {
     try {
-      const session = await this.auth.api.getSession({ headers });
+      const session = await this.auth.api.getSession({
+        headers: fromNodeHeaders(headers),
+      });
+
       return session;
     } catch (error) {
       return null;
@@ -96,35 +98,5 @@ export class AuthService {
       where: { id },
       data: updateData,
     });
-  }
-
-  // Create a new auth record - implement to match controller
-  async create(createAuthDto: CreateAuthDto) {
-    // This could be a placeholder or implement actual functionality
-    return { message: 'Auth record created', data: createAuthDto };
-  }
-
-  // Find all auth records - implement to match controller
-  async findAll() {
-    // This could return a list of users or auth records
-    return { message: 'List of auth records' };
-  }
-
-  // Find one auth record by ID - implement to match controller
-  async findOne(id: number) {
-    // This could return a specific user or auth record
-    return { message: `Auth record with ID: ${id}` };
-  }
-
-  // Update an auth record - implement to match controller
-  async update(id: number, updateAuthDto: UpdateAuthDto) {
-    // This could update a specific user or auth record
-    return { message: `Auth record ${id} updated`, data: updateAuthDto };
-  }
-
-  // Remove an auth record - implement to match controller
-  async remove(id: number) {
-    // This could delete a specific user or auth record
-    return { message: `Auth record ${id} removed` };
   }
 }
