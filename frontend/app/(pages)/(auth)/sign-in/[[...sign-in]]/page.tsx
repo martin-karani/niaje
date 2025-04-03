@@ -1,7 +1,14 @@
-"use client"
+"use client";
 import PageWrapper from "@/components/wrapper/page-wrapper";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
@@ -15,15 +22,15 @@ export default function SignInPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login, clearError, isLoading, error, user } = useAuth();
-  
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   // Redirect to return_to path or dashboard if already authenticated
   useEffect(() => {
     if (user) {
-      const returnTo = searchParams.get('return_to');
-      router.push(returnTo || '/dashboard');
+      const returnTo = searchParams.get("return_to");
+      router.push(returnTo || "/dashboard");
     }
   }, [user, router, searchParams]);
 
@@ -45,20 +52,18 @@ export default function SignInPage() {
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
-              {error && (
+              {/* {error && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    {error}
-                  </AlertDescription>
+                  <AlertDescription>{error}</AlertDescription>
                 </Alert>
-              )}
+              )} */}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="name@example.com" 
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -67,16 +72,16 @@ export default function SignInPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Password</Label>
-                  <Link 
-                    href="/forgot-password" 
+                  <Link
+                    href="/forgot-password"
                     className="text-sm text-primary hover:underline"
                   >
                     Forgot password?
                   </Link>
                 </div>
-                <Input 
-                  id="password" 
-                  type="password" 
+                <Input
+                  id="password"
+                  type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -84,19 +89,12 @@ export default function SignInPage() {
               </div>
             </CardContent>
             <CardFooter className="flex flex-col space-y-4">
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={isLoading}
-              >
+              <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Signing in..." : "Sign in"}
               </Button>
               <div className="text-center text-sm">
                 Don't have an account?{" "}
-                <Link 
-                  href="/sign-up" 
-                  className="text-primary hover:underline"
-                >
+                <Link href="/sign-up" className="text-primary hover:underline">
                   Sign up
                 </Link>
               </div>

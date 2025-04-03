@@ -5,7 +5,7 @@ import {
   Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { User, UserRole, Account } from '@prisma/client';
+import { User, UserRole } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
@@ -62,9 +62,9 @@ export class UsersService {
     const { password, role, isActive, emailVerified, email, ...updateData } =
       data;
     // Rename profileImage to image if schema was updated
-    if ('profileImage' in updateData && updateData.profileImage !== undefined) {
-      updateData.image = updateData.profileImage;
-      delete updateData.profileImage;
+    if ('image' in updateData && updateData.image !== undefined) {
+      updateData.image = updateData.image;
+      delete updateData.image;
     }
 
     try {

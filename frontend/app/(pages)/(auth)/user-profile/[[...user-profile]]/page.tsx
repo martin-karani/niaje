@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
-import { UserCircle2 } from "lucide-react";
+import { User, UserCircle2 } from "lucide-react";
 import { useAuth } from "@/providers/auth-provider";
 
 export function UserProfile() {
@@ -36,7 +36,7 @@ export function UserProfile() {
   const initials = user.name
     ? user.name
         .split(" ")
-        .map((n: any[]) => n[0])
+        .map((n: string) => n[0])
         .join("")
         .toUpperCase()
     : "U";
@@ -46,7 +46,7 @@ export function UserProfile() {
       <DropdownMenuTrigger className="focus:outline-none">
         <div className="flex items-center gap-2">
           <Avatar className="h-8 w-8">
-            <AvatarImage src="/avatars/user.jpg" alt={user.name || "User"} />
+            <AvatarImage src={user.image || ""} alt={user.name || "User"} />
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
           <span className="text-sm font-medium hidden md:inline-block">
@@ -58,15 +58,15 @@ export function UserProfile() {
         <DropdownMenuLabel>My Account</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link href="/user-profile">Profile</Link>
+          <Link href="/dashboard/profile">Profile</Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link href="/dashboard/settings">Settings</Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          className="text-destructive focus:text-destructive"
-          onClick={logout}
+          className="text-destructive focus:text-destructive cursor-pointer"
+          onClick={() => logout()}
         >
           Sign out
         </DropdownMenuItem>

@@ -8,28 +8,24 @@ import {
   ForbiddenException,
   HttpCode,
   HttpStatus,
-  Patch, // Use Patch for partial updates often
+  Patch,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { User, UserRole } from '@prisma/client';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { AuthGuard } from '../auth/guards/auth-guard'; // Corrected path
+import { Roles } from '../common/decorators/roles.decorator';
 import { AdminCreateUserDto } from './dto/create-user.dto';
 import { UpdateUserProfileDto } from './dto/update-user.dto';
+import { BetterGuard } from 'src/common/guards/auth-guard';
 
 @Controller('users')
-@UseGuards(AuthGuard)
+@UseGuards(BetterGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   // Get the authenticated user's own profile
   @Get('me')
   async getOwnProfile(@CurrentUser() user: User) {
-    // User object from AuthGuard is attached by CurrentUser decorator
-    if (!user) {
-      throw new UnauthorizedException(); // Should be caught by AuthGuard ideally
-    }
     return this.usersService.getUserProfile(user.id);
   }
 
@@ -39,9 +35,6 @@ export class UsersController {
     @CurrentUser() user: User,
     @Body() updateData: UpdateUserProfileDto, // Use the DTO
   ) {
-    if (!user) {
-      throw new UnauthorizedException();
-    }
     // Pass only the DTO data to the service
     return this.usersService.updateUserProfile(user.id, updateData);
   }
