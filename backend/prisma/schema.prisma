@@ -1,3 +1,6 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,7 +10,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Enum for user roles
+// Enum for user roles (Keep this if used outside of better-auth relations)
 enum UserRole {
   LANDLORD
   CARETAKER
@@ -15,87 +18,138 @@ enum UserRole {
   ADMIN
 }
 
-// Main user model
+// --- User Model (Aligned with better-auth) ---
 model User {
-  id                String    @id @default(uuid())
-  email             String    @unique
-  password          String    // Hashed password
-  name              String
-  phone             String?
-  role              UserRole  @default(LANDLORD)
-  isActive          Boolean   @default(true)
-  emailVerified     Boolean   @default(false)
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  id            String   @id @default(cuid()) // Use cuid() or uuid()
+  email         String   @unique
+  name          String
+  emailVerified Boolean  @default(false) // Corresponds to better-auth: emailVerified (boolean)
+  image         String? // Corresponds to better-auth: image (string?). Renamed from profileImage for clarity.
+  password      String? // Password might be stored in Account model for email/password provider
 
-  // Profile related fields
-  profileImage      String?
-  address           String?
-  city              String?
-  country           String?
-  bio               String?
+  // Your application-specific fields
+  phone         String?
+  role          UserRole @default(LANDLORD)
+  isActive      Boolean  @default(true)
+  address       String?
+  city          String?
+  country       String?
+  bio           String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // Relationships
-  tokens            Token[]
-  propertiesOwned   Property[]           @relation("PropertyOwner")
-  propertiesManaged Property[]           @relation("PropertyCaretaker")
-  propertiesAgented Property[]           @relation("PropertyAgent")
-  
-  @@map("users")
+  propertiesOwned   Property[] @relation("PropertyOwner")
+  propertiesManaged Property[] @relation("PropertyCaretaker")
+  propertiesAgented Property[] @relation("PropertyAgent")
+
+  // --- Relationships required by better-auth ---
+  sessions      Session[]
+  accounts      Account[]
+  verifications Verification[] // Changed from tokens
+
+  @@map("users") // Configure modelName: "users" in better-auth
 }
 
-// Token model for refresh tokens, password reset, etc.
-model Token {
-  id          String    @id @default(uuid())
-  token       String    @unique
-  type        TokenType
-  expires     DateTime
-  createdAt   DateTime  @default(now())
-  
-  // Relations
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@map("tokens")
+// --- Session Model (Aligned with better-auth) ---
+model Session {
+  id        String   @id @default(cuid()) // Corresponds to better-auth: id (string, PK)
+  userId    String // Corresponds to better-auth: userId (string, FK)
+  expiresAt DateTime // Corresponds to better-auth: expiresAt (Date)
+  token     String   @unique // Added based on config and adapter usage
+
+  // Optional fields from better-auth docs
+  ipAddress String? // Corresponds to better-auth: ipAddress (string?)
+  userAgent String? // Corresponds to better-auth: userAgent (string?)
+
+  // Timestamps
+  createdAt DateTime @default(now()) // Corresponds to better-auth: createdAt (Date)
+  updatedAt DateTime @updatedAt // Corresponds to better-auth: updatedAt (Date)
+
+  // Custom data field
+  data      Json?
+
+  // Relation to User
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions") // Configure modelName: "sessions" in better-auth
 }
 
-// Token types
-enum TokenType {
-  REFRESH
-  RESET_PASSWORD
-  VERIFY_EMAIL
+// --- Account Model (Required by better-auth) ---
+model Account {
+  id        String @id @default(cuid()) // Corresponds to better-auth: id (string, PK)
+  userId    String // Corresponds to better-auth: userId (string, FK)
+
+  // Provider info
+  providerId           String // Corresponds to better-auth: providerId (string) - e.g., 'google', 'github', 'emailpassword'
+  accountId            String // Corresponds to better-auth: accountId (string) - Provider's unique ID for the user or userId for credentials
+
+  // OAuth fields
+  accessToken          String? // Corresponds to better-auth: accessToken (string?)
+  refreshToken         String? // Corresponds to better-auth: refreshToken (string?)
+  accessTokenExpiresAt DateTime? // Corresponds to better-auth: accessTokenExpiresAt (Date?)
+  refreshTokenExpiresAt DateTime? // Corresponds to better-auth: refreshTokenExpiresAt (Date?)
+  scope                String? // Corresponds to better-auth: scope (string?)
+  idToken              String? // Corresponds to better-auth: idToken (string?)
+
+  // Credential field (for email/password)
+  password             String? // Corresponds to better-auth: password (string?)
+
+  // Timestamps
+  createdAt            DateTime @default(now()) // Corresponds to better-auth: createdAt (Date)
+  updatedAt            DateTime @updatedAt // Corresponds to better-auth: updatedAt (Date)
+
+  // Relation to User
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Ensure unique combination of provider and account ID
+  @@unique([providerId, accountId])
+  @@map("accounts") // Configure modelName: "accounts" in better-auth (or let it default)
 }
 
-// Property model (basic structure, expand as needed)
+// --- Verification Model (Replaces Token, Aligned with better-auth) ---
+model Verification {
+  id         String   @id @default(cuid()) // Corresponds to better-auth: id (string, PK)
+  identifier String // Corresponds to better-auth: identifier (string) - e.g., 'email', 'password-reset'
+  value      String   @unique // Corresponds to better-auth: value (string) - The actual token/code
+  expiresAt  DateTime // Corresponds to better-auth: expiresAt (Date)
+
+  // Timestamps
+  createdAt  DateTime @default(now()) // Corresponds to better-auth: createdAt (Date)
+  updatedAt  DateTime @updatedAt // Corresponds to better-auth: updatedAt (Date)
+
+  // Relation (Optional but good practice: which user is this verification for?)
+   userId     String? // Make optional if identifier/value is globally unique
+   user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+
+  // Index for faster lookups
+  @@index([identifier, value])
+  @@map("verifications") // Configure modelName: "verifications" in better-auth
+}
+
+// --- Property Model (Your application-specific model) ---
 model Property {
-  id              String    @id @default(uuid())
-  name            String
-  address         String
-  type            String    // Apartment, House, Commercial, etc.
-  description     String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id            String   @id @default(uuid())
+  name          String
+  address       String
+  type          String // Apartment, House, Commercial, etc.
+  description   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // Relationships
-  ownerId         String
-  owner           User      @relation("PropertyOwner", fields: [ownerId], references: [id])
-  
-  caretakerId     String?
-  caretaker       User?     @relation("PropertyCaretaker", fields: [caretakerId], references: [id])
-  
-  agentId         String?
-  agent           User?     @relation("PropertyAgent", fields: [agentId], references: [id])
-  
+  ownerId       String
+  owner         User     @relation("PropertyOwner", fields: [ownerId], references: [id])
+
+  caretakerId   String?
+  caretaker     User?    @relation("PropertyCaretaker", fields: [caretakerId], references: [id])
+
+  agentId       String?
+  agent         User?    @relation("PropertyAgent", fields: [agentId], references: [id])
+
   @@map("properties")
 }
 
-// Session model for Better Auth integration
-model Session {
-  id          String    @id
-  userId      String
-  expiresAt   DateTime
-  createdAt   DateTime  @default(now())
-  data        Json?     // Additional session data
-  
-  @@map("sessions")
-}
+// Removed TokenType enum as Verification uses identifier (string)

@@ -1,209 +1,163 @@
-import { betterAuth } from 'better-auth';
-import { PrismaAuthAdapter } from './prisma-adapter';
-import { UserRole } from '@prisma/client';
+import { betterAuth, BetterAuthOptions } from 'better-auth';
+import { PrismaAuthAdapter } from './prisma-adapter'; // Assuming adapter is correctly imported
 
-// This function will create and return the auth instance
-export const createAuthInstance = (prismaAuthAdapter: PrismaAuthAdapter) => {
-  return betterAuth({
-    // App name
-    appName: process.env.APP_NAME || 'Property Management System',
+// Define this type based on your actual adapter structure if needed elsewhere
+export type AuthInstance = ReturnType<typeof betterAuth>;
 
-    baseURL: process.env.API_URL || 'http://localhost:3001/api',
+// You might need to get the secret and URL from environment variables
+const authSecret = process.env.AUTH_SECRET || 'better-auth-secret-123456789'; // Replace with your actual secret handling
+const baseUrl = process.env.BASE_URL || 'http://localhost:3000'; // Adjust as needed
 
-    basePath: '/auth',
+export function createAuthInstance(
+  prismaAuthAdapter: PrismaAuthAdapter,
+): AuthInstance {
+  const authOptions: BetterAuthOptions = {
+    // Basic Info
+    appName: 'Niaje Tech Platform',
+    baseURL: baseUrl,
+    basePath: '/api/auth', // Default, ensure it matches middleware logic
+    secret: authSecret,
 
-    secret:
-      process.env.JWT_SECRET || 'your-super-secret-key-change-in-production',
+    // --- Add Database Configuration ---
+    // This tells better-auth how to interpret your schema, even with an adapter
+    database: {
+      dialect: 'postgres', // Match your database
+      type: 'postgres', // Match your database
+      // casing: 'camel', // Optional: if your Prisma schema uses camelCase
+      // You might need to specify model names if they differ from defaults
+      // modelNames: {
+      //   user: 'users', // Matches your @@map("users")
+      //   session: 'sessions', // Matches your @@map("sessions")
+      //   account: 'accounts', // If you have an accounts table
+      //   verification: 'verifications', // If you use email verification/tokens stored in DB
+      // },
+    },
 
-    // Email and password authentication
+    // Adapter (You are providing this externally via injection, which is fine)
+    // The 'adapter' property here is usually for direct instantiation,
+    // keep it commented out if you inject PrismaAuthAdapter elsewhere like you do.
+    adapter: prismaAuthAdapter,
+
+    // Email & Password Provider
     emailAndPassword: {
       enabled: true,
+      requireEmailVerification: false, // Set as needed
       minPasswordLength: 8,
       maxPasswordLength: 128,
-      // Auto sign in after registration
       autoSignIn: true,
-      // Validate email and password
-      validate: async ({ email, password }) => {
-        if (!email || !password) {
-          return {
-            valid: false,
-            error: 'Email and password are required',
-          };
-        }
-        return { valid: true };
+      sendResetPassword: async ({ user, url, token }) => {
+        // Implement your email sending logic here
+        console.log(
+          `Sending reset password email to ${user.email} with token ${token} and url ${url}`,
+        );
+        // Example: await emailService.sendPasswordReset(user.email, url);
       },
-      // Custom password handlers using bcrypt (handled by our adapter)
-      password: {
-        // These are implemented in the PrismaAuthAdapter
-        hash: async (password) => {
-          // Delegate to the adapter
-          const hashedUser = await prismaAuthAdapter.createUser({
-            email: 'temp@example.com', // Temporary email, never saved
-            password,
-            name: 'Temporary User',
-          });
-          return hashedUser.password;
-        },
-        verify: async ({ hash, password }) => {
-          return prismaAuthAdapter.verifyPassword(password, hash);
-        },
-      },
+      resetPasswordTokenExpiresIn: 3600, // 1 hour
+      // Remove the unsupported 'validate' property
+      // Custom password hashing/verification can be provided if needed,
+      // otherwise better-auth uses defaults or expects the adapter to handle it.
+      // password: {
+      //   hash: async (password) => prismaAuthAdapter.hashPassword(password), // Example if adapter has hash method
+      //   verify: async ({ hash, password }) => prismaAuthAdapter.verifyPassword(password, hash), // Use adapter's verify
+      // }
     },
 
-    // Session configuration
-    session: {
-      // Database table name
-      modelName: 'session',
-      // Expiration time in seconds
-      expiresIn: 60 * 60 * 24 * 7, // 7 days
-      // Update age in seconds
-      updateAge: 60 * 60 * 24, // 1 day
-      // Fresh age for sensitive operations
-      freshAge: 60 * 60, // 1 hour
-    },
-
-    // User configuration
+    // User Configuration
     user: {
-      // Database table name
-      modelName: 'user',
-      // Additional user fields
+      modelName: 'users', // Matches your Prisma @@map
+      fields: {
+        // Map fields if your Prisma model uses different names than better-auth expects
+        // email: 'email', // default mapping
+        // name: 'name', // default mapping
+        // id: 'id', // default mapping
+      },
       additionalFields: {
-        role: {
-          type: 'string',
-          default: UserRole.LANDLORD,
-        },
-        phone: {
-          type: 'string',
-          optional: true,
-        },
-        profileImage: {
-          type: 'string',
-          optional: true,
-        },
-        address: {
-          type: 'string',
-          optional: true,
-        },
-        city: {
-          type: 'string',
-          optional: true,
-        },
-        country: {
-          type: 'string',
-          optional: true,
-        },
-        bio: {
-          type: 'string',
-          optional: true,
-        },
+        phone: { type: 'string', nullable: true }, // Use nullable instead of optional
+        role: { type: 'string', nullable: false }, // Default handled by Prisma schema, ensure nullable is false if required
+        isActive: { type: 'boolean', nullable: false }, // Default handled by Prisma schema
+        emailVerified: { type: 'boolean', nullable: false }, // Default handled by Prisma schema
+        profileImage: { type: 'string', nullable: true },
+        address: { type: 'string', nullable: true },
+        city: { type: 'string', nullable: true },
+        country: { type: 'string', nullable: true },
+        bio: { type: 'string', nullable: true },
       },
-      // User deletion configuration
-      deleteUser: {
+      // Email change and user deletion configs (adjust as needed)
+      changeEmail: { enabled: false },
+      deleteUser: { enabled: false },
+    },
+
+    // Session Configuration
+    session: {
+      modelName: 'sessions', // Matches your Prisma @@map
+      fields: {
+        // userId: 'userId', // default mapping
+      },
+      expiresIn: 604800, // 7 days
+      updateAge: 86400, // 1 day
+      storeSessionInDatabase: true, // Important if using DB for sessions
+      preserveSessionInDatabase: false, // Delete expired sessions from DB
+      cookieCache: {
         enabled: true,
-        beforeDelete: async (user) => {
-          // Add any cleanup logic here
-          console.log(`User ${user.id} is being deleted`);
-        },
+        maxAge: 300, // 5 minutes
       },
     },
 
-    // Verification configuration
+    // Verification (Tokens) Configuration
     verification: {
-      modelName: 'verification',
+      modelName: 'tokens', // Matches your Prisma @@map for tokens
+      fields: {
+        //  userId: 'userId', // default mapping
+      },
+      disableCleanup: false, // Clean up expired tokens
     },
 
-    // Advanced options
+    // Advanced Settings
     advanced: {
-      // Use secure cookies in production
-      useSecureCookies: process.env.NODE_ENV === 'production',
-
-      // Default cookie attributes
-      defaultCookieAttributes: {
-        sameSite: 'lax', // Use 'none' in production with HTTPS
-        secure: process.env.NODE_ENV === 'production',
-        domain: process.env.COOKIE_DOMAIN || undefined,
-        path: '/',
-        httpOnly: true,
-        maxAge: 60 * 60 * 24 * 7, // 7 days
-      },
-
-      // Cookie prefix
-      cookiePrefix: 'property-app',
+      useSecureCookies: process.env.NODE_ENV === 'production', // Use secure cookies in prod
+      // Add trusted origins if your frontend is on a different domain
+      // trustedOrigins: [process.env.FRONTEND_URL || 'http://localhost:3000'],
     },
 
-    // Trusted origins for CSRF protection
-    trustedOrigins: [process.env.FRONTEND_URL || 'http://localhost:3000'],
-
-    // Rate limiting configuration
-    rateLimit: {
-      enabled: process.env.NODE_ENV === 'production',
-      window: 60, // 1 minute
-      max: 100, // 100 requests per minute
-      customRules: {
-        // More strict rate limit for auth routes
-        '/auth/sign-in': { window: 60, max: 10 }, // 10 attempts per minute
-        '/auth/sign-up': { window: 60, max: 5 }, // 5 attempts per minute
-      },
-    },
-
-    // Hooks for authentication events
+    // Hooks - Commenting out unsupported hooks
     hooks: {
-      onSignUp: async ({ user, data }) => {
-        // You can modify the user object or perform additional actions
-        console.log(`User signed up: ${user.email}`);
-        return { user };
-      },
-
-      onSignIn: async ({ user }) => {
-        // Custom logic on sign in (logging, etc.)
-        console.log(`User signed in: ${user.email}`);
-        return { user };
-      },
+      // Use database hooks for specific actions like post-signup
+      // onSignUp: async ({ user, data }) => {
+      //   console.log(`User signed up: ${user.email}`);
+      //   // Perform actions after signup, e.g., create profile
+      // },
+      // onSignIn: async ({ user }) => {
+      //   console.log(`User signed in: ${user.email}`);
+      //   // Perform actions after signin
+      // },
     },
-
-    // Database hooks
+    // Database Hooks (if needed for specific actions before/after DB operations)
     databaseHooks: {
-      // User hooks
       user: {
         create: {
-          before: async (user, context) => {
-            // You can modify the user data before it's created
-            console.log(`Creating user: ${user.email}`);
-            return;
-          },
-          after: async (user, context) => {
-            // You can perform actions after a user is created
-            console.log(`User created: ${user.id}`);
-          },
-        },
-        update: {
-          before: async (userData, context) => {
-            // You can modify user update data
-            console.log(`Updating user: ${userData.id}`);
-            return;
-          },
-        },
-      },
-      // Session hooks
-      session: {
-        create: {
-          after: async (session, context) => {
-            // You can perform actions after a session is created
-            console.log(`Session created for user: ${session.userId}`);
+          after: async (user) => {
+            console.log(`User created via better-auth hook: ${user.email}`);
+            // Example: Initialize user profile or send welcome email
           },
         },
       },
     },
 
-    // Error handling
+    // Error Handling
     onAPIError: {
-      throw: false, // Don't throw errors in the API
+      throw: false, // Don't throw, let NestJS handle errors or handle in onError
       onError: (error, ctx) => {
-        console.error('Auth API error:', error);
+        console.error(`Better Auth API Error (${ctx?.path}):`, error.message);
+        // Add custom logging or error reporting
       },
+      errorURL: '/auth/error', // Redirect URL on error (client-side)
     },
-  });
-};
+  };
 
-// Export types for better TypeScript support
-export type Auth = ReturnType<typeof createAuthInstance>;
+  // Set the adapter on the options AFTER defining them
+  // This way, the database config is included for better-auth's internal logic,
+  // and the adapter handles the actual operations.
+  authOptions.adapter = prismaAuthAdapter;
+
+  return betterAuth(authOptions);
+}

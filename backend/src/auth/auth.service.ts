@@ -1,54 +1,62 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { PrismaAuthAdapter } from './config/prisma-adapter';
+import { Injectable, Inject, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { User, UserRole } from '@prisma/client';
-import { fromNodeHeaders } from 'better-auth/node';
+// Remove PrismaAuthAdapter dependency if not directly needed here
 
 @Injectable()
 export class AuthService {
   constructor(
-    @Inject('AUTH_INSTANCE') private auth: any,
-    private prismaAuthAdapter: PrismaAuthAdapter,
+    // Inject the configured better-auth instance
+    @Inject('AUTH_INSTANCE') private auth: any, // Consider defining a type for the auth instance
     private prisma: PrismaService,
   ) {}
 
-  // Validate if a user session exists
-  async validateSession(headers: any) {
+  async signOutSession(sessionToken: string): Promise<void> {
     try {
-      const session = await this.auth.api.getSession({
-        headers: fromNodeHeaders(headers),
-      });
-
-      return session;
+      await this.auth.api.signOut({ sessionToken });
     } catch (error) {
-      return null;
+      console.error('Error signing out session:', error);
     }
   }
 
-  // Get the auth instance
-  getAuthInstance() {
-    return this.auth;
+  // Example: Get current session info (useful for backend checks)
+  // Note: AuthGuard already does this for route protection
+  async getSessionFromHeaders(
+    headers: Record<string, string | string[] | undefined>,
+  ): Promise<any | null> {
+    try {
+      // Use the helper provided by better-auth
+      const { fromNodeHeaders } = await import('better-auth/node');
+      const session = await this.auth.api.getSession({
+        headers: fromNodeHeaders(headers),
+      });
+      return session;
+    } catch (error) {
+      // console.error("Failed to get session from headers:", error);
+      return null; // Return null if no session or error
+    }
   }
 
-  // Get user by ID with role-specific information
-  async getUserById(id: string) {
+  // --- Profile Management Methods (can stay here or move to UsersService) ---
+
+  // Get user profile data by ID (excluding sensitive info)
+  async getUserProfile(id: string): Promise<Partial<User> | null> {
     const user = await this.prisma.user.findUnique({
       where: { id },
       select: {
+        // Select only the fields needed for a profile view
         id: true,
-        email: true,
+        email: true, // May want to hide email depending on context
         name: true,
         role: true,
         phone: true,
-        profileImage: true,
+        image: true, // Use 'image' field from updated schema
         address: true,
         city: true,
         country: true,
         bio: true,
-        isActive: true,
-        emailVerified: true,
         createdAt: true,
-        updatedAt: true,
+        // Exclude isActive, emailVerified unless needed for profile display
       },
     });
 
@@ -56,47 +64,56 @@ export class AuthService {
       return null;
     }
 
-    // Depending on the user role, get additional information
-    let additionalInfo = {};
+    // Add role-specific counts if needed, similar to previous version
+    // ...
 
-    switch (user.role) {
-      case UserRole.LANDLORD:
-        additionalInfo = {
-          propertiesOwned: await this.prisma.property.count({
-            where: { ownerId: user.id },
-          }),
-        };
-        break;
-      case UserRole.CARETAKER:
-        additionalInfo = {
-          propertiesManaged: await this.prisma.property.count({
-            where: { caretakerId: user.id },
-          }),
-        };
-        break;
-      case UserRole.AGENT:
-        additionalInfo = {
-          propertiesAgented: await this.prisma.property.count({
-            where: { agentId: user.id },
-          }),
-        };
-        break;
+    return user;
+  }
+
+  // Update user profile (non-sensitive fields)
+  async updateUserProfile(
+    id: string,
+    data: Partial<User>,
+  ): Promise<Partial<User> | null> {
+    // Ensure sensitive fields are not updated through this method
+    const { password, role, isActive, emailVerified, email, ...updateData } =
+      data;
+
+    // Rename profileImage to image if schema was updated
+    if ('profileImage' in updateData && updateData.profileImage !== undefined) {
+      updateData.image = updateData.profileImage;
+      delete updateData.profileImage;
     }
 
-    return {
-      ...user,
-      ...additionalInfo,
-    };
+    try {
+      const updatedUser = await this.prisma.user.update({
+        where: { id },
+        data: updateData,
+        select: {
+          // Return updated profile fields
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          phone: true,
+          image: true,
+          address: true,
+          city: true,
+          country: true,
+          bio: true,
+          createdAt: true,
+        },
+      });
+      return updatedUser;
+    } catch (error) {
+      console.error('Error updating user profile:', error);
+      // Handle specific errors like Prisma record not found
+      return null;
+    }
   }
 
-  // Update user profile
-  async updateUserProfile(id: string, data: Partial<User>) {
-    // Prevent updating sensitive fields
-    const { password, role, isActive, emailVerified, ...updateData } = data;
-
-    return this.prisma.user.update({
-      where: { id },
-      data: updateData,
-    });
-  }
+  // --- Removed Methods ---
+  // validateSession: Handled by AuthGuard
+  // getAuthInstance: Can be kept or removed
+  // validateUser, createUser, password hashing/verification: Handled by better-auth and PrismaAuthAdapter
 }

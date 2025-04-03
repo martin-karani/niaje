@@ -1,34 +1,36 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { CreateAuthDto } from './dto/create-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
+import { AuthGuard } from './guards/auth-guard'; // Assuming you have this guard setup
+import { CurrentUser } from './decorators/current-user.decorator'; // Assuming decorator exists
+import { User } from '@prisma/client';
 
-@Controller('auth')
+@Controller('auth') // Base path /api/auth handled by middleware
 export class AuthController {
+  // Inject AuthService if needed for custom endpoints, otherwise remove
   constructor(private readonly authService: AuthService) {}
 
-  @Post()
-  create(@Body() createAuthDto: CreateAuthDto) {
-    return this.authService.create(createAuthDto);
+  // Example custom endpoint: Get simplified session status
+  // This complements better-auth's own /session endpoint
+  @Get('status')
+  @UseGuards(AuthGuard) // Protect the route
+  async getAuthStatus(@CurrentUser() user: User | null) {
+    if (user) {
+      // Return minimal user info if logged in
+      return { isAuthenticated: true, userId: user.id, role: user.role };
+    } else {
+      // Should not happen if AuthGuard is effective, but as fallback
+      return { isAuthenticated: false };
+    }
   }
 
-  @Get()
-  findAll() {
-    return this.authService.findAll();
+  // Example: Endpoint to manually trigger profile fetch (if needed separate from /users/me)
+  @Get('profile')
+  @UseGuards(AuthGuard)
+  async getProfile(@CurrentUser() user: User) {
+    // Delegate to AuthService or UsersService
+    return this.authService.getUserProfile(user.id);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.authService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateAuthDto: UpdateAuthDto) {
-    return this.authService.update(+id, updateAuthDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.authService.remove(+id);
-  }
+  // NOTE: Standard endpoints like /signin/email, /signup/email, /signout, /session
+  // are handled by the BetterAuthMiddleware and should NOT be redefined here.
 }

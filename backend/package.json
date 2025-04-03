@@ -34,6 +34,7 @@
     "bcrypt": "^5.1.1",
     "better-auth": "^1.2.5",
     "better-fetch": "^1.1.2",
+    "class-validator": "^0.14.1",
     "cookie-parser": "^1.4.7",
     "install": "^0.13.0",
     "jose": "^6.0.10",

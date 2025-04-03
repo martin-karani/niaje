@@ -7,52 +7,113 @@ import {
   Param,
   UseGuards,
   BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+  HttpCode,
+  HttpStatus,
+  Patch, // Use Patch for partial updates often
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User, UserRole } from '@prisma/client';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { AuthGuard } from 'src/auth/guards/auth-guard';
+import { AuthGuard } from '../auth/guards/auth-guard'; // Corrected path
 
+import {
+  IsEmail,
+  IsString,
+  IsOptional,
+  IsEnum,
+  MinLength,
+} from 'class-validator';
+
+// --- DTOs ---
+// Define DTOs here or in separate files (e.g., src/users/dto/)
+
+export class AdminCreateUserDto {
+  @IsEmail()
+  email: string;
+
+  @IsString()
+  @MinLength(2)
+  name: string;
+
+  @IsEnum(UserRole)
+  @IsOptional()
+  role?: UserRole;
+
+  @IsString()
+  @IsOptional()
+  phone?: string;
+
+  @IsString()
+  @IsOptional()
+  address?: string;
+
+  @IsString()
+  @IsOptional()
+  city?: string;
+
+  @IsString()
+  @IsOptional()
+  country?: string;
+}
+
+// --- Controller ---
+
+@ApiTags('Users') // Optional: For Swagger documentation
+@ApiBearerAuth() // Optional: Indicates bearer token auth (JWT/Session)
 @Controller('users')
+@UseGuards(AuthGuard) // Apply AuthGuard globally to this controller
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   // Get the authenticated user's own profile
   @Get('me')
-  @UseGuards(AuthGuard)
   async getOwnProfile(@CurrentUser() user: User) {
+    // User object from AuthGuard is attached by CurrentUser decorator
+    if (!user) {
+      throw new UnauthorizedException(); // Should be caught by AuthGuard ideally
+    }
     return this.usersService.getUserProfile(user.id);
   }
 
   // Update the authenticated user's own profile
-  @Put('me')
-  @UseGuards(AuthGuard)
+  @Patch('me') // Use PATCH for partial updates
   async updateOwnProfile(
     @CurrentUser() user: User,
-    @Body() updateData: Partial<User>,
+    @Body() updateData: UpdateUserProfileDto, // Use the DTO
   ) {
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+    // Pass only the DTO data to the service
     return this.usersService.updateUserProfile(user.id, updateData);
   }
 
+  // --- Admin Routes ---
+
   // Get all users (admin only)
   @Get()
-  @UseGuards(AuthGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN) // Apply role check
   async getAllUsers() {
     return this.usersService.getAllUsers();
   }
 
-  // Get a specific user by ID (admin, or users with appropriate role)
+  // Get a specific user by ID (admin, or landlord accessing related user)
   @Get(':id')
-  @UseGuards(AuthGuard)
   async getUserById(@Param('id') id: string, @CurrentUser() currentUser: User) {
-    // Check if user is requesting their own profile or has admin role
-    if (id === currentUser.id || currentUser.role === UserRole.ADMIN) {
+    // Check if requesting self
+    if (id === currentUser.id) {
       return this.usersService.getUserProfile(id);
     }
 
-    // For landlords, check if user is their caretaker or agent
+    // Allow admin access
+    if (currentUser.role === UserRole.ADMIN) {
+      return this.usersService.getUserProfile(id);
+    }
+
+    // Allow landlord to access their linked agents/caretakers
     if (currentUser.role === UserRole.LANDLORD) {
       const canAccess = await this.usersService.canLandlordAccessUser(
         currentUser.id,
@@ -63,16 +124,27 @@ export class UsersController {
       }
     }
 
-    throw new BadRequestException(
-      'You do not have permission to access this user',
+    // If none of the above, forbid access
+    throw new ForbiddenException(
+      'You do not have permission to access this user profile',
     );
   }
 
-  // Create a new user (admin only)
+  // Create a new user (admin only) - Note: This only creates the User record
   @Post()
-  @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN)
-  async createUser(@Body() userData: any) {
-    return this.usersService.createUser(userData);
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a new user (Admin only)' })
+  @ApiBody({ type: AdminCreateUserDto })
+  @ApiResponse({ status: 201, description: 'User created successfully.' })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request (e.g., email exists).',
+  })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  async createUser(@Body() userData: AdminCreateUserDto) {
+    // Use the DTO
+    // Service method is now adminCreateUser and doesn't handle password
+    return this.usersService.adminCreateUser(userData);
   }
 }
