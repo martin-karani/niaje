@@ -1,0 +1,101 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enum for user roles
+enum UserRole {
+  LANDLORD
+  CARETAKER
+  AGENT
+  ADMIN
+}
+
+// Main user model
+model User {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  password          String    // Hashed password
+  name              String
+  phone             String?
+  role              UserRole  @default(LANDLORD)
+  isActive          Boolean   @default(true)
+  emailVerified     Boolean   @default(false)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Profile related fields
+  profileImage      String?
+  address           String?
+  city              String?
+  country           String?
+  bio               String?
+
+  // Relationships
+  tokens            Token[]
+  propertiesOwned   Property[]           @relation("PropertyOwner")
+  propertiesManaged Property[]           @relation("PropertyCaretaker")
+  propertiesAgented Property[]           @relation("PropertyAgent")
+  
+  @@map("users")
+}
+
+// Token model for refresh tokens, password reset, etc.
+model Token {
+  id          String    @id @default(uuid())
+  token       String    @unique
+  type        TokenType
+  expires     DateTime
+  createdAt   DateTime  @default(now())
+  
+  // Relations
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("tokens")
+}
+
+// Token types
+enum TokenType {
+  REFRESH
+  RESET_PASSWORD
+  VERIFY_EMAIL
+}
+
+// Property model (basic structure, expand as needed)
+model Property {
+  id              String    @id @default(uuid())
+  name            String
+  address         String
+  type            String    // Apartment, House, Commercial, etc.
+  description     String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relationships
+  ownerId         String
+  owner           User      @relation("PropertyOwner", fields: [ownerId], references: [id])
+  
+  caretakerId     String?
+  caretaker       User?     @relation("PropertyCaretaker", fields: [caretakerId], references: [id])
+  
+  agentId         String?
+  agent           User?     @relation("PropertyAgent", fields: [agentId], references: [id])
+  
+  @@map("properties")
+}
+
+// Session model for Better Auth integration
+model Session {
+  id          String    @id
+  userId      String
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+  data        Json?     // Additional session data
+  
+  @@map("sessions")
+}
