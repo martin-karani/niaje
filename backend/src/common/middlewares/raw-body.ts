@@ -5,9 +5,7 @@ import * as express from 'express';
 @Injectable()
 export class RawBodyMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
-    // Check if the route matches the desired pattern
     if (req.baseUrl.startsWith('/api/auth')) {
-      // Skip JSON and URL-encoded body parsing for these routes
       next();
       return;
     }

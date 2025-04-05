@@ -28,7 +28,7 @@ export class UsersService {
         name: true,
         role: true,
         phone: true,
-        image: true, // Use 'image' field
+        image: true,
         address: true,
         city: true,
         country: true,
