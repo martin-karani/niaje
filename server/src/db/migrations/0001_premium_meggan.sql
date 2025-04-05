@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS "provider_account_idx";

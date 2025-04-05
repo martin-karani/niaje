@@ -1,0 +1,46 @@
+{
+  "name": "property-management-backend",
+  "version": "1.0.0",
+  "description": "Property management system API",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/db/migrate.ts",
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "tsx scripts/seed.ts",
+    "db:add-index": "tsx scripts/add-account-index.ts",
+    "setup:db": "npm run db:generate && npm run db:migrate && npm run db:add-index && npm run db:seed",
+    "reset:db": "bash scripts/reset-db.sh",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@trpc/server": "^11.0.2",
+    "bcrypt": "^5.1.1",
+    "better-auth": "^1.2.5",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.41.0",
+    "express": "^5.1.0",
+    "jose": "^6.0.10",
+    "nanoid": "^5.1.5",
+    "pg": "^8.14.1",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/cookie-parser": "^1.4.8",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.1",
+    "@types/pg": "^8.11.11",
+    "@typescript-eslint/eslint-plugin": "^7.0.1",
+    "@typescript-eslint/parser": "^7.0.1",
+    "drizzle-kit": "^0.30.6",
+    "eslint": "^8.56.0",
+    "tsx": "^4.7.1",
+    "typescript": "^5.3.3"
+  }
+}
