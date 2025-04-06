@@ -1,7 +1,7 @@
+import { getDb } from "@/db";
+import * as schema from "@/db/schema";
 import { betterAuth, BetterAuthOptions } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { getDb } from "../db";
-import * as schema from "../db/schema";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -43,15 +43,15 @@ const authOptions: BetterAuthOptions = {
   user: {
     fields: {},
     additionalFields: {
-      phone: { type: "string", nullable: true },
-      role: { type: "string", nullable: false },
-      isActive: { type: "boolean", nullable: false },
-      emailVerified: { type: "boolean", nullable: false },
-      image: { type: "string", nullable: true },
-      address: { type: "string", nullable: true },
-      city: { type: "string", nullable: true },
-      country: { type: "string", nullable: true },
-      bio: { type: "string", nullable: true },
+      phone: { type: "string", required: false },
+      role: { type: "string", required: true },
+      isActive: { type: "boolean", required: true },
+      emailVerified: { type: "boolean", required: true },
+      image: { type: "string", required: false },
+      address: { type: "string", required: false },
+      city: { type: "string", required: false },
+      country: { type: "string", required: false },
+      bio: { type: "string", required: false },
     },
     changeEmail: { enabled: false },
     deleteUser: { enabled: false },
@@ -70,7 +70,7 @@ const authOptions: BetterAuthOptions = {
 
   advanced: {
     useSecureCookies: process.env.NODE_ENV === "production",
-    trustedOrigins: [process.env.FRONTEND_URL || "http://localhost:3000"],
+    disableCSRFCheck: process.env.NODE_ENV !== "production",
   },
 
   databaseHooks: {

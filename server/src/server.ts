@@ -1,18 +1,19 @@
-import express from "express";
-import cors from "cors";
-import cookieParser from "cookie-parser";
-import dotenv from "dotenv";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { toNodeHandler } from "better-auth/node";
+import cookieParser from "cookie-parser";
+import cors from "cors";
+import dotenv from "dotenv";
+import express from "express";
 
-import { createContext } from "./trpc/context";
-import { appRouter } from "./trpc/routers";
-import { createBetterAuthMiddleware } from "./auth/middleware";
-import auth from "./auth/config";
+import auth from "@/auth/config";
+import { createBetterAuthMiddleware } from "@/auth/middleware";
+import { createContext } from "@/trpc/context";
+import { appRouter } from "@/trpc/routers";
 
 dotenv.config();
 
 const app = express();
+
 const PORT = process.env.PORT || 3001;
 
 app.use(

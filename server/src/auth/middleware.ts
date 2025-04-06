@@ -1,5 +1,5 @@
-import { Request, Response, NextFunction } from "express";
 import { fromNodeHeaders } from "better-auth/node";
+import { NextFunction, Request, Response } from "express";
 import { AuthInstance } from "./config";
 
 export function createBetterAuthMiddleware(auth: AuthInstance) {

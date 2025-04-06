@@ -1,7 +1,7 @@
+import { AuthInstance } from "@/auth/config";
+import { db } from "@/db";
 import { inferAsyncReturnType } from "@trpc/server";
 import { CreateExpressContextOptions } from "@trpc/server/adapters/express";
-import { AuthInstance } from "../auth/config";
-import { db } from "../db";
 import { fromNodeHeaders } from "better-auth/node";
 
 // Create context for tRPC requests

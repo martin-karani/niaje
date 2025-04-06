@@ -1,6 +1,6 @@
 import { router } from "../index";
-import { usersRouter } from "./users";
 import { propertiesRouter } from "./properties";
+import { usersRouter } from "./users";
 
 // Create the root router by merging all sub-routers
 export const appRouter = router({

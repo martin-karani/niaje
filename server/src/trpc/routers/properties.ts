@@ -1,14 +1,13 @@
-// src/trpc/routers/properties.ts
-import { TRPCError } from "@trpc/server";
-import { eq, and, or, sql } from "drizzle-orm";
-import { router, publicProcedure } from "../index";
-import { protectedProcedure, landlordProcedure } from "../middleware";
-import { properties } from "../../db/schema";
+import { properties } from "@/db/schema";
 import {
-  propertyIdSchema,
   insertPropertySchema,
+  propertyIdSchema,
   updatePropertySchema,
-} from "../../db/schema/zod";
+} from "@/db/schema/zod";
+import { TRPCError } from "@trpc/server";
+import { and, eq, or, sql } from "drizzle-orm";
+import { router } from "../index";
+import { landlordProcedure, protectedProcedure } from "../middleware";
 
 // Create the properties router
 export const propertiesRouter = router({

@@ -1,8 +1,8 @@
 import * as bcrypt from "bcrypt";
 import dotenv from "dotenv";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "../src/db";
-import { users, accounts, properties } from "../src/db/schema";
+import { accounts, properties, users } from "../src/db/schema";
 import { createId } from "../src/db/utils";
 
 dotenv.config();

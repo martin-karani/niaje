@@ -1,13 +1,13 @@
-import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { eq, sql } from "drizzle-orm";
-import { router, publicProcedure } from "../index";
+import { z } from "zod";
+import { users } from "../../db/schema";
+import { router } from "../index";
 import {
-  protectedProcedure,
   adminProcedure,
   landlordProcedure,
+  protectedProcedure,
 } from "../middleware";
-import { users } from "../../db/schema";
 
 // Define input schemas for procedures
 const userProfileSchema = z.object({
