@@ -1,8 +1,7 @@
 import { pgTable, text, boolean, timestamp, pgEnum } from "drizzle-orm/pg-core";
 import { createId } from "../utils";
-import { relations } from "drizzle-orm";
+// import { relations } from "drizzle-orm";
 
-// Create enum for user roles
 export const userRoleEnum = pgEnum("user_role", [
   "LANDLORD",
   "CARETAKER",
@@ -28,26 +27,26 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Define relations for the users table
-export const usersRelations = relations(users, ({ many, one }) => ({
-  // One-to-many relations where user is an owner of properties
-  ownedProperties: many(/* properties table will be imported later */),
+// // Define relations for the users table
+// export const usersRelations = relations(users, ({ many, one }) => ({
+//   // One-to-many relations where user is an owner of properties
+//   ownedProperties: many(/* properties table will be imported later */),
 
-  // One-to-many relations where user is a caretaker of properties
-  managedProperties: many(/* properties table will be imported later */),
+//   // One-to-many relations where user is a caretaker of properties
+//   managedProperties: many(/* properties table will be imported later */),
 
-  // One-to-many relations where user is an agent for properties
-  representedProperties: many(/* properties table will be imported later */),
+//   // One-to-many relations where user is an agent for properties
+//   representedProperties: many(/* properties table will be imported later */),
 
-  // One-to-many relation with accounts
-  accounts: many(/* accounts table will be imported later */),
+//   // One-to-many relation with accounts
+//   accounts: many(/* accounts table will be imported later */),
 
-  // One-to-many relation with sessions
-  sessions: many(/* sessions table will be imported later */),
+//   // One-to-many relation with sessions
+//   sessions: many(/* sessions table will be imported later */),
 
-  // One-to-many relation with verifications
-  verifications: many(/* verifications table will be imported later */),
-}));
+//   // One-to-many relation with verifications
+//   verifications: many(/* verifications table will be imported later */),
+// }));
 
 // Types
 export type User = typeof users.$inferSelect;

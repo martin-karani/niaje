@@ -5,17 +5,15 @@ import dotenv from "dotenv";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { toNodeHandler } from "better-auth/node";
 
-import { getAuthInstance } from "./auth/config";
 import { createContext } from "./trpc/context";
 import { appRouter } from "./trpc/routers";
 import { createBetterAuthMiddleware } from "./auth/middleware";
+import auth from "./auth/config";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-
-const auth = getAuthInstance();
 
 app.use(
   cors({
@@ -29,7 +27,7 @@ app.use(cookieParser());
 
 // Mount better-auth handler for all /api/auth/* routes
 // IMPORTANT: Place this before express.json() middleware
-app.all("/api/auth/*", toNodeHandler(auth));
+app.all("/api/auth/*splat", toNodeHandler(auth));
 
 app.use(express.json());
 

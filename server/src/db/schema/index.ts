@@ -1,6 +1,6 @@
-import { users, usersRelations } from "./users";
-import { properties, propertiesRelations } from "./properties";
-import { accounts, accountsRelations } from "./accounts";
+import { users } from "./users";
+import { properties } from "./properties";
+import { accounts } from "./accounts";
 import { sessions } from "./sessions";
 import { verifications } from "./verifications";
 

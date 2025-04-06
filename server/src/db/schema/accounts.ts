@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import { createId } from "../utils";
 import { users } from "./users";
 import { relations } from "drizzle-orm";
@@ -11,8 +11,8 @@ export const accounts = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    providerId: text("provider_id").notNull(), // e.g., 'google', 'github', 'emailpassword'
-    accountId: text("account_id").notNull(), // Provider's unique ID for the user or userId for credentials
+    providerId: text("provider_id").notNull(),
+    accountId: text("account_id").notNull(),
     accessToken: text("access_token"),
     refreshToken: text("refresh_token"),
     accessTokenExpiresAt: timestamp("access_token_expires_at"),
@@ -25,14 +25,15 @@ export const accounts = pgTable(
   },
   (table) => {
     return {
-      providerAccountIdx: index("provider_account_idx")
-        .on(table.providerId, table.accountId)
-        .unique(),
+      // Use uniqueIndex instead of index().unique()
+      providerAccountIdx: uniqueIndex("provider_account_idx").on(
+        table.providerId,
+        table.accountId
+      ),
     };
   }
 );
 
-// Define relations for the accounts table
 export const accountsRelations = relations(accounts, ({ one }) => ({
   user: one(users, {
     fields: [accounts.userId],
@@ -40,6 +41,5 @@ export const accountsRelations = relations(accounts, ({ one }) => ({
   }),
 }));
 
-// Types
 export type Account = typeof accounts.$inferSelect;
 export type NewAccount = typeof accounts.$inferInsert;

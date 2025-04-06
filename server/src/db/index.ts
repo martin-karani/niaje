@@ -21,6 +21,12 @@ pool.on("error", (err) => {
   process.exit(-1);
 });
 
+// Create drizzle instance with more options
+export const db = drizzle(pool, {
+  schema,
+  logger: process.env.NODE_ENV !== "production",
+});
+
 export { schema };
 
 export const getDb = () => {
