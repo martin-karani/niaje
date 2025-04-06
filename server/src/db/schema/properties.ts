@@ -8,7 +8,7 @@ export const properties = pgTable("properties", {
   id: text("id").primaryKey().$defaultFn(createId),
   name: text("name").notNull(),
   address: text("address").notNull(),
-  type: text("type").notNull(), // Apartment, House, Commercial, etc.
+  type: text("type").notNull(),
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
