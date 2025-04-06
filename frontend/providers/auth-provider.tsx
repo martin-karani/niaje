@@ -1,17 +1,13 @@
 "use client";
 
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  useEffect,
-} from "react";
-import { signIn, signUp, signOut, useSession } from "@/lib/auth-client";
-import { useRouter } from "next/navigation";
+import { signIn, signOut, useSession } from "@/lib/auth-client";
+import { signUpWithEmail } from "@/lib/better-auth-client";
 import { User } from "better-auth/types";
+import { useRouter } from "next/navigation";
+import React, { createContext, useCallback, useContext, useState } from "react";
+import { toast } from "sonner";
 
-type UserRole = "LANDLORD" | "TENANT" | "ADMIN";
+type UserRole = "LANDLORD" | "CARETAKER" | "AGENT" | "ADMIN";
 
 interface AuthContextType {
   user: User | null;
@@ -34,6 +30,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { data: session, isPending, error: sessionError } = useSession();
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   // Login function
@@ -53,31 +50,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Register function
   const register = useCallback(
     async (
       name: string,
       email: string,
       password: string,
-      _role: UserRole = "LANDLORD"
+      role: UserRole = "LANDLORD"
     ) => {
       try {
         setError(null);
-        const result = await signUp.email({
+        setIsLoading(true);
+
+        const result = await signUpWithEmail({
           name,
           email,
           password,
-          // additionalData: { role },
+          role,
         });
 
         if (result.error) {
           setError(result.error.message || "Failed to create account");
+          toast.error(result.error.message || "Failed to create account");
+        } else {
+          // Registration successful
+          toast.success("Account created successfully");
+
+          // Automatically log in after registration
+          const loginResult = await signIn.email({
+            email,
+            password,
+          });
+
+          if (!loginResult.error) {
+            // Redirect to dashboard after successful registration and login
+            router.push("/dashboard");
+          }
         }
       } catch (err: any) {
         setError(err.message || "An error occurred during registration");
+        toast.error(err.message || "An error occurred during registration");
+      } finally {
+        setIsLoading(false);
       }
     },
-    []
+    [router]
   );
 
   // Logout function

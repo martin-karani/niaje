@@ -48,8 +48,8 @@ const authOptions: BetterAuthOptions = {
     additionalFields: {
       phone: { type: "string", required: false },
       role: { type: "string", required: true },
-      isActive: { type: "boolean", required: true },
-      emailVerified: { type: "boolean", required: true },
+      isActive: { type: "boolean", required: true, defaultValue: true },
+      emailVerified: { type: "boolean", required: true, defaultValue: false },
       image: { type: "string", required: false },
       address: { type: "string", required: false },
       city: { type: "string", required: false },
