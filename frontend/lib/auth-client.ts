@@ -9,7 +9,7 @@ export const { signIn, signUp, signOut, useSession, getSession } =
 
     // Define the specific endpoints
     endpoints: {
-      getSession: "/session",
+      getSession: "/get-session",
       signIn: "/signin/email",
       signUp: "/signup/email",
       signOut: "/signout",

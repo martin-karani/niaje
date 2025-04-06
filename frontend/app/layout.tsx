@@ -38,8 +38,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={GeistSans.className}>
-        <AuthProvider>
-          <TRPCProvider>
+        <TRPCProvider>
+          <AuthProvider>
             <ThemeProvider
               attribute="class"
               defaultTheme="system"
@@ -52,8 +52,8 @@ export default function RootLayout({
               </div>
               <Toaster />
             </ThemeProvider>
-          </TRPCProvider>
-        </AuthProvider>
+          </AuthProvider>
+        </TRPCProvider>
       </body>
     </html>
   );

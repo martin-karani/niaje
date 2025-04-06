@@ -2,14 +2,7 @@ import { httpBatchLink, loggerLink } from "@trpc/client";
 // import superjson from "superjson";
 
 export function getBaseUrl() {
-  if (typeof window !== "undefined") {
-    return "";
-  }
-  // SSR should use vercel url or localhost
-  if (process.env.PUBLIC_API_URL) {
-    return `https://${process.env.PUBLIC_API_URL}`;
-  }
-  return `http://localhost:${process.env.PORT ?? 3001}`;
+  return `http://localhost:3001`;
 }
 
 export function getUrl() {

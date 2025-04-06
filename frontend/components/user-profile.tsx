@@ -1,28 +1,34 @@
-"use client"
-import PageWrapper from "@/components/wrapper/page-wrapper";
+"use client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import PageWrapper from "@/components/wrapper/page-wrapper";
 import { useAuth } from "@/providers/auth-provider";
-import { useEffect, useState } from "react";
-import { apiClient } from "@/lib/api-client";
-import { useRouter } from "next/navigation";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function UserProfilePage() {
   const { user } = useAuth();
   const router = useRouter();
-  
+
   const [userProfile, setUserProfile] = useState({
     name: "",
     email: "",
     avatarUrl: "",
-    bio: ""
+    bio: "",
   });
-  
+
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
@@ -34,27 +40,14 @@ export default function UserProfilePage() {
         setIsLoading(false);
         return;
       }
-      
-      try {
-        const data = await apiClient.getUserProfile();
-        setUserProfile({
-          name: data.name || user.name || "",
-          email: data.email || user.email || "",
-          avatarUrl: data.avatarUrl || "",
-          bio: data.bio || ""
-        });
-      } catch (error) {
-        console.error("Error fetching user profile:", error);
-        setError("Failed to load user profile");
-      } finally {
-        setIsLoading(false);
-      }
     };
 
     fetchUserProfile();
   }, [user]);
 
-  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleProfileChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
     setUserProfile({ ...userProfile, [name]: value });
   };
@@ -66,10 +59,6 @@ export default function UserProfilePage() {
     setIsSaving(true);
 
     try {
-      await apiClient.updateUserProfile({
-        name: userProfile.name,
-        bio: userProfile.bio
-      });
       setSuccessMessage("Profile updated successfully");
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -91,9 +80,7 @@ export default function UserProfilePage() {
               </CardDescription>
             </CardHeader>
             <CardFooter>
-              <Button onClick={() => router.push("/sign-in")}>
-                Sign In
-              </Button>
+              <Button onClick={() => router.push("/sign-in")}>Sign In</Button>
             </CardFooter>
           </Card>
         </div>
@@ -135,24 +122,30 @@ export default function UserProfilePage() {
                     <AlertDescription>{error}</AlertDescription>
                   </Alert>
                 )}
-                
+
                 {successMessage && (
-                  <Alert variant="default" className="bg-green-500/10 text-green-500 border-green-500/20">
+                  <Alert
+                    variant="default"
+                    className="bg-green-500/10 text-green-500 border-green-500/20"
+                  >
                     <CheckCircle2 className="h-4 w-4" />
                     <AlertDescription>{successMessage}</AlertDescription>
                   </Alert>
                 )}
-                
+
                 <div className="flex flex-col items-center gap-4">
                   <Avatar className="h-24 w-24">
-                    <AvatarImage src={userProfile.avatarUrl} alt={userProfile.name} />
+                    <AvatarImage
+                      src={userProfile.avatarUrl}
+                      alt={userProfile.name}
+                    />
                     <AvatarFallback>{initials}</AvatarFallback>
                   </Avatar>
                   <Button type="button" variant="outline" size="sm">
                     Change Avatar
                   </Button>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="name">Name</Label>
                   <Input
@@ -162,7 +155,7 @@ export default function UserProfilePage() {
                     onChange={handleProfileChange}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <Input
@@ -175,7 +168,7 @@ export default function UserProfilePage() {
                     Email cannot be changed
                   </p>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="bio">Bio</Label>
                   <textarea
@@ -188,7 +181,7 @@ export default function UserProfilePage() {
                   />
                 </div>
               </CardContent>
-              
+
               <CardFooter className="flex justify-between">
                 <Button
                   type="button"
@@ -197,10 +190,7 @@ export default function UserProfilePage() {
                 >
                   Cancel
                 </Button>
-                <Button
-                  type="submit"
-                  disabled={isSaving}
-                >
+                <Button type="submit" disabled={isSaving}>
                   {isSaving ? "Saving..." : "Save Changes"}
                 </Button>
               </CardFooter>

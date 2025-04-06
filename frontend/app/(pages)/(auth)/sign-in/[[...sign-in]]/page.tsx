@@ -1,5 +1,5 @@
 "use client";
-import PageWrapper from "@/components/wrapper/page-wrapper";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,33 +11,70 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
+import PageWrapper from "@/components/wrapper/page-wrapper";
 import { useAuth } from "@/providers/auth-provider";
-import { AlertCircle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
 
 export default function SignInPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, clearError, isLoading, error, user } = useAuth();
+  const { login, clearError, isAuthenticating, error, user } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  // Redirect to return_to path or dashboard if already authenticated
-  useEffect(() => {
-    if (user) {
-      const returnTo = searchParams.get("return_to");
-      router.push(returnTo || "/dashboard");
-    }
-  }, [user, router, searchParams]);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Prevent double submission
+    if (isSubmitting || isAuthenticating) return;
+
     clearError();
-    await login(email, password);
+    setLocalError(null);
+    setIsSubmitting(true);
+
+    // Basic form validation
+    if (!email.trim()) {
+      setLocalError("Email is required");
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!password) {
+      setLocalError("Password is required");
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      const result = await login(email, password);
+
+      if (result.success) {
+        toast.success("Signed in successfully");
+        // Redirection handled by useEffect above
+      } else {
+        // Show error toast
+        toast.error(result.error?.message || "Failed to sign in");
+
+        // Focus the email field for better UX
+        const emailInput = document.getElementById("email") as HTMLInputElement;
+        if (emailInput) {
+          emailInput.focus();
+        }
+      }
+    } catch (err) {
+      // Catch any unexpected errors
+      console.error("Login error:", err);
+      toast.error("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -52,12 +89,12 @@ export default function SignInPage() {
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
-              {/* {error && (
+              {(error || localError) && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
+                  <AlertDescription>{error || localError}</AlertDescription>
                 </Alert>
-              )} */}
+              )}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -66,7 +103,8 @@ export default function SignInPage() {
                   placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  required
+                  disabled={isSubmitting}
+                  suppressHydrationWarning={true} // Add this line
                 />
               </div>
               <div className="space-y-2">
@@ -84,13 +122,21 @@ export default function SignInPage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  required
+                  disabled={isSubmitting}
+                  suppressHydrationWarning={true} // Add this line
                 />
               </div>
             </CardContent>
             <CardFooter className="flex flex-col space-y-4">
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Signing in..." : "Sign in"}
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  "Sign in"
+                )}
               </Button>
               <div className="text-center text-sm">
                 Don't have an account?{" "}

@@ -1,57 +1,24 @@
-"use client"
+"use client";
 // app/dashboard/layout.tsx
-import { ReactNode, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useUser } from "@/lib/better-auth";
-import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  BuildingIcon, 
-  HomeIcon, 
-  UserIcon, 
-  BanknoteIcon, 
-  WrenchIcon, 
+import { cn } from "@/lib/utils";
+import {
+  BanknoteIcon,
   BarChartIcon,
+  BuildingIcon,
   CalendarIcon,
-  UsersIcon
+  HomeIcon,
+  UserIcon,
+  UsersIcon,
+  WrenchIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { ReactNode } from "react";
 
 interface DashboardLayoutProps {
   children: ReactNode;
 }
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { user, isLoading } = useUser();
-  const router = useRouter();
-
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!isLoading && !user) {
-      router.push('/sign-in?return_to=/dashboard');
-    }
-  }, [isLoading, user, router]);
-
-  // Show loading state while checking authentication
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="w-full max-w-md space-y-4">
-          <Skeleton className="h-8 w-48 mx-auto" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-3/4" />
-        </div>
-      </div>
-    );
-  }
-
-  // If not authenticated, the useEffect will redirect. 
-  // This check is just an extra precaution.
-  if (!user) {
-    return null;
-  }
-
   // Get navigation links based on user role
   const getNavItems = () => {
     const items = [
@@ -105,7 +72,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       },
     ];
 
-    return items.filter(item => item.roles.includes(user.role));
+    return items.filter((item) => item.roles.includes(user.role));
   };
 
   const navItems = getNavItems();
@@ -118,7 +85,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className="flex items-center h-16 flex-shrink-0 px-4 border-b">
             <Link href="/dashboard" className="flex items-center">
               <BuildingIcon className="h-6 w-6" />
-              <span className="ml-2 text-lg font-semibold">Property Manager</span>
+              <span className="ml-2 text-lg font-semibold">
+                Property Manager
+              </span>
             </Link>
           </div>
           <div className="flex-grow flex flex-col pt-5 pb-4 overflow-y-auto">
@@ -151,12 +120,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
-                  {user.name?.charAt(0).toUpperCase() || 'U'}
+                  {user.name?.charAt(0).toUpperCase() || "U"}
                 </div>
               </div>
               <div className="ml-3">
                 <p className="text-sm font-medium">{user.name}</p>
-                <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
+                <p className="text-xs text-muted-foreground capitalize">
+                  {user.role}
+                </p>
               </div>
             </div>
           </div>

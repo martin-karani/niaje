@@ -1,54 +1,123 @@
 "use client";
 
-import { signIn, signOut, useSession } from "@/lib/auth-client";
-import { signUpWithEmail } from "@/lib/better-auth-client";
-import { User } from "better-auth/types";
-import { useRouter } from "next/navigation";
-import React, { createContext, useCallback, useContext, useState } from "react";
-import { toast } from "sonner";
+import { getUserSession, signUpWithEmail } from "@/lib/api-client";
+import { signIn, signOut } from "@/lib/auth-client";
+import { UserRole } from "@/types/user";
+import { User } from "@/utils/trpc-type";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 
-type UserRole = "LANDLORD" | "CARETAKER" | "AGENT" | "ADMIN";
+// Define response types for authentication operations
+export interface AuthResult {
+  success: boolean;
+  error?: {
+    message: string;
+    code?: string;
+  } | null;
+}
 
 interface AuthContextType {
   user: User | null;
-  isLoading: boolean;
+  isLoading: boolean; // Represents initial loading state
+  isAuthenticating: boolean; // Represents loading during login/register
   error: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<AuthResult>;
   register: (
     name: string,
     email: string,
     password: string,
     role?: UserRole
-  ) => Promise<void>;
-  logout: () => Promise<void>;
+  ) => Promise<AuthResult>;
+  logout: () => Promise<AuthResult>;
   clearError: () => void;
-  isAuthenticated: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AUTH_USER_STORAGE_KEY = "authUser";
+
+const defaultContextValue: AuthContextType = {
+  user: null,
+  isLoading: true,
+  isAuthenticating: false,
+  error: null,
+  login: async () => ({ success: false }),
+  register: async () => ({ success: false }),
+  logout: async () => ({ success: false }),
+  clearError: () => {},
+};
+
+const AuthContext = createContext<AuthContextType>(defaultContextValue);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { data: session, isPending, error: sessionError } = useSession();
+  // State for auth
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true); // Tracks initial load/check
+  const [isAuthenticating, setIsAuthenticating] = useState(false); // Tracks login/signup process
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
 
-  // Login function
-  const login = useCallback(async (email: string, password: string) => {
-    try {
-      setError(null);
-      const result = await signIn.email({
-        email,
-        password,
-      });
+  // Fetch user data or load from storage on initial mount
+  useEffect(() => {
+    const initializeAuth = async () => {
+      await refreshUser();
+    };
 
-      if (result.error) {
-        setError(result.error.message || "Failed to sign in");
-      }
-    } catch (err: any) {
-      setError(err.message || "An error occurred during sign in");
-    }
+    initializeAuth();
   }, []);
+
+  const refreshUser = async () => {
+    try {
+      const { data, error: refreshError } = await getUserSession();
+      if (refreshError) {
+        console.error("Error refreshing user:", refreshError);
+        // If refresh fails, do not clear current user
+      } else if (data?.user) {
+        setUser(data.user);
+        localStorage.setItem(AUTH_USER_STORAGE_KEY, JSON.stringify(data.user));
+      } else {
+        // Session expired or user logged out
+        setUser(null);
+        localStorage.removeItem(AUTH_USER_STORAGE_KEY);
+      }
+    } catch (err) {
+      console.error("Failed to refresh user:", err);
+      // On network error, keep current user state
+    }
+  };
+
+  const login = useCallback(
+    async (email: string, password: string): Promise<AuthResult> => {
+      setError(null);
+      setIsAuthenticating(true);
+
+      try {
+        await signIn.email({
+          email,
+          password,
+        });
+
+        await refreshUser();
+
+        return { success: true };
+      } catch (err: any) {
+        const errorMessage = err.message || "An error occurred during sign in";
+        setError(errorMessage);
+        return {
+          success: false,
+          error: {
+            message: errorMessage,
+            code: err.code || "UNKNOWN_ERROR",
+          },
+        };
+      } finally {
+        setIsAuthenticating(false);
+      }
+    },
+    []
+  );
 
   const register = useCallback(
     async (
@@ -56,88 +125,130 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email: string,
       password: string,
       role: UserRole = "LANDLORD"
-    ) => {
-      try {
-        setError(null);
-        setIsLoading(true);
+    ): Promise<AuthResult> => {
+      if (isAuthenticating) {
+        return {
+          success: false,
+          error: { message: "Authentication already in progress" },
+        };
+      }
 
-        const result = await signUpWithEmail({
+      setError(null);
+      setIsAuthenticating(true);
+
+      try {
+        const { data, error: signUpError } = await signUpWithEmail({
           name,
           email,
           password,
           role,
         });
 
-        if (result.error) {
-          setError(result.error.message || "Failed to create account");
-          toast.error(result.error.message || "Failed to create account");
-        } else {
-          // Registration successful
-          toast.success("Account created successfully");
-
-          // Automatically log in after registration
-          const loginResult = await signIn.email({
-            email,
-            password,
-          });
-
-          if (!loginResult.error) {
-            // Redirect to dashboard after successful registration and login
-            router.push("/dashboard");
-          }
+        if (signUpError) {
+          setError(signUpError.message || "Failed to create account");
+          return {
+            success: false,
+            error: {
+              message: signUpError.message || "Failed to create account",
+              code: signUpError.code,
+            },
+          };
         }
+
+        // Add a small delay before getting the session
+        await new Promise((resolve) => setTimeout(resolve, 300));
+
+        // Try to get the session after signup
+        const { data: sessionData, error: sessionError } =
+          await getUserSession();
+
+        if (sessionError) {
+          setError("Account created but couldn't sign in automatically.");
+          return {
+            success: true, // Account was created
+            error: {
+              message:
+                "Account created but couldn't sign in automatically. Please sign in manually.",
+              code: sessionError.code,
+            },
+          };
+        }
+
+        // Set user if session was retrieved successfully
+        if (sessionData?.user) {
+          setUser(sessionData.user);
+          localStorage.setItem(
+            AUTH_USER_STORAGE_KEY,
+            JSON.stringify(sessionData.user)
+          );
+        }
+
+        return { success: true };
       } catch (err: any) {
-        setError(err.message || "An error occurred during registration");
-        toast.error(err.message || "An error occurred during registration");
+        const errorMessage =
+          err.message || "An error occurred during registration";
+        setError(errorMessage);
+        return {
+          success: false,
+          error: {
+            message: errorMessage,
+            code: err.code || "UNKNOWN_ERROR",
+          },
+        };
       } finally {
-        setIsLoading(false);
+        setIsAuthenticating(false);
       }
     },
-    [router]
+    [isAuthenticating]
   );
 
-  // Logout function
-  const logout = useCallback(async () => {
+  const logout = useCallback(async (): Promise<AuthResult> => {
+    setError(null);
     try {
       await signOut();
+      setUser(null);
+      localStorage.removeItem(AUTH_USER_STORAGE_KEY);
+      // Don't navigate here - let the component handle navigation
+      return { success: true };
     } catch (err: any) {
-      setError(err.message || "Failed to sign out");
+      const errorMessage = err.message || "Failed to sign out";
+      setError(errorMessage);
+      return {
+        success: false,
+        error: {
+          message: errorMessage,
+          code: err.code || "LOGOUT_ERROR",
+        },
+      };
     }
   }, []);
 
-  // Clear error
   const clearError = useCallback(() => {
     setError(null);
   }, []);
 
-  const errorMessage = error || (sessionError ? sessionError.message : null);
+  // Context value
+  const value = {
+    user,
+    isLoading,
+    isAuthenticating,
+    error,
+    login,
+    register,
+    logout,
+    clearError,
+  };
 
-  // Extract the user from session
-  const user = (session?.user as User) || null;
-  const isAuthenticated = !!session?.user;
-
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading: isPending,
-        error: errorMessage,
-        login,
-        register,
-        logout,
-        clearError,
-        isAuthenticated,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export const useAuth = () => {
+// useAuth hook remains the same
+export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+
+  if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
+
   return context;
-};
+}
