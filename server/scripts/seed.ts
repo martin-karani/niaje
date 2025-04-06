@@ -1,207 +1,198 @@
+import * as bcrypt from "bcrypt";
 import dotenv from "dotenv";
-import { seed, reset } from "drizzle-seed";
+import { eq, and } from "drizzle-orm";
 import { db } from "../src/db";
-import * as schema from "../src/db/schema";
+import { users, accounts, properties } from "../src/db/schema";
+import { createId } from "../src/db/utils";
 
-// Load environment variables
 dotenv.config();
+
+async function createUserWithAccount(userData: {
+  email: string;
+  passwordPlainText: string;
+  name: string;
+  role: "LANDLORD" | "CARETAKER" | "AGENT" | "ADMIN";
+  emailVerified?: boolean;
+  phone?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+}) {
+  const existingUser = await db.query.users.findFirst({
+    where: (users, { eq }) => eq(users.email, userData.email),
+  });
+
+  let user;
+
+  if (existingUser) {
+    // Update existing user
+    const [updatedUser] = await db
+      .update(users)
+      .set({
+        name: userData.name,
+        role: userData.role,
+        phone: userData.phone,
+        address: userData.address,
+        city: userData.city,
+        country: userData.country,
+        emailVerified: userData.emailVerified ?? false,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.email, userData.email))
+      .returning();
+
+    user = updatedUser;
+    console.log(`Updated existing user: ${user.email}`);
+  } else {
+    // Create new user
+    const [newUser] = await db
+      .insert(users)
+      .values({
+        id: createId(),
+        email: userData.email,
+        name: userData.name,
+        role: userData.role,
+        emailVerified: userData.emailVerified ?? false,
+        phone: userData.phone,
+        address: userData.address,
+        city: userData.city,
+        country: userData.country,
+        updatedAt: new Date(),
+      })
+      .returning();
+
+    user = newUser;
+    console.log(`Created new user: ${user.email}`);
+  }
+
+  // Hash the password for the Account model
+  const hashedPassword = await bcrypt.hash(userData.passwordPlainText, 10);
+
+  // Find existing account
+  const existingAccount = await db.query.accounts.findFirst({
+    where: (accounts, { and, eq }) =>
+      and(
+        eq(accounts.providerId, "emailpassword"),
+        eq(accounts.userId, user.id)
+      ),
+  });
+
+  if (existingAccount) {
+    // Update existing account
+    await db
+      .update(accounts)
+      .set({
+        password: hashedPassword,
+        updatedAt: new Date(),
+      })
+      .where(eq(accounts.id, existingAccount.id));
+
+    console.log(`Updated existing account for: ${user.email}`);
+  } else {
+    // Create new account
+    await db.insert(accounts).values({
+      id: createId(),
+      userId: user.id,
+      providerId: "emailpassword",
+      accountId: user.id,
+      password: hashedPassword,
+      updatedAt: new Date(),
+    });
+
+    console.log(`Created new account for: ${user.email}`);
+  }
+
+  return user;
+}
 
 async function main() {
   console.log("Seeding database...");
 
-  // First reset the database (optional)
-  if (process.argv.includes("--reset")) {
-    console.log("Resetting database before seeding...");
-    await reset(db, schema);
+  // Create users using the helper function
+  const admin = await createUserWithAccount({
+    email: "admin@property.com",
+    passwordPlainText: "admin123",
+    name: "Admin User",
+    role: "ADMIN",
+    emailVerified: true,
+  });
+
+  const landlord = await createUserWithAccount({
+    email: "landlord@property.com",
+    passwordPlainText: "landlord123",
+    name: "John Landlord",
+    role: "LANDLORD",
+    phone: "+1234567890",
+    address: "123 Owner St",
+    city: "New York",
+    country: "USA",
+    emailVerified: true,
+  });
+
+  const caretaker = await createUserWithAccount({
+    email: "caretaker@property.com",
+    passwordPlainText: "caretaker123",
+    name: "Mary Caretaker",
+    role: "CARETAKER",
+    phone: "+9876543210",
+    address: "456 Manager Ave",
+    city: "Chicago",
+    country: "USA",
+    emailVerified: true,
+  });
+
+  const agent = await createUserWithAccount({
+    email: "agent@property.com",
+    passwordPlainText: "agent123",
+    name: "Robert Agent",
+    role: "AGENT",
+    phone: "+1122334455",
+    address: "789 Agent Blvd",
+    city: "Los Angeles",
+    country: "USA",
+    emailVerified: true,
+  });
+
+  // Check if property exists
+  const existingProperty = await db.query.properties.findFirst({
+    where: (properties, { eq }) =>
+      eq(properties.name, "Luxury Apartment Complex"),
+  });
+
+  if (existingProperty) {
+    // Update existing property
+    await db
+      .update(properties)
+      .set({
+        ownerId: landlord.id,
+        caretakerId: caretaker.id,
+        agentId: agent.id,
+        updatedAt: new Date(),
+      })
+      .where(eq(properties.id, existingProperty.id));
+
+    console.log("Updated property: Luxury Apartment Complex");
+  } else {
+    // Create new property
+    const [property] = await db
+      .insert(properties)
+      .values({
+        id: createId(),
+        name: "Luxury Apartment Complex",
+        address: "123 Main St, New York, NY",
+        type: "Apartment",
+        description: "A beautiful apartment complex with 20 units",
+        ownerId: landlord.id,
+        caretakerId: caretaker.id,
+        agentId: agent.id,
+        updatedAt: new Date(),
+      })
+      .returning();
+
+    console.log(`Created property: ${property.name}`);
   }
-
-  // Seed the database with refined data
-  await seed(db, schema).refine((f) => ({
-    // Users refinement
-    users: {
-      count: 4, // We're creating 4 specific users
-      columns: {
-        email: f.valuesFromArray({
-          values: [
-            "admin@property.com",
-            "landlord@property.com",
-            "caretaker@property.com",
-            "agent@property.com",
-          ],
-          isUnique: true,
-        }),
-        name: f.valuesFromArray({
-          values: [
-            "Admin User",
-            "John Landlord",
-            "Mary Caretaker",
-            "Robert Agent",
-          ],
-        }),
-        role: f.valuesFromArray({
-          values: ["ADMIN", "LANDLORD", "CARETAKER", "AGENT"],
-        }),
-        emailVerified: f.default({ defaultValue: true }),
-        phone: f.valuesFromArray({
-          values: ["", "+1234567890", "+9876543210", "+1122334455"],
-        }),
-        address: f.valuesFromArray({
-          values: ["", "123 Owner St", "456 Manager Ave", "789 Agent Blvd"],
-        }),
-        city: f.valuesFromArray({
-          values: ["", "New York", "Chicago", "Los Angeles"],
-        }),
-        country: f.valuesFromArray({
-          values: ["", "USA", "USA", "USA"],
-        }),
-      },
-      // For each user, we need to create an associated account
-      with: {
-        accounts: 1,
-      },
-    },
-    // Accounts refinement
-    accounts: {
-      columns: {
-        // Link accounts to the corresponding users
-        providerId: f.default({ defaultValue: "emailpassword" }),
-        // For password, you'd typically handle this separately since drizzle-seed
-        // doesn't hash passwords by default. We'll handle passwords post-seeding.
-      },
-    },
-    // Properties refinement
-    properties: {
-      count: 1,
-      columns: {
-        name: f.default({ defaultValue: "Luxury Apartment Complex" }),
-        address: f.default({ defaultValue: "123 Main St, New York, NY" }),
-        type: f.default({ defaultValue: "Apartment" }),
-        description: f.default({
-          defaultValue: "A beautiful apartment complex with 20 units",
-        }),
-      },
-    },
-  }));
-
-  // After seeding, we need to manually set passwords since drizzle-seed doesn't handle hashing
-  console.log("Setting up passwords for users...");
-  await setupPasswords();
-
-  // After seeding, we need to manually link properties to users
-  console.log("Linking properties to users...");
-  await linkPropertiesToUsers();
 
   console.log("Seeding completed!");
-}
-
-// Helper function to set up passwords for accounts
-async function setupPasswords() {
-  const bcrypt = require("bcrypt");
-
-  // Get users with their accounts
-  const adminUser = await db.query.users.findFirst({
-    where: (users, { eq }) => eq(users.email, "admin@property.com"),
-  });
-
-  const landlordUser = await db.query.users.findFirst({
-    where: (users, { eq }) => eq(users.email, "landlord@property.com"),
-  });
-
-  const caretakerUser = await db.query.users.findFirst({
-    where: (users, { eq }) => eq(users.email, "caretaker@property.com"),
-  });
-
-  const agentUser = await db.query.users.findFirst({
-    where: (users, { eq }) => eq(users.email, "agent@property.com"),
-  });
-
-  if (adminUser) {
-    const adminAccount = await db.query.accounts.findFirst({
-      where: (accounts, { eq }) => eq(accounts.userId, adminUser.id),
-    });
-
-    if (adminAccount) {
-      const hashedPassword = await bcrypt.hash("admin123", 10);
-      await db
-        .update(schema.accounts)
-        .set({ password: hashedPassword })
-        .where((accounts, { eq }) => eq(accounts.id, adminAccount.id));
-    }
-  }
-
-  if (landlordUser) {
-    const landlordAccount = await db.query.accounts.findFirst({
-      where: (accounts, { eq }) => eq(accounts.userId, landlordUser.id),
-    });
-
-    if (landlordAccount) {
-      const hashedPassword = await bcrypt.hash("landlord123", 10);
-      await db
-        .update(schema.accounts)
-        .set({ password: hashedPassword })
-        .where((accounts, { eq }) => eq(accounts.id, landlordAccount.id));
-    }
-  }
-
-  if (caretakerUser) {
-    const caretakerAccount = await db.query.accounts.findFirst({
-      where: (accounts, { eq }) => eq(accounts.userId, caretakerUser.id),
-    });
-
-    if (caretakerAccount) {
-      const hashedPassword = await bcrypt.hash("caretaker123", 10);
-      await db
-        .update(schema.accounts)
-        .set({ password: hashedPassword })
-        .where((accounts, { eq }) => eq(accounts.id, caretakerAccount.id));
-    }
-  }
-
-  if (agentUser) {
-    const agentAccount = await db.query.accounts.findFirst({
-      where: (accounts, { eq }) => eq(accounts.userId, agentUser.id),
-    });
-
-    if (agentAccount) {
-      const hashedPassword = await bcrypt.hash("agent123", 10);
-      await db
-        .update(schema.accounts)
-        .set({ password: hashedPassword })
-        .where((accounts, { eq }) => eq(accounts.id, agentAccount.id));
-    }
-  }
-}
-
-// Helper function to link properties to users
-async function linkPropertiesToUsers() {
-  const landlordUser = await db.query.users.findFirst({
-    where: (users, { eq }) => eq(users.email, "landlord@property.com"),
-  });
-
-  const caretakerUser = await db.query.users.findFirst({
-    where: (users, { eq }) => eq(users.email, "caretaker@property.com"),
-  });
-
-  const agentUser = await db.query.users.findFirst({
-    where: (users, { eq }) => eq(users.email, "agent@property.com"),
-  });
-
-  if (landlordUser && caretakerUser && agentUser) {
-    // Get the property
-    const property = await db.query.properties.findFirst();
-
-    if (property) {
-      // Update the property with user IDs
-      await db
-        .update(schema.properties)
-        .set({
-          ownerId: landlordUser.id,
-          caretakerId: caretakerUser.id,
-          agentId: agentUser.id,
-        })
-        .where((properties, { eq }) => eq(properties.id, property.id));
-    }
-  }
 }
 
 main()
