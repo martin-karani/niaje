@@ -1,4 +1,5 @@
-import { pgTable, text, timestamp, json } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
+import { json, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { createId } from "../utils";
 import { users } from "./users";
 
@@ -17,6 +18,13 @@ export const sessions = pgTable("sessions", {
   data: json("data"),
 });
 
-// Types
+// Define relations for sessions
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+  user: one(users, {
+    fields: [sessions.userId],
+    references: [users.id],
+  }),
+}));
+
 export type Session = typeof sessions.$inferSelect;
 export type NewSession = typeof sessions.$inferInsert;

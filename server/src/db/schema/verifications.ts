@@ -1,10 +1,5 @@
-import {
-  pgTable,
-  text,
-  timestamp,
-  foreignKey,
-  index,
-} from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
+import { index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { createId } from "../utils";
 import { users } from "./users";
 
@@ -29,6 +24,14 @@ export const verifications = pgTable(
     };
   }
 );
+
+// Define relations for verifications
+export const verificationsRelations = relations(verifications, ({ one }) => ({
+  user: one(users, {
+    fields: [verifications.userId],
+    references: [users.id],
+  }),
+}));
 
 // Types
 export type Verification = typeof verifications.$inferSelect;

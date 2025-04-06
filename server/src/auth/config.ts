@@ -1,7 +1,8 @@
-import { getDb } from "@/db";
+import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { betterAuth, BetterAuthOptions } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { openAPI } from "better-auth/plugins";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -15,7 +16,7 @@ const authOptions: BetterAuthOptions = {
   basePath: "/api/auth",
   secret: authSecret,
 
-  database: drizzleAdapter(getDb, {
+  database: drizzleAdapter(db, {
     provider: "pg",
     schema: {
       ...schema,
@@ -25,6 +26,8 @@ const authOptions: BetterAuthOptions = {
       verification: schema.verifications,
     },
   }),
+
+  plugins: [openAPI()],
 
   emailAndPassword: {
     enabled: true,
