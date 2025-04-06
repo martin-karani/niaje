@@ -1,28 +1,28 @@
 import { drizzle } from "drizzle-orm/node-postgres";
-import pkg from "pg";
-import * as schema from "./schema/index.js";
+import { Pool } from "pg";
+import * as schema from "./schema";
 import dotenv from "dotenv";
 
-// Load environment variables
 dotenv.config();
 
-// Import Pool from pg package using ESM-compatible way
-const { Pool } = pkg;
+const connectionString =
+  process.env.DATABASE_URL ||
+  "postgresql://propertyapp:propertypassword@localhost:5432/propertymanagement";
 
-// Create connection pool
 const pool = new Pool({
-  connectionString:
-    process.env.DATABASE_URL ||
-    "postgresql://propertyapp:propertypassword@localhost:5432/propertymanagement",
+  connectionString,
+  max: 10, // Maximum number of clients in the pool
+  idleTimeoutMillis: 30000, // How long a client is allowed to remain idle before being closed
+  connectionTimeoutMillis: 2000, // How long to wait for a connection to become available
 });
 
-// Create drizzle instance
-export const db = drizzle(pool, { schema });
+pool.on("error", (err) => {
+  console.error("Unexpected error on idle database client", err);
+  process.exit(-1);
+});
 
-// Export schema for type usage
 export { schema };
 
-// Export a function to get a new database connection
 export const getDb = () => {
   return drizzle(pool, { schema });
 };

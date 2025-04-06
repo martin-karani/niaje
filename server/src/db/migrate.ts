@@ -1,6 +1,7 @@
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { db } from "./index";
 import dotenv from "dotenv";
+import path from "path";
 
 dotenv.config();
 
@@ -8,7 +9,13 @@ const runMigrations = async () => {
   console.log("Running migrations...");
 
   try {
-    await migrate(db, { migrationsFolder: "./src/db/migrations" });
+    const migrationsFolder = path.resolve(__dirname, "./migrations");
+
+    await migrate(db, {
+      migrationsFolder,
+      migrationsTable: "drizzle_migrations",
+    });
+
     console.log("Migrations completed successfully");
     process.exit(0);
   } catch (error) {
@@ -17,4 +24,8 @@ const runMigrations = async () => {
   }
 };
 
-runMigrations();
+if (require.main === module) {
+  runMigrations();
+} else {
+  module.exports = { runMigrations };
+}

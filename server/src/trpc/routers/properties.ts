@@ -1,25 +1,14 @@
-import { z } from "zod";
+// src/trpc/routers/properties.ts
 import { TRPCError } from "@trpc/server";
 import { eq, and, or, sql } from "drizzle-orm";
 import { router, publicProcedure } from "../index";
 import { protectedProcedure, landlordProcedure } from "../middleware";
 import { properties } from "../../db/schema";
-
-// Define input schemas
-const propertySchema = z.object({
-  name: z.string().min(2),
-  address: z.string().min(5),
-  type: z.string().min(2),
-  description: z.string().optional(),
-  caretakerId: z.string().nullable().optional(),
-  agentId: z.string().nullable().optional(),
-});
-
-const propertyIdSchema = z.object({
-  id: z.string(),
-});
-
-const updatePropertySchema = propertySchema.partial().merge(propertyIdSchema);
+import {
+  propertyIdSchema,
+  insertPropertySchema,
+  updatePropertySchema,
+} from "../../db/schema/zod";
 
 // Create the properties router
 export const propertiesRouter = router({
@@ -202,7 +191,7 @@ export const propertiesRouter = router({
 
   // Create a new property (landlords only)
   create: landlordProcedure
-    .input(propertySchema)
+    .input(insertPropertySchema)
     .mutation(async ({ ctx, input }) => {
       try {
         const result = await ctx.db

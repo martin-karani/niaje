@@ -1,13 +1,11 @@
 import * as bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import { eq, and } from "drizzle-orm";
-import { db } from "../src/db";
+import { getDb } from "../src/db";
 import { users, accounts, properties } from "../src/db/schema";
 
-// Load environment variables
 dotenv.config();
 
-// Helper function to create user and associated email/password account
 async function createUserWithAccount(userData: {
   email: string;
   passwordPlainText: string;
@@ -19,16 +17,14 @@ async function createUserWithAccount(userData: {
   city?: string;
   country?: string;
 }) {
-  // Check if user already exists
-  const existingUser = await db.query.users.findFirst({
+  const existingUser = await getDb.query.users.findFirst({
     where: eq(users.email, userData.email),
   });
 
   let user;
 
   if (existingUser) {
-    // Update existing user
-    const [updatedUser] = await db
+    const [updatedUser] = await getDb
       .update(users)
       .set({
         name: userData.name,
@@ -46,7 +42,7 @@ async function createUserWithAccount(userData: {
     user = updatedUser;
   } else {
     // Create new user
-    const [newUser] = await db
+    const [newUser] = await getDb
       .insert(users)
       .values({
         email: userData.email,
@@ -68,7 +64,7 @@ async function createUserWithAccount(userData: {
   const hashedPassword = await bcrypt.hash(userData.passwordPlainText, 10);
 
   // Find existing account
-  const existingAccount = await db.query.accounts.findFirst({
+  const existingAccount = await getDb.query.accounts.findFirst({
     where: and(
       eq(accounts.providerId, "emailpassword"),
       eq(accounts.userId, user.id)
@@ -77,7 +73,7 @@ async function createUserWithAccount(userData: {
 
   if (existingAccount) {
     // Update existing account
-    await db
+    await getDb
       .update(accounts)
       .set({
         password: hashedPassword,
@@ -91,7 +87,7 @@ async function createUserWithAccount(userData: {
       );
   } else {
     // Create new account
-    await db.insert(accounts).values({
+    await getDb.insert(accounts).values({
       userId: user.id,
       providerId: "emailpassword",
       accountId: user.id,
@@ -155,13 +151,13 @@ async function main() {
   });
 
   // Check if property exists
-  const existingProperty = await db.query.properties.findFirst({
+  const existingProperty = await getDb.query.properties.findFirst({
     where: eq(properties.name, "Luxury Apartment Complex"),
   });
 
   if (existingProperty) {
     // Update existing property
-    await db
+    await getDb
       .update(properties)
       .set({
         ownerId: landlord.id,
@@ -174,7 +170,7 @@ async function main() {
     console.log("Updated property: Luxury Apartment Complex");
   } else {
     // Create new property
-    const [property] = await db
+    const [property] = await getDb
       .insert(properties)
       .values({
         name: "Luxury Apartment Complex",

@@ -14,4 +14,10 @@ export default defineConfig({
   verbose: true,
   strict: true,
   dialect: "postgresql",
+  migrations: {
+    table: "drizzle_migrations",
+    schema: "public",
+  },
+  tablesFilter: ["*"],
+  breakpoints: true,
 });
