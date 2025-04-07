@@ -22,7 +22,7 @@ import { toast } from "sonner";
 export default function SignInPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, clearError, isAuthenticating, error, user } = useAuth();
+  const { login, clearError, error, user } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,9 +31,6 @@ export default function SignInPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Prevent double submission
-    if (isSubmitting || isAuthenticating) return;
 
     clearError();
     setLocalError(null);
@@ -57,6 +54,8 @@ export default function SignInPage() {
 
       if (result.success) {
         toast.success("Signed in successfully");
+        console.log("Login successful:", result);
+        // router.push("/dashboard"); // Redirect to dashboard or home page
         // Redirection handled by useEffect above
       } else {
         // Show error toast

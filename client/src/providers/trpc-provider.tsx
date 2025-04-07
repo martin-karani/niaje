@@ -1,7 +1,5 @@
-"use client";
-
-import { trpc } from "@/lib/trpc-client";
-import { getConfig } from "@/lib/trpc-config";
+import { trpc } from "@/api/trpc";
+import { getConfig } from "@/api/trpc.config";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 

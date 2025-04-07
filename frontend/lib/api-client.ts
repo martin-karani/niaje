@@ -61,15 +61,43 @@ async function apiFetch<T>(
     };
 
     const response = await fetch(url, fetchOptions);
-    const data = await response.json();
+
+    // Check if response has content before trying to parse JSON
+    const contentType = response.headers.get("content-type");
+    let data;
+
+    if (contentType && contentType.includes("application/json")) {
+      const text = await response.text();
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch (parseError) {
+          return {
+            data: null,
+            error: {
+              code: "INVALID_JSON",
+              message: "Server returned invalid JSON response",
+              status: response.status,
+            },
+          };
+        }
+      } else {
+        // Empty response
+        data = null;
+      }
+    } else {
+      // Not a JSON response
+      data = null;
+    }
 
     if (!response.ok) {
       return {
         data: null,
         error: {
-          code: data.code || `HTTP_ERROR_${response.status}`,
+          code: (data && data.code) || `HTTP_ERROR_${response.status}`,
           message:
-            data.message || `Request failed with status: ${response.status}`,
+            (data && data.message) ||
+            `Request failed with status: ${response.status}`,
           status: response.status,
         },
       };

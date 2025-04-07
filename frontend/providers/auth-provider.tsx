@@ -1,16 +1,10 @@
 "use client";
 
 import { getUserSession, signUpWithEmail } from "@/lib/api-client";
-import { signIn, signOut } from "@/lib/auth-client";
+import { getSession, signIn, signOut } from "@/lib/auth-client";
 import { UserRole } from "@/types/user";
 import { User } from "@/utils/trpc-type";
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import React, { createContext, useCallback, useContext, useState } from "react";
 
 // Define response types for authentication operations
 export interface AuthResult {
@@ -59,34 +53,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticating, setIsAuthenticating] = useState(false); // Tracks login/signup process
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch user data or load from storage on initial mount
-  useEffect(() => {
-    const initializeAuth = async () => {
-      await refreshUser();
-    };
+  // // Fetch user data or load from storage on initial mount
+  // useEffect(() => {
+  //   const initializeAuth = async () => {
+  //     await refreshUser();
+  //   };
 
-    initializeAuth();
-  }, []);
+  //   initializeAuth();
+  // }, []);
 
-  const refreshUser = async () => {
-    try {
-      const { data, error: refreshError } = await getUserSession();
-      if (refreshError) {
-        console.error("Error refreshing user:", refreshError);
-        // If refresh fails, do not clear current user
-      } else if (data?.user) {
-        setUser(data.user);
-        localStorage.setItem(AUTH_USER_STORAGE_KEY, JSON.stringify(data.user));
-      } else {
-        // Session expired or user logged out
-        setUser(null);
-        localStorage.removeItem(AUTH_USER_STORAGE_KEY);
-      }
-    } catch (err) {
-      console.error("Failed to refresh user:", err);
-      // On network error, keep current user state
-    }
-  };
+  // const refreshUser = async () => {
+  //   try {
+  //     const { data, error: refreshError } = await getUserSession();
+  //     if (refreshError) {
+  //       console.error("Error refreshing user:", refreshError);
+  //       // If refresh fails, do not clear current user
+  //     } else if (data?.user) {
+  //       setUser(data.user);
+  //       localStorage.setItem(AUTH_USER_STORAGE_KEY, JSON.stringify(data.user));
+  //     } else {
+  //       // Session expired or user logged out
+  //       setUser(null);
+  //       localStorage.removeItem(AUTH_USER_STORAGE_KEY);
+  //     }
+  //   } catch (err) {
+  //     console.error("Failed to refresh user:", err);
+  //     // On network error, keep current user state
+  //   }
+  // };
 
   const login = useCallback(
     async (email: string, password: string): Promise<AuthResult> => {
@@ -99,8 +93,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           password,
         });
 
-        await refreshUser();
-
+        const { data } = await getSession();
+        const userData: any = data?.user;
+        setUser(userData);
+        console.log("User data:", userData);
+        localStorage.setItem(AUTH_USER_STORAGE_KEY, JSON.stringify(userData));
         return { success: true };
       } catch (err: any) {
         const errorMessage = err.message || "An error occurred during sign in";
