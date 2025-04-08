@@ -11,21 +11,34 @@
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
-import { Route as LoginImport } from './routes/login'
 import { Route as AboutImport } from './routes/about'
+import { Route as AuthenticatedImport } from './routes/_authenticated'
 import { Route as IndexImport } from './routes/index'
+import { Route as AuthRegisterImport } from './routes/auth/register'
+import { Route as AuthLoginImport } from './routes/auth/login'
+import { Route as AuthenticatedSettingsIndexImport } from './routes/_authenticated/settings/index'
+import { Route as AuthenticatedReportsIndexImport } from './routes/_authenticated/reports/index'
+import { Route as AuthenticatedPropertiesIndexImport } from './routes/_authenticated/properties/index'
+import { Route as AuthenticatedMaintenanceIndexImport } from './routes/_authenticated/maintenance/index'
+import { Route as AuthenticatedLeasesIndexImport } from './routes/_authenticated/leases/index'
+import { Route as AuthenticatedFinancesIndexImport } from './routes/_authenticated/finances/index'
+import { Route as AuthenticatedDashboardIndexImport } from './routes/_authenticated/dashboard/index'
+import { Route as AuthenticatedCalendarIndexImport } from './routes/_authenticated/calendar/index'
+import { Route as AuthenticatedTenantsTenantIdImport } from './routes/_authenticated/tenants/$tenantId'
+import { Route as AuthenticatedPropertiesPropertyIdImport } from './routes/_authenticated/properties/$propertyId'
+import { Route as AuthenticatedFinancesRentCollectionImport } from './routes/_authenticated/finances/rent-collection'
+import { Route as AuthenticatedFinancesExpensesImport } from './routes/_authenticated/finances/expenses'
 
 // Create/Update Routes
-
-const LoginRoute = LoginImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRoute,
-} as any)
 
 const AboutRoute = AboutImport.update({
   id: '/about',
   path: '/about',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const AuthenticatedRoute = AuthenticatedImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -34,6 +47,103 @@ const IndexRoute = IndexImport.update({
   path: '/',
   getParentRoute: () => rootRoute,
 } as any)
+
+const AuthRegisterRoute = AuthRegisterImport.update({
+  id: '/auth/register',
+  path: '/auth/register',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const AuthLoginRoute = AuthLoginImport.update({
+  id: '/auth/login',
+  path: '/auth/login',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const AuthenticatedSettingsIndexRoute = AuthenticatedSettingsIndexImport.update(
+  {
+    id: '/settings/',
+    path: '/settings/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any,
+)
+
+const AuthenticatedReportsIndexRoute = AuthenticatedReportsIndexImport.update({
+  id: '/reports/',
+  path: '/reports/',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+
+const AuthenticatedPropertiesIndexRoute =
+  AuthenticatedPropertiesIndexImport.update({
+    id: '/properties/',
+    path: '/properties/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+
+const AuthenticatedMaintenanceIndexRoute =
+  AuthenticatedMaintenanceIndexImport.update({
+    id: '/maintenance/',
+    path: '/maintenance/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+
+const AuthenticatedLeasesIndexRoute = AuthenticatedLeasesIndexImport.update({
+  id: '/leases/',
+  path: '/leases/',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+
+const AuthenticatedFinancesIndexRoute = AuthenticatedFinancesIndexImport.update(
+  {
+    id: '/finances/',
+    path: '/finances/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any,
+)
+
+const AuthenticatedDashboardIndexRoute =
+  AuthenticatedDashboardIndexImport.update({
+    id: '/dashboard/',
+    path: '/dashboard/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+
+const AuthenticatedCalendarIndexRoute = AuthenticatedCalendarIndexImport.update(
+  {
+    id: '/calendar/',
+    path: '/calendar/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any,
+)
+
+const AuthenticatedTenantsTenantIdRoute =
+  AuthenticatedTenantsTenantIdImport.update({
+    id: '/tenants/$tenantId',
+    path: '/tenants/$tenantId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+
+const AuthenticatedPropertiesPropertyIdRoute =
+  AuthenticatedPropertiesPropertyIdImport.update({
+    id: '/properties/$propertyId',
+    path: '/properties/$propertyId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+
+const AuthenticatedFinancesRentCollectionRoute =
+  AuthenticatedFinancesRentCollectionImport.update({
+    id: '/finances/rent-collection',
+    path: '/finances/rent-collection',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+
+const AuthenticatedFinancesExpensesRoute =
+  AuthenticatedFinancesExpensesImport.update({
+    id: '/finances/expenses',
+    path: '/finances/expenses',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 // Populate the FileRoutesByPath interface
 
@@ -46,6 +156,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexImport
       parentRoute: typeof rootRoute
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof AuthenticatedImport
+      parentRoute: typeof rootRoute
+    }
     '/about': {
       id: '/about'
       path: '/about'
@@ -53,56 +170,281 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutImport
       parentRoute: typeof rootRoute
     }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginImport
+    '/auth/login': {
+      id: '/auth/login'
+      path: '/auth/login'
+      fullPath: '/auth/login'
+      preLoaderRoute: typeof AuthLoginImport
       parentRoute: typeof rootRoute
+    }
+    '/auth/register': {
+      id: '/auth/register'
+      path: '/auth/register'
+      fullPath: '/auth/register'
+      preLoaderRoute: typeof AuthRegisterImport
+      parentRoute: typeof rootRoute
+    }
+    '/_authenticated/finances/expenses': {
+      id: '/_authenticated/finances/expenses'
+      path: '/finances/expenses'
+      fullPath: '/finances/expenses'
+      preLoaderRoute: typeof AuthenticatedFinancesExpensesImport
+      parentRoute: typeof AuthenticatedImport
+    }
+    '/_authenticated/finances/rent-collection': {
+      id: '/_authenticated/finances/rent-collection'
+      path: '/finances/rent-collection'
+      fullPath: '/finances/rent-collection'
+      preLoaderRoute: typeof AuthenticatedFinancesRentCollectionImport
+      parentRoute: typeof AuthenticatedImport
+    }
+    '/_authenticated/properties/$propertyId': {
+      id: '/_authenticated/properties/$propertyId'
+      path: '/properties/$propertyId'
+      fullPath: '/properties/$propertyId'
+      preLoaderRoute: typeof AuthenticatedPropertiesPropertyIdImport
+      parentRoute: typeof AuthenticatedImport
+    }
+    '/_authenticated/tenants/$tenantId': {
+      id: '/_authenticated/tenants/$tenantId'
+      path: '/tenants/$tenantId'
+      fullPath: '/tenants/$tenantId'
+      preLoaderRoute: typeof AuthenticatedTenantsTenantIdImport
+      parentRoute: typeof AuthenticatedImport
+    }
+    '/_authenticated/calendar/': {
+      id: '/_authenticated/calendar/'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof AuthenticatedCalendarIndexImport
+      parentRoute: typeof AuthenticatedImport
+    }
+    '/_authenticated/dashboard/': {
+      id: '/_authenticated/dashboard/'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardIndexImport
+      parentRoute: typeof AuthenticatedImport
+    }
+    '/_authenticated/finances/': {
+      id: '/_authenticated/finances/'
+      path: '/finances'
+      fullPath: '/finances'
+      preLoaderRoute: typeof AuthenticatedFinancesIndexImport
+      parentRoute: typeof AuthenticatedImport
+    }
+    '/_authenticated/leases/': {
+      id: '/_authenticated/leases/'
+      path: '/leases'
+      fullPath: '/leases'
+      preLoaderRoute: typeof AuthenticatedLeasesIndexImport
+      parentRoute: typeof AuthenticatedImport
+    }
+    '/_authenticated/maintenance/': {
+      id: '/_authenticated/maintenance/'
+      path: '/maintenance'
+      fullPath: '/maintenance'
+      preLoaderRoute: typeof AuthenticatedMaintenanceIndexImport
+      parentRoute: typeof AuthenticatedImport
+    }
+    '/_authenticated/properties/': {
+      id: '/_authenticated/properties/'
+      path: '/properties'
+      fullPath: '/properties'
+      preLoaderRoute: typeof AuthenticatedPropertiesIndexImport
+      parentRoute: typeof AuthenticatedImport
+    }
+    '/_authenticated/reports/': {
+      id: '/_authenticated/reports/'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof AuthenticatedReportsIndexImport
+      parentRoute: typeof AuthenticatedImport
+    }
+    '/_authenticated/settings/': {
+      id: '/_authenticated/settings/'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsIndexImport
+      parentRoute: typeof AuthenticatedImport
     }
   }
 }
 
 // Create and export the route tree
 
+interface AuthenticatedRouteChildren {
+  AuthenticatedFinancesExpensesRoute: typeof AuthenticatedFinancesExpensesRoute
+  AuthenticatedFinancesRentCollectionRoute: typeof AuthenticatedFinancesRentCollectionRoute
+  AuthenticatedPropertiesPropertyIdRoute: typeof AuthenticatedPropertiesPropertyIdRoute
+  AuthenticatedTenantsTenantIdRoute: typeof AuthenticatedTenantsTenantIdRoute
+  AuthenticatedCalendarIndexRoute: typeof AuthenticatedCalendarIndexRoute
+  AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
+  AuthenticatedFinancesIndexRoute: typeof AuthenticatedFinancesIndexRoute
+  AuthenticatedLeasesIndexRoute: typeof AuthenticatedLeasesIndexRoute
+  AuthenticatedMaintenanceIndexRoute: typeof AuthenticatedMaintenanceIndexRoute
+  AuthenticatedPropertiesIndexRoute: typeof AuthenticatedPropertiesIndexRoute
+  AuthenticatedReportsIndexRoute: typeof AuthenticatedReportsIndexRoute
+  AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
+}
+
+const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedFinancesExpensesRoute: AuthenticatedFinancesExpensesRoute,
+  AuthenticatedFinancesRentCollectionRoute:
+    AuthenticatedFinancesRentCollectionRoute,
+  AuthenticatedPropertiesPropertyIdRoute:
+    AuthenticatedPropertiesPropertyIdRoute,
+  AuthenticatedTenantsTenantIdRoute: AuthenticatedTenantsTenantIdRoute,
+  AuthenticatedCalendarIndexRoute: AuthenticatedCalendarIndexRoute,
+  AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
+  AuthenticatedFinancesIndexRoute: AuthenticatedFinancesIndexRoute,
+  AuthenticatedLeasesIndexRoute: AuthenticatedLeasesIndexRoute,
+  AuthenticatedMaintenanceIndexRoute: AuthenticatedMaintenanceIndexRoute,
+  AuthenticatedPropertiesIndexRoute: AuthenticatedPropertiesIndexRoute,
+  AuthenticatedReportsIndexRoute: AuthenticatedReportsIndexRoute,
+  AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
+}
+
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
+)
+
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '': typeof AuthenticatedRouteWithChildren
   '/about': typeof AboutRoute
-  '/login': typeof LoginRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/register': typeof AuthRegisterRoute
+  '/finances/expenses': typeof AuthenticatedFinancesExpensesRoute
+  '/finances/rent-collection': typeof AuthenticatedFinancesRentCollectionRoute
+  '/properties/$propertyId': typeof AuthenticatedPropertiesPropertyIdRoute
+  '/tenants/$tenantId': typeof AuthenticatedTenantsTenantIdRoute
+  '/calendar': typeof AuthenticatedCalendarIndexRoute
+  '/dashboard': typeof AuthenticatedDashboardIndexRoute
+  '/finances': typeof AuthenticatedFinancesIndexRoute
+  '/leases': typeof AuthenticatedLeasesIndexRoute
+  '/maintenance': typeof AuthenticatedMaintenanceIndexRoute
+  '/properties': typeof AuthenticatedPropertiesIndexRoute
+  '/reports': typeof AuthenticatedReportsIndexRoute
+  '/settings': typeof AuthenticatedSettingsIndexRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '': typeof AuthenticatedRouteWithChildren
   '/about': typeof AboutRoute
-  '/login': typeof LoginRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/register': typeof AuthRegisterRoute
+  '/finances/expenses': typeof AuthenticatedFinancesExpensesRoute
+  '/finances/rent-collection': typeof AuthenticatedFinancesRentCollectionRoute
+  '/properties/$propertyId': typeof AuthenticatedPropertiesPropertyIdRoute
+  '/tenants/$tenantId': typeof AuthenticatedTenantsTenantIdRoute
+  '/calendar': typeof AuthenticatedCalendarIndexRoute
+  '/dashboard': typeof AuthenticatedDashboardIndexRoute
+  '/finances': typeof AuthenticatedFinancesIndexRoute
+  '/leases': typeof AuthenticatedLeasesIndexRoute
+  '/maintenance': typeof AuthenticatedMaintenanceIndexRoute
+  '/properties': typeof AuthenticatedPropertiesIndexRoute
+  '/reports': typeof AuthenticatedReportsIndexRoute
+  '/settings': typeof AuthenticatedSettingsIndexRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/about': typeof AboutRoute
-  '/login': typeof LoginRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/register': typeof AuthRegisterRoute
+  '/_authenticated/finances/expenses': typeof AuthenticatedFinancesExpensesRoute
+  '/_authenticated/finances/rent-collection': typeof AuthenticatedFinancesRentCollectionRoute
+  '/_authenticated/properties/$propertyId': typeof AuthenticatedPropertiesPropertyIdRoute
+  '/_authenticated/tenants/$tenantId': typeof AuthenticatedTenantsTenantIdRoute
+  '/_authenticated/calendar/': typeof AuthenticatedCalendarIndexRoute
+  '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
+  '/_authenticated/finances/': typeof AuthenticatedFinancesIndexRoute
+  '/_authenticated/leases/': typeof AuthenticatedLeasesIndexRoute
+  '/_authenticated/maintenance/': typeof AuthenticatedMaintenanceIndexRoute
+  '/_authenticated/properties/': typeof AuthenticatedPropertiesIndexRoute
+  '/_authenticated/reports/': typeof AuthenticatedReportsIndexRoute
+  '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/login'
+  fullPaths:
+    | '/'
+    | ''
+    | '/about'
+    | '/auth/login'
+    | '/auth/register'
+    | '/finances/expenses'
+    | '/finances/rent-collection'
+    | '/properties/$propertyId'
+    | '/tenants/$tenantId'
+    | '/calendar'
+    | '/dashboard'
+    | '/finances'
+    | '/leases'
+    | '/maintenance'
+    | '/properties'
+    | '/reports'
+    | '/settings'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/login'
-  id: '__root__' | '/' | '/about' | '/login'
+  to:
+    | '/'
+    | ''
+    | '/about'
+    | '/auth/login'
+    | '/auth/register'
+    | '/finances/expenses'
+    | '/finances/rent-collection'
+    | '/properties/$propertyId'
+    | '/tenants/$tenantId'
+    | '/calendar'
+    | '/dashboard'
+    | '/finances'
+    | '/leases'
+    | '/maintenance'
+    | '/properties'
+    | '/reports'
+    | '/settings'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/about'
+    | '/auth/login'
+    | '/auth/register'
+    | '/_authenticated/finances/expenses'
+    | '/_authenticated/finances/rent-collection'
+    | '/_authenticated/properties/$propertyId'
+    | '/_authenticated/tenants/$tenantId'
+    | '/_authenticated/calendar/'
+    | '/_authenticated/dashboard/'
+    | '/_authenticated/finances/'
+    | '/_authenticated/leases/'
+    | '/_authenticated/maintenance/'
+    | '/_authenticated/properties/'
+    | '/_authenticated/reports/'
+    | '/_authenticated/settings/'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AboutRoute: typeof AboutRoute
-  LoginRoute: typeof LoginRoute
+  AuthLoginRoute: typeof AuthLoginRoute
+  AuthRegisterRoute: typeof AuthRegisterRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AboutRoute: AboutRoute,
-  LoginRoute: LoginRoute,
+  AuthLoginRoute: AuthLoginRoute,
+  AuthRegisterRoute: AuthRegisterRoute,
 }
 
 export const routeTree = rootRoute
@@ -116,18 +458,88 @@ export const routeTree = rootRoute
       "filePath": "__root.tsx",
       "children": [
         "/",
+        "/_authenticated",
         "/about",
-        "/login"
+        "/auth/login",
+        "/auth/register"
       ]
     },
     "/": {
       "filePath": "index.tsx"
     },
+    "/_authenticated": {
+      "filePath": "_authenticated.tsx",
+      "children": [
+        "/_authenticated/finances/expenses",
+        "/_authenticated/finances/rent-collection",
+        "/_authenticated/properties/$propertyId",
+        "/_authenticated/tenants/$tenantId",
+        "/_authenticated/calendar/",
+        "/_authenticated/dashboard/",
+        "/_authenticated/finances/",
+        "/_authenticated/leases/",
+        "/_authenticated/maintenance/",
+        "/_authenticated/properties/",
+        "/_authenticated/reports/",
+        "/_authenticated/settings/"
+      ]
+    },
     "/about": {
       "filePath": "about.tsx"
     },
-    "/login": {
-      "filePath": "login.tsx"
+    "/auth/login": {
+      "filePath": "auth/login.tsx"
+    },
+    "/auth/register": {
+      "filePath": "auth/register.tsx"
+    },
+    "/_authenticated/finances/expenses": {
+      "filePath": "_authenticated/finances/expenses.tsx",
+      "parent": "/_authenticated"
+    },
+    "/_authenticated/finances/rent-collection": {
+      "filePath": "_authenticated/finances/rent-collection.tsx",
+      "parent": "/_authenticated"
+    },
+    "/_authenticated/properties/$propertyId": {
+      "filePath": "_authenticated/properties/$propertyId.tsx",
+      "parent": "/_authenticated"
+    },
+    "/_authenticated/tenants/$tenantId": {
+      "filePath": "_authenticated/tenants/$tenantId.tsx",
+      "parent": "/_authenticated"
+    },
+    "/_authenticated/calendar/": {
+      "filePath": "_authenticated/calendar/index.tsx",
+      "parent": "/_authenticated"
+    },
+    "/_authenticated/dashboard/": {
+      "filePath": "_authenticated/dashboard/index.tsx",
+      "parent": "/_authenticated"
+    },
+    "/_authenticated/finances/": {
+      "filePath": "_authenticated/finances/index.tsx",
+      "parent": "/_authenticated"
+    },
+    "/_authenticated/leases/": {
+      "filePath": "_authenticated/leases/index.tsx",
+      "parent": "/_authenticated"
+    },
+    "/_authenticated/maintenance/": {
+      "filePath": "_authenticated/maintenance/index.tsx",
+      "parent": "/_authenticated"
+    },
+    "/_authenticated/properties/": {
+      "filePath": "_authenticated/properties/index.tsx",
+      "parent": "/_authenticated"
+    },
+    "/_authenticated/reports/": {
+      "filePath": "_authenticated/reports/index.tsx",
+      "parent": "/_authenticated"
+    },
+    "/_authenticated/settings/": {
+      "filePath": "_authenticated/settings/index.tsx",
+      "parent": "/_authenticated"
     }
   }
 }

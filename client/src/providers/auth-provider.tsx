@@ -10,7 +10,7 @@ export interface User {
   role: UserRole;
 }
 
-interface AuthContextType {
+export interface AuthContext {
   user: User | null;
   isLoading: boolean;
   error: string | null;
@@ -24,7 +24,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContext | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { data: session, isPending: isLoading } = useSession();

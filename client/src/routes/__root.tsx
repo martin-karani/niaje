@@ -1,18 +1,26 @@
-import { MainLayout } from "@/components/layout/main-layout";
-import { AuthProvider } from "@/providers/auth-provider";
-import { TRPCProvider } from "@/providers/trpc-provider";
-import { createRootRoute, Outlet } from "@tanstack/react-router";
+import { AppLayout } from "@/components/layout/app-layout";
+import { DefaultNotFound } from "@/components/not-found/default-not-found";
+import { AuthProvider, type AuthContext } from "@/providers/auth-provider";
+import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
-export const Route = createRootRoute({
+interface MyRouterContext {
+  auth: AuthContext;
+}
+
+export const Route = createRootRouteWithContext<MyRouterContext>()({
   component: () => (
-    <TRPCProvider>
-      <AuthProvider>
-        <MainLayout>
-          <Outlet />
-        </MainLayout>
-        {process.env.NODE_ENV === "development" && <TanStackRouterDevtools />}
-      </AuthProvider>
-    </TRPCProvider>
+    <AuthProvider>
+      <AppLayout>
+        <Outlet />
+      </AppLayout>
+      {process.env.NODE_ENV === "development" && <TanStackRouterDevtools />}
+    </AuthProvider>
+  ),
+  notFoundComponent: () => (
+    <DefaultNotFound
+      title="Page Not Found"
+      message="Sorry, we couldn't find the page you're looking for."
+    />
   ),
 });

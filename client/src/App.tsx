@@ -1,16 +1,25 @@
-import { RouterProvider, createRouter } from "@tanstack/react-router";
-import { routeTree } from "./routeTree.gen";
+import { AuthProvider, useAuth } from "@/providers/auth-provider";
+import { TRPCProvider } from "@/providers/trpc-provider";
+import { RouterProvider } from "@tanstack/react-router";
+import { Toaster } from "./components/ui/sonner";
+import "./globals.css";
+import { router } from "./router";
 
-const router = createRouter({ routeTree });
+function InnerApp() {
+  const auth = useAuth();
 
-declare module "@tanstack/react-router" {
-  interface Register {
-    router: typeof router;
-  }
+  return <RouterProvider router={router} context={{ auth }} />;
 }
 
 function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <TRPCProvider>
+      <AuthProvider>
+        <InnerApp />
+        <Toaster />
+      </AuthProvider>
+    </TRPCProvider>
+  );
 }
 
 export default App;
