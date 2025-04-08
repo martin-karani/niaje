@@ -1,14 +1,16 @@
-import { Button } from "@/components/ui/button";
-import { TRPCProvider } from "./providers/trpc-provider";
+import { RouterProvider, createRouter } from "@tanstack/react-router";
+import { routeTree } from "./routeTree.gen";
+
+const router = createRouter({ routeTree });
+
+declare module "@tanstack/react-router" {
+  interface Register {
+    router: typeof router;
+  }
+}
 
 function App() {
-  return (
-    <div>
-      <TRPCProvider>
-        <Button>Click me</Button>
-      </TRPCProvider>
-    </div>
-  );
+  return <RouterProvider router={router} />;
 }
 
 export default App;
