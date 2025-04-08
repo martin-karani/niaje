@@ -24,16 +24,13 @@ interface AuthContextType {
   logout: () => Promise<void>;
 }
 
-// Create the context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Auth provider component
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { data: session, isPending: isLoading } = useSession();
   const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Update user when session changes
   useEffect(() => {
     if (session && session.user) {
       setUser({
@@ -47,12 +44,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [session]);
 
-  // Login function
   const login = async (email: string, password: string) => {
     try {
       setError(null);
       await signIn.email({ email, password });
-      // Session will be updated automatically by useSession hook
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to login");
       throw err;
@@ -69,7 +64,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setError(null);
       await signUp.email({ email, password, name, role });
-      // After registration, log the user in
       await signIn.email({ email, password });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to register");
@@ -77,7 +71,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Logout function
   const logout = async () => {
     try {
       setError(null);
@@ -105,7 +98,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Custom hook to use auth context
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
