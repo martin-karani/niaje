@@ -1,66 +1,243 @@
 // src/routes/_authenticated/dashboard/index.tsx
 import { trpc } from "@/api/trpc";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useAuth } from "@/providers/auth-provider";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
+  ArrowDown,
   ArrowRight,
+  ArrowUp,
   Building,
   CalendarDays,
+  ChevronDown,
   Clock,
   DollarSign,
+  Edit,
   FileText,
-  PieChart,
+  Trash2,
   Users,
   Wrench,
 } from "lucide-react";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 export const Route = createFileRoute("/_authenticated/dashboard/")({
   component: Dashboard,
 });
+
+// Chart data
+const revenueData = [
+  { month: "Jan", amount: 20000 },
+  { month: "Feb", amount: 35000 },
+  { month: "Mar", amount: 15000 },
+  { month: "Apr", amount: 20000 },
+  { month: "May", amount: 15000 },
+  { month: "Jun", amount: 35000 },
+  { month: "Jul", amount: 20000 },
+];
+
+const occupancyData = [
+  { name: "Occupied", value: 87 },
+  { name: "Vacant", value: 13 },
+];
+
+const OCCUPANCY_COLORS = ["#4f46e5", "#e4e4e7"];
+
+const maintenanceData = [
+  { name: "Pending", value: 23 },
+  { name: "In Progress", value: 14 },
+  { name: "Completed", value: 42 },
+];
+
+const MAINTENANCE_COLORS = ["#f59e0b", "#3b82f6", "#10b981"];
 
 function Dashboard() {
   const { user } = useAuth();
   const { data: propertiesData, isLoading: propertiesLoading } =
     trpc.properties.getAll.useQuery();
 
+  // Stats data
+  const statsData = {
+    rentReceived: {
+      amount: "$1,450.00",
+      change: "15.8%",
+      isUp: false,
+      details: "Due this month",
+      value: "$6,000",
+    },
+    upcomingPayments: {
+      amount: "$2,450.00",
+      change: "15.8%",
+      isUp: true,
+      details: "2 this month",
+    },
+    rentOverdue: {
+      amount: "$1,450.00",
+      change: "15.8%",
+      isUp: false,
+      details: "5 Overdue",
+    },
+    totalExpense: {
+      amount: "$2,450.00",
+      change: "15.8%",
+      isUp: true,
+      details: "31 works",
+    },
+  };
+
   // Mock data for dashboard stats
   const dashboardStats = {
-    totalProperties: propertiesData?.length || 0,
-    totalTenants: 37,
+    totalProperties: propertiesData?.length || 4,
+    totalTenants: 289,
     occupancyRate: 87,
     pendingRequests: 23,
     overdueMaintenance: 14,
-    totalRevenue: "$223,600",
-    expensesThisMonth: "$83,840",
+    totalRevenue: "$9,245.25",
+    expensesThisMonth: "$2,125.74",
   };
 
-  // Recent activities
-  const recentActivities = [
+  // Recent transactions
+  const recentTransactions = [
     {
-      id: 1,
-      type: "new_tenant",
-      description: "Leslie Alexander signed a lease for Unit 1073",
-      time: "2 hours ago",
+      id: "3066",
+      customer: {
+        name: "Jacob Jones",
+        image: null,
+      },
+      date: "N/A",
+      status: "Overdue",
+      unit: "3517 W. Gray St",
+      amount: 450.0,
+      partiallyPaid: "$0.00",
     },
     {
-      id: 2,
-      type: "maintenance",
-      description: "Bathroom vent repair completed by Ricardo Emmerson",
-      time: "Yesterday",
+      id: "3066",
+      customer: {
+        name: "Robert Fox",
+        image: null,
+      },
+      date: "05/07/2024",
+      status: "Partially Paid",
+      unit: "4517 Washington",
+      amount: 350.0,
+      partiallyPaid: "$200.00",
     },
     {
-      id: 3,
-      type: "payment",
-      description: "Rent payment of $1,650 received from Michael Brown",
-      time: "2 days ago",
+      id: "3066",
+      customer: {
+        name: "Leslie Alexander",
+        image: null,
+      },
+      date: "28/06/2024",
+      status: "Processing",
+      unit: "4140 Parker Rd",
+      amount: 400.0,
+      partiallyPaid: "$0.00",
     },
     {
-      id: 4,
-      type: "lease",
-      description: "Lease renewal reminder sent to Jennifer White",
-      time: "3 days ago",
+      id: "3066",
+      customer: {
+        name: "Arlene McCoy",
+        image: null,
+      },
+      date: "20/06/2024",
+      status: "Paid",
+      unit: "8502 Preston Rd",
+      amount: 340.0,
+      partiallyPaid: "$0.00",
+    },
+    {
+      id: "3066",
+      customer: {
+        name: "Leslie Alex",
+        image: null,
+      },
+      date: "N/A",
+      status: "Overdue",
+      unit: "2464 Royal Ln",
+      amount: 500.0,
+      partiallyPaid: "$0.00",
+    },
+    {
+      id: "3066",
+      customer: {
+        name: "Eleanor Pena",
+        image: null,
+      },
+      date: "12/06/2024",
+      status: "Partially Paid",
+      unit: "2715 Ash Dr. San",
+      amount: 480.0,
+      partiallyPaid: "$400.00",
+    },
+    {
+      id: "3066",
+      customer: {
+        name: "Leslie Alexander",
+        image: null,
+      },
+      date: "N/A",
+      status: "Processing",
+      unit: "2972 Westheimer",
+      amount: 350.0,
+      partiallyPaid: "$0.00",
+    },
+    {
+      id: "3066",
+      customer: {
+        name: "Eleanor Pena",
+        image: null,
+      },
+      date: "15/05/2024",
+      status: "Paid",
+      unit: "4517 Washington",
+      amount: 400.0,
+      partiallyPaid: "$0.00",
+    },
+    {
+      id: "3066",
+      customer: {
+        name: "Kathryn Murphy",
+        image: null,
+      },
+      date: "N/A",
+      status: "Overdue",
+      unit: "3891 Ranchview",
+      amount: 350.0,
+      partiallyPaid: "$0.00",
+    },
+    {
+      id: "3066",
+      customer: {
+        name: "Leslie Alexander",
+        image: null,
+      },
+      date: "28/05/2024",
+      status: "Partially Paid",
+      unit: "2118 Thornridge Cir",
+      amount: 450.0,
+      partiallyPaid: "$350.00",
     },
   ];
 
@@ -69,13 +246,13 @@ function Dashboard() {
     {
       id: 1,
       title: "Property Viewing",
-      property: "Crown Tower, Unit 402",
+      property: "Sobha Garden, Unit 402",
       date: "Today, 3:00 PM",
     },
     {
       id: 2,
       title: "Lease Signing",
-      property: "Sobha Garden, Unit 202",
+      property: "Crown Tower, Unit 202",
       date: "Tomorrow, 11:00 AM",
     },
     {
@@ -100,269 +277,589 @@ function Dashboard() {
     }
   };
 
+  // Determine which tabs to show based on role
+  const canViewFinancials = user?.role === "landlord" || user?.role === "admin";
+
+  const getStatusStyle = (status) => {
+    switch (status) {
+      case "Paid":
+        return "bg-emerald-100 text-emerald-800";
+      case "Overdue":
+        return "bg-red-100 text-red-800";
+      case "Partially Paid":
+        return "bg-blue-100 text-blue-800";
+      case "Processing":
+        return "bg-amber-100 text-amber-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  // Stat Card Component
+  const StatCard = ({
+    title,
+    amount,
+    change,
+    isUp,
+    details,
+    value,
+  }: {
+    title: string;
+    amount: string;
+    change: string;
+    isUp: boolean;
+    details: string;
+    value?: string;
+  }) => {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex flex-col">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-muted-foreground">{title}</span>
+              <div
+                className={`flex items-center px-1.5 py-0.5 rounded text-xs ${
+                  isUp ? "text-emerald-700" : "text-red-700"
+                }`}
+              >
+                {isUp ? (
+                  <ArrowUp className="h-3 w-3 mr-1" />
+                ) : (
+                  <ArrowDown className="h-3 w-3 mr-1" />
+                )}
+                {change}
+              </div>
+            </div>
+            <div className="text-2xl font-semibold">{amount}</div>
+            <div className="text-sm text-muted-foreground mt-auto flex justify-between items-center">
+              {details}
+              {value && (
+                <span className="text-sm text-muted-foreground">{value}</span>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Welcome, {user?.name}</h1>
+          <h1 className="text-2xl font-semibold">Dashboard</h1>
           <p className="text-muted-foreground">{getRoleBasedGreeting()}</p>
         </div>
-        <Button variant="outline" className="self-start">
+        <Button variant="outline">
           <CalendarDays className="w-4 h-4 mr-2" />
-          June 16, 2025
+          {new Date().toLocaleDateString("en-US", {
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+          })}
         </Button>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Properties
-            </CardTitle>
-            <Building className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {dashboardStats.totalProperties}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {dashboardStats.occupancyRate}% occupancy rate
-            </div>
-            {user?.role === "landlord" && (
-              <div className="mt-4">
-                <Link
-                  to="/properties"
-                  className="text-xs text-primary flex items-center"
-                >
-                  View all properties
-                  <ArrowRight className="ml-1 h-3 w-3" />
-                </Link>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Rent received"
+          amount={statsData.rentReceived.amount}
+          change={statsData.rentReceived.change}
+          isUp={statsData.rentReceived.isUp}
+          details={statsData.rentReceived.details}
+          value={statsData.rentReceived.value}
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Tenants
-            </CardTitle>
-            <Users className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {dashboardStats.totalTenants}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              4 new in the last month
-            </div>
-            <div className="mt-4">
-              <Link
-                to="/tenants"
-                className="text-xs text-primary flex items-center"
-              >
-                View all tenants
-                <ArrowRight className="ml-1 h-3 w-3" />
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Upcoming payments"
+          amount={statsData.upcomingPayments.amount}
+          change={statsData.upcomingPayments.change}
+          isUp={statsData.upcomingPayments.isUp}
+          details={statsData.upcomingPayments.details}
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Maintenance
-            </CardTitle>
-            <Wrench className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {dashboardStats.pendingRequests}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {dashboardStats.overdueMaintenance} need immediate attention
-            </div>
-            <div className="mt-4">
-              <Link
-                to="/maintenance"
-                className="text-xs text-primary flex items-center"
-              >
-                View requests
-                <ArrowRight className="ml-1 h-3 w-3" />
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Rent overdue"
+          amount={statsData.rentOverdue.amount}
+          change={statsData.rentOverdue.change}
+          isUp={statsData.rentOverdue.isUp}
+          details={statsData.rentOverdue.details}
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Monthly Revenue
-            </CardTitle>
-            <DollarSign className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {dashboardStats.totalRevenue}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {dashboardStats.expensesThisMonth} in expenses
-            </div>
-            {(user?.role === "landlord" || user?.role === "caretaker") && (
-              <div className="mt-4">
-                <Link
-                  to="/finances"
-                  className="text-xs text-primary flex items-center"
-                >
-                  View finances
-                  <ArrowRight className="ml-1 h-3 w-3" />
-                </Link>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Total expense"
+          amount={statsData.totalExpense.amount}
+          change={statsData.totalExpense.change}
+          isUp={statsData.totalExpense.isUp}
+          details={statsData.totalExpense.details}
+        />
       </div>
 
-      {/* Occupancy Progress Bar */}
+      {/* Total Revenue */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardHeader className="pb-2 flex flex-row justify-between items-start">
           <div>
-            <CardTitle className="text-sm font-medium">
-              Occupancy Overview
-            </CardTitle>
-            <p className="text-xs text-muted-foreground">
-              Currently at {dashboardStats.occupancyRate}% occupancy rate
-            </p>
+            <CardTitle>Total Revenue</CardTitle>
+            <span className="text-sm text-muted-foreground">Last 1 Year</span>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-1 text-sm">
+            <span className="text-muted-foreground">Rental Income:</span>
+            <span className="font-medium">$9,245.25</span>
+            <span className="text-muted-foreground ml-3">Expenses:</span>
+            <span className="font-medium">$2,125.74</span>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="w-full bg-muted rounded-full h-2.5 mb-2">
-            <div
-              className="bg-primary h-2.5 rounded-full"
-              style={{ width: `${dashboardStats.occupancyRate}%` }}
-            ></div>
-          </div>
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <div>Total units: 1,810</div>
-            <div>Occupied: 1,576</div>
-            <div>Vacant: 234</div>
-          </div>
+        <CardContent className="h-[250px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart
+              data={revenueData}
+              margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+            >
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="#e5e7eb"
+              />
+              <XAxis dataKey="month" tickLine={false} axisLine={false} />
+              <YAxis
+                tickFormatter={(value) => `$${value.toLocaleString()}`}
+                tickLine={false}
+                axisLine={false}
+              />
+              <Tooltip
+                formatter={(value) => [`$${value.toLocaleString()}`, "Revenue"]}
+                labelFormatter={(label) => `Month: ${label}`}
+              />
+              <Area
+                type="monotone"
+                dataKey="amount"
+                stroke="#8884d8"
+                fill="#8884d8"
+                fillOpacity={0.2}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Recent Activities */}
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Recent Activities</CardTitle>
-              <Button variant="ghost" size="sm" className="text-xs">
-                View all <ArrowRight className="ml-1 h-3 w-3" />
-              </Button>
+      {/* Property Valuation and Units */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Property Valuation */}
+        <Card>
+          <CardHeader className="flex flex-row justify-between items-start pb-2">
+            <div>
+              <CardTitle>Property Valuation</CardTitle>
+              <span className="text-sm text-muted-foreground">
+                3217 W. Gray St
+              </span>
             </div>
+            <ChevronDown className="h-4 w-4" />
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {recentActivities.map((activity) => (
-                <div key={activity.id} className="flex items-start space-x-3">
-                  <div className="mt-0.5 bg-muted rounded-full p-1.5">
-                    {activity.type === "new_tenant" ? (
-                      <Users className="h-4 w-4 text-blue-500" />
-                    ) : activity.type === "maintenance" ? (
-                      <Wrench className="h-4 w-4 text-amber-500" />
-                    ) : activity.type === "payment" ? (
-                      <DollarSign className="h-4 w-4 text-emerald-500" />
-                    ) : (
-                      <FileText className="h-4 w-4 text-purple-500" />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm">{activity.description}</p>
-                    <p className="text-xs text-muted-foreground mt-1 flex items-center">
-                      <Clock className="mr-1 h-3 w-3" />
-                      {activity.time}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+          <CardContent className="h-[225px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={[
+                  { year: 0, value: 1.5 },
+                  { year: 1, value: 1.8 },
+                  { year: 2, value: 2.3 },
+                  { year: 3, value: 2.5 },
+                  { year: 4, value: 3.0 },
+                  { year: 5, value: 3.4 },
+                ]}
+                margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="#e5e7eb"
+                />
+                <XAxis dataKey="year" tickLine={false} axisLine={false} />
+                <YAxis
+                  tickFormatter={(value) => `${value}.0`}
+                  domain={[0, 4]}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <Tooltip
+                  formatter={(value) => [
+                    `$${value.toFixed(1)}M`,
+                    "Property value",
+                  ]}
+                  labelFormatter={(label) => `Year: ${label}`}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="value"
+                  stroke="#10b981"
+                  fill="#10b981"
+                  fillOpacity={0.2}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {/* Upcoming Events */}
+        {/* Property Units */}
         <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Upcoming</CardTitle>
-              <Button variant="ghost" size="sm" className="text-xs">
-                View calendar <ArrowRight className="ml-1 h-3 w-3" />
-              </Button>
-            </div>
+          <CardHeader className="flex flex-row justify-between items-start pb-2">
+            <CardTitle>Property Units</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {upcomingEvents.map((event) => (
-                <div key={event.id} className="border rounded-md p-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="text-sm font-medium">{event.title}</h4>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {event.property}
-                      </p>
-                    </div>
-                    <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full">
-                      {event.date}
-                    </span>
+          <CardContent className="flex justify-center items-center">
+            <div className="h-[225px] w-full flex items-center justify-center">
+              <div className="relative">
+                <div className="text-7xl font-bold text-center">289</div>
+                <div className="text-sm text-center mt-2">Units</div>
+                <div className="absolute -top-10 -right-10">
+                  <div className="relative w-48 h-48">
+                    <svg viewBox="0 0 100 100" className="w-full h-full">
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="45"
+                        fill="none"
+                        stroke="#e5e7eb"
+                        strokeWidth="10"
+                        strokeLinecap="round"
+                      />
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="45"
+                        fill="none"
+                        stroke="#8b5cf6"
+                        strokeWidth="10"
+                        strokeDasharray="283"
+                        strokeDashoffset="42"
+                        strokeLinecap="round"
+                      />
+                    </svg>
                   </div>
                 </div>
-              ))}
+                <div className="flex justify-between mt-8 text-sm">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-rose-400 rounded-full mr-2"></div>
+                    <span>Booked</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-purple-500 rounded-full mr-2"></div>
+                    <span>Occupied</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-gray-200 rounded-full mr-2"></div>
+                    <span>Vacant</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Action Cards - Role-specific */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {user?.role === "landlord" && (
-          <>
-            <ActionCard
-              title="Add Property"
-              description="List a new property in your portfolio"
-              icon={<Building className="h-5 w-5" />}
-              link="/properties"
-            />
-            <ActionCard
-              title="Financial Reports"
-              description="View income and expense reports"
-              icon={<PieChart className="h-5 w-5" />}
-              link="/reports"
-            />
-          </>
-        )}
+      {/* Charts and Tables Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Recent Transactions */}
+        <div className="lg:col-span-2 space-y-4">
+          <Card>
+            <CardHeader className="pb-2 border-b">
+              <div className="flex items-center justify-between">
+                <CardTitle>Recent Transactions</CardTitle>
+                <Button variant="ghost" size="sm" className="text-xs">
+                  View all <ArrowRight className="ml-1 h-3 w-3" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>ID</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Unit Number</TableHead>
+                      <TableHead>Partially Paid</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {recentTransactions
+                      .slice(0, 5)
+                      .map((transaction, index) => (
+                        <TableRow key={index}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-8 w-8">
+                                <AvatarFallback>
+                                  {transaction.customer.name.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span>{transaction.customer.name}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>{transaction.id}</TableCell>
+                          <TableCell>{transaction.date}</TableCell>
+                          <TableCell>
+                            <span
+                              className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusStyle(
+                                transaction.status
+                              )}`}
+                            >
+                              {transaction.status}
+                            </span>
+                          </TableCell>
+                          <TableCell>{transaction.unit}</TableCell>
+                          <TableCell>{transaction.partiallyPaid}</TableCell>
+                          <TableCell className="text-right">
+                            ${transaction.amount.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
 
-        {user?.role === "agent" && (
-          <ActionCard
-            title="Add Tenant"
-            description="Register a new tenant for a property"
-            icon={<Users className="h-5 w-5" />}
-            link="/tenants"
-          />
-        )}
+          {/* Maintenance Status */}
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle>Maintenance</CardTitle>
+                <div className="flex gap-1">
+                  <Button variant="outline" size="sm">
+                    <Clock className="h-4 w-4 mr-1" /> Last 30 days
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">Compliance (12)</span>
+                  <span className="text-sm font-medium">Maintenance</span>
+                  <span className="text-sm font-medium">Task</span>
+                </div>
+                <div className="space-y-3 mt-4">
+                  <div className="flex justify-between items-center p-3 border rounded-md">
+                    <div>
+                      <div className="font-medium">
+                        Household Fix-It Contractor
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        15 Main Street - 2F
+                      </div>
+                    </div>
+                    <span className="px-2 py-1 bg-emerald-100 text-emerald-800 rounded-md text-xs">
+                      Approved
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 border rounded-md">
+                    <div>
+                      <div className="font-medium">House plumbing</div>
+                      <div className="text-sm text-muted-foreground">
+                        15 Main Street - 2F
+                      </div>
+                    </div>
+                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-xs">
+                      In progress
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 border rounded-md">
+                    <div>
+                      <div className="font-medium">
+                        Household Fix-It Contractor
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        15 Main Street - 2F
+                      </div>
+                    </div>
+                    <span className="px-2 py-1 bg-amber-100 text-amber-800 rounded-md text-xs">
+                      In Review
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center justify-center">
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie
+                      data={maintenanceData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {maintenanceData.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={
+                            MAINTENANCE_COLORS[
+                              index % MAINTENANCE_COLORS.length
+                            ]
+                          }
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend
+                      layout="vertical"
+                      verticalAlign="middle"
+                      align="right"
+                      formatter={(value, entry, index) => (
+                        <span
+                          style={{
+                            color:
+                              MAINTENANCE_COLORS[
+                                index % MAINTENANCE_COLORS.length
+                              ],
+                          }}
+                        >
+                          {value}: {maintenanceData[index].value}
+                        </span>
+                      )}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-        <ActionCard
-          title="Create Maintenance Request"
-          description="Create a new maintenance ticket"
-          icon={<Wrench className="h-5 w-5" />}
-          link="/maintenance"
-        />
+        {/* Right Column */}
+        <div className="space-y-6">
+          {/* Upcoming Events */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Upcoming</CardTitle>
+                <Button variant="ghost" size="sm" className="text-xs">
+                  View calendar <ArrowRight className="ml-1 h-3 w-3" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {upcomingEvents.map((event) => (
+                  <div key={event.id} className="border rounded-md p-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="text-sm font-medium">{event.title}</h4>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {event.property}
+                        </p>
+                      </div>
+                      <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full">
+                        {event.date}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
-        <ActionCard
-          title="View Calendar"
-          description="Schedule appointments and events"
-          icon={<CalendarDays className="h-5 w-5" />}
-          link="/calendar"
-        />
+          {/* Recent Transactions */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Recent Transactions</CardTitle>
+                <Button variant="ghost" size="sm" className="text-xs">
+                  <FileText className="h-4 w-4 mr-1" />
+                  View all
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="p-4 border-t">
+                <div className="space-y-4">
+                  {recentTransactions.slice(0, 3).map((transaction, index) => (
+                    <div
+                      key={index}
+                      className="flex justify-between items-center"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback>
+                            {transaction.customer.name.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="font-medium">
+                            {transaction.customer.name}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {transaction.unit}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-medium">
+                          ${transaction.amount.toFixed(2)}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {transaction.date}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Quick Actions */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {user?.role === "landlord" && (
+                <Button variant="outline" className="w-full justify-start">
+                  <Building className="h-4 w-4 mr-2" />
+                  Add Property
+                </Button>
+              )}
+
+              <Button variant="outline" className="w-full justify-start">
+                <Users className="h-4 w-4 mr-2" />
+                Add Tenant
+              </Button>
+
+              <Button variant="outline" className="w-full justify-start">
+                <Wrench className="h-4 w-4 mr-2" />
+                Create Maintenance Request
+              </Button>
+
+              <Button variant="outline" className="w-full justify-start">
+                <DollarSign className="h-4 w-4 mr-2" />
+                Record Payment
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

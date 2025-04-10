@@ -225,7 +225,7 @@ function Payments() {
           </Button>
           <Button>
             <Plus className="h-4 w-4 mr-2" />
-            Add Property
+            Add Payment
           </Button>
         </div>
       </div>
@@ -372,7 +372,7 @@ function Payments() {
                 <TableHead className="w-[40px]">
                   <input type="checkbox" className="h-4 w-4" />
                 </TableHead>
-                <TableHead>Customer</TableHead>
+                <TableHead>Tenants</TableHead>
                 <TableHead>ID</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Status</TableHead>

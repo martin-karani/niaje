@@ -8,14 +8,13 @@ export const Route = createFileRoute("/_authenticated/tenants/$tenantId")({
 });
 
 function TenantDetail() {
-  const { params } = Route.useParams();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Mock tenant data - in a real app this would come from an API call
   const tenant = {
-    id: params.tenantId,
+    id: "1",
     name: "Leslie Alexander",
     email: "leslie.alexander@example.com",
     phone: "(505) 555-0125",
