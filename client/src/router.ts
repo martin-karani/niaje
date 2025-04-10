@@ -4,8 +4,9 @@ import { routeTree } from "./routeTree.gen";
 export const router = createRouter({
   routeTree,
   context: {
-    auth: AuthContext,
+    auth: undefined!, // This will be provided by the AuthProvider in the App component
   },
+  scrollRestoration: true,
 
   defaultPreload: "intent",
   defaultPreloadStaleTime: 0,
