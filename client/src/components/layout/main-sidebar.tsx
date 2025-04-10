@@ -1,234 +1,239 @@
-"use client";
-
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
   SidebarRail,
 } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/providers/auth-provider";
+import { Link, useRouter } from "@tanstack/react-router";
 import {
+  BarChart,
   Building,
+  CalendarDays,
+  ChevronDown,
   CreditCard,
-  FileIcon,
   FileText,
   HelpCircle,
-  Home,
   LayoutDashboard,
   LogOut,
   Settings,
   Users,
   Wrench,
 } from "lucide-react";
+import React from "react";
+import { PropertySwitcher } from "../common/property-switcher";
 
-import { cn } from "@/lib/utils";
+interface SidebarProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
 
-import { useLocation, useNavigate } from "@tanstack/react-router";
-
-export function MainSidebar() {
+export function MainSidebar({ open, onOpenChange, ...props }: SidebarProps) {
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const router = useRouter();
 
-  // Early return if no user
-  if (!user) return null;
+  // Get the current route to determine active itemsx
+  const currentRoute = router.state.location.pathname;
 
-  // Function to check if a menu item is active
-  const isActive = (url: string) => {
-    return location.pathname.startsWith(url);
-  };
-
-  // Define navigation items based on user role
-  const getNavItems = () => {
-    const commonItems = [
+  // Create different menu items based on user role
+  const menuItems = React.useMemo(() => {
+    const items = [
       {
         title: "Dashboard",
-        url: "/dashboard",
         icon: LayoutDashboard,
+        path: "/dashboard",
+        roles: ["landlord", "caretaker", "agent"],
       },
       {
         title: "Properties",
-        url: "/properties",
         icon: Building,
+        path: "/properties",
+        roles: ["landlord", "caretaker", "agent"],
       },
       {
         title: "Tenants",
-        url: "/tenants",
         icon: Users,
+        path: "/tenants",
+        roles: ["landlord", "caretaker", "agent"],
       },
       {
         title: "Leasing",
-        url: "/leases",
         icon: FileText,
+        path: "/leases",
+        roles: ["landlord", "agent"],
       },
       {
         title: "Maintenance",
-        url: "/maintenance",
         icon: Wrench,
+        path: "/maintenance",
+        roles: ["landlord", "caretaker"],
       },
       {
-        title: "Payments",
-        url: "/finances",
+        title: "Finances",
         icon: CreditCard,
+        path: "/finances",
+        subItems: [
+          { title: "Overview", path: "/finances" },
+          { title: "Rent Collection", path: "/finances/rent-collection" },
+          { title: "Expenses", path: "/finances/expenses" },
+        ],
+        roles: ["landlord"],
       },
       {
-        title: "Document",
-        url: "/documents",
-        icon: FileIcon,
+        title: "Calendar",
+        icon: CalendarDays,
+        path: "/calendar",
+        roles: ["landlord", "caretaker", "agent"],
+      },
+      {
+        title: "Reports",
+        icon: BarChart,
+        path: "/reports",
+        roles: ["landlord", "caretaker"],
+      },
+      {
+        title: "Settings",
+        icon: Settings,
+        path: "/settings",
+        roles: ["landlord", "caretaker", "agent"],
       },
     ];
 
-    // Return different navigation items based on user role
-    switch (user.role) {
-      case "landlord":
-        return commonItems;
-      case "caretaker":
-        // Filter out financial reports for caretaker
-        return commonItems.filter((item) => item.title !== "Financial Reports");
-      case "agent":
-        // Filter out certain items for agent
-        return commonItems.filter(
-          (item) => !["Reports", "Maintenance Reports"].includes(item.title)
-        );
-      default:
-        return commonItems;
-    }
-  };
+    // Filter items based on user role
+    return items;
+  }, [user?.role]);
 
-  const navItems = getNavItems();
-
-  // Settings and support items at the bottom
-  const bottomNavItems = [
-    {
-      title: "Setting",
-      url: "/settings",
-      icon: Settings,
-    },
-    {
-      title: "Help & Support",
-      url: "/support",
-      icon: HelpCircle,
-    },
-  ];
-
-  // Handle logout
-  const handleLogout = async () => {
-    try {
-      await logout();
-      navigate({ to: "/auth/login" });
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
-  };
+  // Sidebar is only rendered if there's a user
+  if (!user) return null;
 
   return (
-    <Sidebar collapsible="icon" className="bg-white">
+    <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg">
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                <Home className="size-4" />
-              </div>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">Niaje </span>
-                <span className="truncate text-xs capitalize">{user.role}</span>
-              </div>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <PropertySwitcher
+          properties={[
+            {
+              name: "Property 1",
+              logo: Building,
+              plan: "Basic",
+            },
+            {
+              name: "Property 2",
+              logo: Building,
+              plan: "Premium",
+            },
+          ]}
+        />
       </SidebarHeader>
 
       <SidebarContent>
-        {/* Main Navigation */}
         <SidebarGroup>
+          <SidebarGroupLabel>Main Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    tooltip={item.title}
-                    className={cn(
-                      "transition-colors hover:bg-gray-100",
-                      isActive(item.url) &&
-                        "bg-gray-100 border-l-4 border-blue-500"
-                    )}
-                  >
-                    <a
-                      href={item.url}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        navigate({ to: item.url });
-                      }}
+              {menuItems.map((item) => {
+                const isActive = currentRoute.startsWith(item.path);
+
+                // Items with subitems
+                if (item.subItems) {
+                  return (
+                    <Collapsible
+                      key={item.title}
+                      defaultOpen={isActive}
+                      className="w-full"
                     >
-                      <item.icon
-                        className={cn(
-                          "h-5 w-5",
-                          isActive(item.url) ? "text-blue-500" : "text-gray-500"
-                        )}
-                      />
-                      <span
-                        className={cn(
-                          isActive(item.url)
-                            ? "text-blue-500 font-medium"
-                            : "text-gray-700"
-                        )}
-                      >
-                        {item.title}
-                      </span>
-                    </a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+                      <SidebarMenuItem>
+                        <CollapsibleTrigger asChild>
+                          <SidebarMenuButton
+                            isActive={isActive}
+                            tooltip={item.title}
+                          >
+                            <item.icon className="h-4 w-4" />
+                            <span>{item.title}</span>
+                            <ChevronDown className="ml-auto h-4 w-4" />
+                          </SidebarMenuButton>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <SidebarMenuSub>
+                            {item.subItems.map((subItem) => {
+                              const isSubActive = currentRoute === subItem.path;
+                              return (
+                                <Link
+                                  key={subItem.path}
+                                  to={subItem.path}
+                                  className={cn(
+                                    "block rounded-md px-3 py-2 text-sm hover:bg-muted",
+                                    isSubActive &&
+                                      "bg-muted font-medium text-primary"
+                                  )}
+                                >
+                                  {subItem.title}
+                                </Link>
+                              );
+                            })}
+                          </SidebarMenuSub>
+                        </CollapsibleContent>
+                      </SidebarMenuItem>
+                    </Collapsible>
+                  );
+                }
+
+                // Regular items
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive}
+                      tooltip={item.title}
+                    >
+                      <Link to={item.path}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="mt-auto border-t border-gray-200">
-        {/* Settings and Support */}
+      {/* Help and logout section */}
+      <SidebarFooter>
         <SidebarMenu>
-          {bottomNavItems.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton
-                asChild
-                tooltip={item.title}
-                className="transition-colors hover:bg-gray-100"
-              >
-                <a
-                  href={item.url}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    navigate({ to: item.url });
-                  }}
-                >
-                  <item.icon className="h-5 w-5 text-gray-500" />
-                  <span className="text-gray-700">{item.title}</span>
-                </a>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
-
-          {/* Logout Button */}
+          <SidebarMenuItem>
+            <SidebarMenuButton tooltip="Help & Support">
+              <HelpCircle className="h-4 w-4" />
+              <span>Help & Support</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
-              onClick={handleLogout}
+              className="text-red-500 hover:text-red-600 hover:bg-red-50"
+              onClick={() => logout()}
               tooltip="Logout"
-              className="transition-colors hover:bg-gray-100"
             >
-              <LogOut className="h-5 w-5 text-gray-500" />
-              <span className="text-gray-700">Logout</span>
+              <LogOut className="h-4 w-4" />
+              <span>Logout</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+
       <SidebarRail />
     </Sidebar>
   );

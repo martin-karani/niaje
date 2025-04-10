@@ -1,46 +1,42 @@
 import { Button } from "@/components/ui/button";
-import { Link } from "@tanstack/react-router";
-import { ArrowLeft, Home, Search } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { Home } from "lucide-react";
 
-export interface NotFoundProps {
-  title?: string;
-  message?: string;
-  showBackButton?: boolean;
-  showHomeButton?: boolean;
+interface DefaultNotFoundProps {
+  title: string;
+  message: string;
+  resourceType?: string;
+  resourceId?: string;
 }
 
 export function DefaultNotFound({
-  title = "Page Not Found",
-  message = "Sorry, we couldn't find the page you're looking for.",
-  showBackButton = true,
-  showHomeButton = true,
-}: NotFoundProps) {
+  title,
+  message,
+  resourceType,
+  resourceId,
+}: DefaultNotFoundProps) {
+  const navigate = useNavigate();
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-      <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-6">
-        <Search className="h-12 w-12 text-muted-foreground" />
+    <div className="flex flex-col items-center justify-center min-h-[80vh] p-6 text-center">
+      <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mb-6">
+        <span className="text-4xl font-bold text-muted-foreground">404</span>
       </div>
+      <h1 className="text-2xl font-bold mb-2">{title}</h1>
+      <p className="text-muted-foreground max-w-md mb-6">{message}</p>
 
-      <h1 className="text-3xl font-bold mb-2">{title}</h1>
-      <p className="text-muted-foreground text-lg max-w-lg mb-8">{message}</p>
+      {resourceType && (
+        <p className="text-sm text-muted-foreground mb-6">
+          {`${resourceType}${
+            resourceId ? ` (ID: ${resourceId})` : ""
+          } was not found.`}
+        </p>
+      )}
 
-      <div className="flex flex-wrap gap-4 justify-center">
-        {showBackButton && (
-          <Button variant="outline" onClick={() => window.history.back()}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Go Back
-          </Button>
-        )}
-
-        {showHomeButton && (
-          <Button asChild>
-            <Link to="/">
-              <Home className="mr-2 h-4 w-4" />
-              Return Home
-            </Link>
-          </Button>
-        )}
-      </div>
+      <Button onClick={() => navigate({ to: "/" })}>
+        <Home className="mr-2 h-4 w-4" />
+        Back to Dashboard
+      </Button>
     </div>
   );
 }

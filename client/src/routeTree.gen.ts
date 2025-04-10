@@ -16,6 +16,7 @@ import { Route as AuthenticatedImport } from './routes/_authenticated'
 import { Route as IndexImport } from './routes/index'
 import { Route as AuthRegisterImport } from './routes/auth/register'
 import { Route as AuthLoginImport } from './routes/auth/login'
+import { Route as AuthenticatedTenantsIndexImport } from './routes/_authenticated/tenants/index'
 import { Route as AuthenticatedSettingsIndexImport } from './routes/_authenticated/settings/index'
 import { Route as AuthenticatedReportsIndexImport } from './routes/_authenticated/reports/index'
 import { Route as AuthenticatedPropertiesIndexImport } from './routes/_authenticated/properties/index'
@@ -58,6 +59,12 @@ const AuthLoginRoute = AuthLoginImport.update({
   id: '/auth/login',
   path: '/auth/login',
   getParentRoute: () => rootRoute,
+} as any)
+
+const AuthenticatedTenantsIndexRoute = AuthenticatedTenantsIndexImport.update({
+  id: '/tenants/',
+  path: '/tenants/',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 
 const AuthenticatedSettingsIndexRoute = AuthenticatedSettingsIndexImport.update(
@@ -268,6 +275,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsIndexImport
       parentRoute: typeof AuthenticatedImport
     }
+    '/_authenticated/tenants/': {
+      id: '/_authenticated/tenants/'
+      path: '/tenants'
+      fullPath: '/tenants'
+      preLoaderRoute: typeof AuthenticatedTenantsIndexImport
+      parentRoute: typeof AuthenticatedImport
+    }
   }
 }
 
@@ -286,6 +300,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedPropertiesIndexRoute: typeof AuthenticatedPropertiesIndexRoute
   AuthenticatedReportsIndexRoute: typeof AuthenticatedReportsIndexRoute
   AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
+  AuthenticatedTenantsIndexRoute: typeof AuthenticatedTenantsIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -303,6 +318,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedPropertiesIndexRoute: AuthenticatedPropertiesIndexRoute,
   AuthenticatedReportsIndexRoute: AuthenticatedReportsIndexRoute,
   AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
+  AuthenticatedTenantsIndexRoute: AuthenticatedTenantsIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
@@ -327,6 +343,7 @@ export interface FileRoutesByFullPath {
   '/properties': typeof AuthenticatedPropertiesIndexRoute
   '/reports': typeof AuthenticatedReportsIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
+  '/tenants': typeof AuthenticatedTenantsIndexRoute
 }
 
 export interface FileRoutesByTo {
@@ -347,6 +364,7 @@ export interface FileRoutesByTo {
   '/properties': typeof AuthenticatedPropertiesIndexRoute
   '/reports': typeof AuthenticatedReportsIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
+  '/tenants': typeof AuthenticatedTenantsIndexRoute
 }
 
 export interface FileRoutesById {
@@ -368,6 +386,7 @@ export interface FileRoutesById {
   '/_authenticated/properties/': typeof AuthenticatedPropertiesIndexRoute
   '/_authenticated/reports/': typeof AuthenticatedReportsIndexRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
+  '/_authenticated/tenants/': typeof AuthenticatedTenantsIndexRoute
 }
 
 export interface FileRouteTypes {
@@ -390,6 +409,7 @@ export interface FileRouteTypes {
     | '/properties'
     | '/reports'
     | '/settings'
+    | '/tenants'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -409,6 +429,7 @@ export interface FileRouteTypes {
     | '/properties'
     | '/reports'
     | '/settings'
+    | '/tenants'
   id:
     | '__root__'
     | '/'
@@ -428,6 +449,7 @@ export interface FileRouteTypes {
     | '/_authenticated/properties/'
     | '/_authenticated/reports/'
     | '/_authenticated/settings/'
+    | '/_authenticated/tenants/'
   fileRoutesById: FileRoutesById
 }
 
@@ -481,7 +503,8 @@ export const routeTree = rootRoute
         "/_authenticated/maintenance/",
         "/_authenticated/properties/",
         "/_authenticated/reports/",
-        "/_authenticated/settings/"
+        "/_authenticated/settings/",
+        "/_authenticated/tenants/"
       ]
     },
     "/about": {
@@ -539,6 +562,10 @@ export const routeTree = rootRoute
     },
     "/_authenticated/settings/": {
       "filePath": "_authenticated/settings/index.tsx",
+      "parent": "/_authenticated"
+    },
+    "/_authenticated/tenants/": {
+      "filePath": "_authenticated/tenants/index.tsx",
       "parent": "/_authenticated"
     }
   }
