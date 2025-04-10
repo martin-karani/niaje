@@ -22,7 +22,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   return (
     <div className="flex min-h-screen flex-col">
       <SidebarProvider>
-        <MainSidebar open={sidebarOpen} onOpenChange={setSidebarOpen} />
+        <MainSidebar />
         <SidebarInset>
           <TopNav sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
           <main>

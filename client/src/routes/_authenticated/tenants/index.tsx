@@ -26,6 +26,23 @@ import {
 import { useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/tenants/")({
+  loader: () => {
+    return {
+      crumb: [
+        {
+          label: "Dashboard",
+          path: "/dashboard",
+          hideOnMobile: true,
+        },
+        {
+          label: "Tenants",
+          path: "/tenants",
+          hideOnMobile: true,
+        },
+      ],
+    };
+  },
+
   component: Tenants,
 });
 

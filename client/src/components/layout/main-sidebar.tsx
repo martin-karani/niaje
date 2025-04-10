@@ -37,20 +37,31 @@ import React from "react";
 import { PropertySwitcher } from "../common/property-switcher";
 
 interface SidebarProps {
+  collapsible?: "icon" | "none" | "offcanvas";
+
   open?: boolean;
+
   onOpenChange?: (open: boolean) => void;
 }
+type NavItem = {
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  path: string;
+  roles: string[];
+  subItems?: {
+    title: string;
+    path: string;
+  }[];
+};
 
 export function MainSidebar({ open, onOpenChange, ...props }: SidebarProps) {
   const { user, logout } = useAuth();
   const router = useRouter();
 
-  // Get the current route to determine active itemsx
   const currentRoute = router.state.location.pathname;
 
-  // Create different menu items based on user role
   const menuItems = React.useMemo(() => {
-    const items = [
+    const items: NavItem[] = [
       {
         title: "Dashboard",
         icon: LayoutDashboard,
@@ -58,9 +69,9 @@ export function MainSidebar({ open, onOpenChange, ...props }: SidebarProps) {
         roles: ["landlord", "caretaker", "agent"],
       },
       {
-        title: "Properties",
+        title: "Units",
         icon: Building,
-        path: "/properties",
+        path: "/units",
         roles: ["landlord", "caretaker", "agent"],
       },
       {

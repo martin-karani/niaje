@@ -1,5 +1,3 @@
-// client/src/routes/_authenticated/finances/expenses.tsx
-import { useProperties } from "@/api/trpc-hooks";
 import { Button } from "@/components/ui/button";
 import { createFileRoute } from "@tanstack/react-router";
 import {
@@ -187,7 +185,8 @@ const EXPENSE_DATA = [
 ];
 
 function ExpenseManagement() {
-  const { properties = [], isLoading: propertiesLoading } = useProperties();
+  // const { properties = [], isLoading: propertiesLoading } = useProperties();
+  const properties = [];
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [propertyFilter, setPropertyFilter] = useState<string | null>(null);

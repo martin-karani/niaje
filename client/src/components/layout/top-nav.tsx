@@ -8,20 +8,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/providers/auth-provider";
 import { Bell, ChevronDown, MessageSquare, Search } from "lucide-react";
+import { Breadcrumbs } from "../ui/breadcrumbs";
 import { Separator } from "../ui/separator";
 import { SidebarTrigger } from "../ui/sidebar";
 
-interface TopNavProps {
-  sidebarOpen: boolean;
-  setSidebarOpen: (open: boolean) => void;
-}
-
-export function TopNav({ sidebarOpen, setSidebarOpen }: TopNavProps) {
+export function TopNav() {
   const { user, logout } = useAuth();
-  const isMobile = useIsMobile();
 
   // Get user initials for avatar fallback
   const getInitials = (name: string) => {
@@ -37,7 +31,7 @@ export function TopNav({ sidebarOpen, setSidebarOpen }: TopNavProps) {
       <div className="flex flex-1 items-center gap-2 px-3">
         <SidebarTrigger />
         <Separator orientation="vertical" className="mr-2 h-4" />
-
+        <Breadcrumbs />
         {/* Search on larger screens */}
         <div className="ml-auto flex items-center gap-4">
           <div className="hidden md:flex md:w-64 lg:w-80">

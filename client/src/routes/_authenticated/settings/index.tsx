@@ -1,5 +1,3 @@
-// client/src/routes/settings/index.tsx
-import { useUpdateProfile } from "@/api/trpc-hooks";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/providers/auth-provider";
 import { createFileRoute } from "@tanstack/react-router";
@@ -30,7 +28,7 @@ export const Route = createFileRoute("/_authenticated/settings/")({
 
 function Settings() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("profile"); // profile, security, notifications, appearance, integrations
+  const [activeTab, setActiveTab] = useState("profile");
   const [showChangePassword, setShowChangePassword] = useState(false);
 
   if (!user) {

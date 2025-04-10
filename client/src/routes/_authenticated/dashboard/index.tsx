@@ -1,5 +1,3 @@
-// src/routes/_authenticated/dashboard/index.tsx
-import { trpc } from "@/api/trpc";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +10,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useAuth } from "@/providers/auth-provider";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { trpc } from "@/utils/trpc";
+import { createFileRoute } from "@tanstack/react-router";
 import {
   ArrowDown,
   ArrowRight,
@@ -43,6 +42,15 @@ import {
 } from "recharts";
 
 export const Route = createFileRoute("/_authenticated/dashboard/")({
+  loader: async () => ({
+    crumb: [
+      {
+        label: "Home",
+        path: "/dashboard",
+        hideOnMobile: false,
+      },
+    ],
+  }),
   component: Dashboard,
 });
 
@@ -74,8 +82,9 @@ const MAINTENANCE_COLORS = ["#f59e0b", "#3b82f6", "#10b981"];
 
 function Dashboard() {
   const { user } = useAuth();
-  const { data: propertiesData, isLoading: propertiesLoading } =
-    trpc.properties.getAll.useQuery();
+  const { data: propertiesData, isLoading: propertiesLoading } = useQuery(
+    trpc.properties.getAll
+  );
 
   // Stats data
   const statsData = {
@@ -862,25 +871,6 @@ function Dashboard() {
         </div>
       </div>
     </div>
-  );
-}
-
-// Helper component for action cards
-function ActionCard({ title, description, icon, link }) {
-  return (
-    <Link to={link}>
-      <Card className="hover:border-primary/50 hover:shadow-sm transition-all">
-        <CardContent className="p-6">
-          <div className="flex justify-between items-start">
-            <div className="space-y-1">
-              <h3 className="font-medium">{title}</h3>
-              <p className="text-sm text-muted-foreground">{description}</p>
-            </div>
-            <div className="bg-primary/10 p-2 rounded-full">{icon}</div>
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
   );
 }
 

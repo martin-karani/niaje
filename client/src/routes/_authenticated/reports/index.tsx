@@ -1,4 +1,3 @@
-// client/src/routes/reports/index.tsx
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/providers/auth-provider";
 import { createFileRoute } from "@tanstack/react-router";

@@ -1,6 +1,4 @@
-// client/src/routes/leases/index.tsx
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/providers/auth-provider";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   AlertTriangle,
@@ -165,8 +163,7 @@ const LEASE_DOCUMENTS = [
 ];
 
 function LeaseManagement() {
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("active"); // "active", "upcoming", "expired", "all"
+  const [activeTab, setActiveTab] = useState("active");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLease, setSelectedLease] = useState<string | null>(null);
 
