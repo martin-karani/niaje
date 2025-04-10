@@ -87,8 +87,7 @@ export function MainSidebar({ open, onOpenChange, ...props }: SidebarProps) {
         icon: CreditCard,
         path: "/finances",
         subItems: [
-          { title: "Overview", path: "/finances" },
-          { title: "Rent Collection", path: "/finances/rent-collection" },
+          { title: "Payments", path: "/finances/payments" },
           { title: "Expenses", path: "/finances/expenses" },
         ],
         roles: ["landlord"],
@@ -104,12 +103,6 @@ export function MainSidebar({ open, onOpenChange, ...props }: SidebarProps) {
         icon: BarChart,
         path: "/reports",
         roles: ["landlord", "caretaker"],
-      },
-      {
-        title: "Settings",
-        icon: Settings,
-        path: "/settings",
-        roles: ["landlord", "caretaker", "agent"],
       },
     ];
 
@@ -215,6 +208,15 @@ export function MainSidebar({ open, onOpenChange, ...props }: SidebarProps) {
       {/* Help and logout section */}
       <SidebarFooter>
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              tooltip="Settings"
+              onClick={() => router.navigate({ to: "/settings" })}
+            >
+              <Settings className="h-4 w-4" />
+              <span>Settings</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton tooltip="Help & Support">
               <HelpCircle className="h-4 w-4" />

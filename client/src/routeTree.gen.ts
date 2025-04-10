@@ -22,12 +22,11 @@ import { Route as AuthenticatedReportsIndexImport } from './routes/_authenticate
 import { Route as AuthenticatedPropertiesIndexImport } from './routes/_authenticated/properties/index'
 import { Route as AuthenticatedMaintenanceIndexImport } from './routes/_authenticated/maintenance/index'
 import { Route as AuthenticatedLeasesIndexImport } from './routes/_authenticated/leases/index'
-import { Route as AuthenticatedFinancesIndexImport } from './routes/_authenticated/finances/index'
 import { Route as AuthenticatedDashboardIndexImport } from './routes/_authenticated/dashboard/index'
 import { Route as AuthenticatedCalendarIndexImport } from './routes/_authenticated/calendar/index'
 import { Route as AuthenticatedTenantsTenantIdImport } from './routes/_authenticated/tenants/$tenantId'
 import { Route as AuthenticatedPropertiesPropertyIdImport } from './routes/_authenticated/properties/$propertyId'
-import { Route as AuthenticatedFinancesRentCollectionImport } from './routes/_authenticated/finances/rent-collection'
+import { Route as AuthenticatedFinancesPaymentsImport } from './routes/_authenticated/finances/payments'
 import { Route as AuthenticatedFinancesExpensesImport } from './routes/_authenticated/finances/expenses'
 
 // Create/Update Routes
@@ -101,14 +100,6 @@ const AuthenticatedLeasesIndexRoute = AuthenticatedLeasesIndexImport.update({
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 
-const AuthenticatedFinancesIndexRoute = AuthenticatedFinancesIndexImport.update(
-  {
-    id: '/finances/',
-    path: '/finances/',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any,
-)
-
 const AuthenticatedDashboardIndexRoute =
   AuthenticatedDashboardIndexImport.update({
     id: '/dashboard/',
@@ -138,10 +129,10 @@ const AuthenticatedPropertiesPropertyIdRoute =
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 
-const AuthenticatedFinancesRentCollectionRoute =
-  AuthenticatedFinancesRentCollectionImport.update({
-    id: '/finances/rent-collection',
-    path: '/finances/rent-collection',
+const AuthenticatedFinancesPaymentsRoute =
+  AuthenticatedFinancesPaymentsImport.update({
+    id: '/finances/payments',
+    path: '/finances/payments',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 
@@ -198,11 +189,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFinancesExpensesImport
       parentRoute: typeof AuthenticatedImport
     }
-    '/_authenticated/finances/rent-collection': {
-      id: '/_authenticated/finances/rent-collection'
-      path: '/finances/rent-collection'
-      fullPath: '/finances/rent-collection'
-      preLoaderRoute: typeof AuthenticatedFinancesRentCollectionImport
+    '/_authenticated/finances/payments': {
+      id: '/_authenticated/finances/payments'
+      path: '/finances/payments'
+      fullPath: '/finances/payments'
+      preLoaderRoute: typeof AuthenticatedFinancesPaymentsImport
       parentRoute: typeof AuthenticatedImport
     }
     '/_authenticated/properties/$propertyId': {
@@ -231,13 +222,6 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthenticatedDashboardIndexImport
-      parentRoute: typeof AuthenticatedImport
-    }
-    '/_authenticated/finances/': {
-      id: '/_authenticated/finances/'
-      path: '/finances'
-      fullPath: '/finances'
-      preLoaderRoute: typeof AuthenticatedFinancesIndexImport
       parentRoute: typeof AuthenticatedImport
     }
     '/_authenticated/leases/': {
@@ -289,12 +273,11 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteChildren {
   AuthenticatedFinancesExpensesRoute: typeof AuthenticatedFinancesExpensesRoute
-  AuthenticatedFinancesRentCollectionRoute: typeof AuthenticatedFinancesRentCollectionRoute
+  AuthenticatedFinancesPaymentsRoute: typeof AuthenticatedFinancesPaymentsRoute
   AuthenticatedPropertiesPropertyIdRoute: typeof AuthenticatedPropertiesPropertyIdRoute
   AuthenticatedTenantsTenantIdRoute: typeof AuthenticatedTenantsTenantIdRoute
   AuthenticatedCalendarIndexRoute: typeof AuthenticatedCalendarIndexRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
-  AuthenticatedFinancesIndexRoute: typeof AuthenticatedFinancesIndexRoute
   AuthenticatedLeasesIndexRoute: typeof AuthenticatedLeasesIndexRoute
   AuthenticatedMaintenanceIndexRoute: typeof AuthenticatedMaintenanceIndexRoute
   AuthenticatedPropertiesIndexRoute: typeof AuthenticatedPropertiesIndexRoute
@@ -305,14 +288,12 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedFinancesExpensesRoute: AuthenticatedFinancesExpensesRoute,
-  AuthenticatedFinancesRentCollectionRoute:
-    AuthenticatedFinancesRentCollectionRoute,
+  AuthenticatedFinancesPaymentsRoute: AuthenticatedFinancesPaymentsRoute,
   AuthenticatedPropertiesPropertyIdRoute:
     AuthenticatedPropertiesPropertyIdRoute,
   AuthenticatedTenantsTenantIdRoute: AuthenticatedTenantsTenantIdRoute,
   AuthenticatedCalendarIndexRoute: AuthenticatedCalendarIndexRoute,
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
-  AuthenticatedFinancesIndexRoute: AuthenticatedFinancesIndexRoute,
   AuthenticatedLeasesIndexRoute: AuthenticatedLeasesIndexRoute,
   AuthenticatedMaintenanceIndexRoute: AuthenticatedMaintenanceIndexRoute,
   AuthenticatedPropertiesIndexRoute: AuthenticatedPropertiesIndexRoute,
@@ -332,12 +313,11 @@ export interface FileRoutesByFullPath {
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/finances/expenses': typeof AuthenticatedFinancesExpensesRoute
-  '/finances/rent-collection': typeof AuthenticatedFinancesRentCollectionRoute
+  '/finances/payments': typeof AuthenticatedFinancesPaymentsRoute
   '/properties/$propertyId': typeof AuthenticatedPropertiesPropertyIdRoute
   '/tenants/$tenantId': typeof AuthenticatedTenantsTenantIdRoute
   '/calendar': typeof AuthenticatedCalendarIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
-  '/finances': typeof AuthenticatedFinancesIndexRoute
   '/leases': typeof AuthenticatedLeasesIndexRoute
   '/maintenance': typeof AuthenticatedMaintenanceIndexRoute
   '/properties': typeof AuthenticatedPropertiesIndexRoute
@@ -353,12 +333,11 @@ export interface FileRoutesByTo {
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/finances/expenses': typeof AuthenticatedFinancesExpensesRoute
-  '/finances/rent-collection': typeof AuthenticatedFinancesRentCollectionRoute
+  '/finances/payments': typeof AuthenticatedFinancesPaymentsRoute
   '/properties/$propertyId': typeof AuthenticatedPropertiesPropertyIdRoute
   '/tenants/$tenantId': typeof AuthenticatedTenantsTenantIdRoute
   '/calendar': typeof AuthenticatedCalendarIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
-  '/finances': typeof AuthenticatedFinancesIndexRoute
   '/leases': typeof AuthenticatedLeasesIndexRoute
   '/maintenance': typeof AuthenticatedMaintenanceIndexRoute
   '/properties': typeof AuthenticatedPropertiesIndexRoute
@@ -375,12 +354,11 @@ export interface FileRoutesById {
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/_authenticated/finances/expenses': typeof AuthenticatedFinancesExpensesRoute
-  '/_authenticated/finances/rent-collection': typeof AuthenticatedFinancesRentCollectionRoute
+  '/_authenticated/finances/payments': typeof AuthenticatedFinancesPaymentsRoute
   '/_authenticated/properties/$propertyId': typeof AuthenticatedPropertiesPropertyIdRoute
   '/_authenticated/tenants/$tenantId': typeof AuthenticatedTenantsTenantIdRoute
   '/_authenticated/calendar/': typeof AuthenticatedCalendarIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
-  '/_authenticated/finances/': typeof AuthenticatedFinancesIndexRoute
   '/_authenticated/leases/': typeof AuthenticatedLeasesIndexRoute
   '/_authenticated/maintenance/': typeof AuthenticatedMaintenanceIndexRoute
   '/_authenticated/properties/': typeof AuthenticatedPropertiesIndexRoute
@@ -398,12 +376,11 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/auth/register'
     | '/finances/expenses'
-    | '/finances/rent-collection'
+    | '/finances/payments'
     | '/properties/$propertyId'
     | '/tenants/$tenantId'
     | '/calendar'
     | '/dashboard'
-    | '/finances'
     | '/leases'
     | '/maintenance'
     | '/properties'
@@ -418,12 +395,11 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/auth/register'
     | '/finances/expenses'
-    | '/finances/rent-collection'
+    | '/finances/payments'
     | '/properties/$propertyId'
     | '/tenants/$tenantId'
     | '/calendar'
     | '/dashboard'
-    | '/finances'
     | '/leases'
     | '/maintenance'
     | '/properties'
@@ -438,12 +414,11 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/auth/register'
     | '/_authenticated/finances/expenses'
-    | '/_authenticated/finances/rent-collection'
+    | '/_authenticated/finances/payments'
     | '/_authenticated/properties/$propertyId'
     | '/_authenticated/tenants/$tenantId'
     | '/_authenticated/calendar/'
     | '/_authenticated/dashboard/'
-    | '/_authenticated/finances/'
     | '/_authenticated/leases/'
     | '/_authenticated/maintenance/'
     | '/_authenticated/properties/'
@@ -493,12 +468,11 @@ export const routeTree = rootRoute
       "filePath": "_authenticated.tsx",
       "children": [
         "/_authenticated/finances/expenses",
-        "/_authenticated/finances/rent-collection",
+        "/_authenticated/finances/payments",
         "/_authenticated/properties/$propertyId",
         "/_authenticated/tenants/$tenantId",
         "/_authenticated/calendar/",
         "/_authenticated/dashboard/",
-        "/_authenticated/finances/",
         "/_authenticated/leases/",
         "/_authenticated/maintenance/",
         "/_authenticated/properties/",
@@ -520,8 +494,8 @@ export const routeTree = rootRoute
       "filePath": "_authenticated/finances/expenses.tsx",
       "parent": "/_authenticated"
     },
-    "/_authenticated/finances/rent-collection": {
-      "filePath": "_authenticated/finances/rent-collection.tsx",
+    "/_authenticated/finances/payments": {
+      "filePath": "_authenticated/finances/payments.tsx",
       "parent": "/_authenticated"
     },
     "/_authenticated/properties/$propertyId": {
@@ -538,10 +512,6 @@ export const routeTree = rootRoute
     },
     "/_authenticated/dashboard/": {
       "filePath": "_authenticated/dashboard/index.tsx",
-      "parent": "/_authenticated"
-    },
-    "/_authenticated/finances/": {
-      "filePath": "_authenticated/finances/index.tsx",
       "parent": "/_authenticated"
     },
     "/_authenticated/leases/": {
