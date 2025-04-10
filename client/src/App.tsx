@@ -7,7 +7,6 @@ import { router } from "./router";
 
 function InnerApp() {
   const auth = useAuth();
-
   return <RouterProvider router={router} context={{ auth }} />;
 }
 

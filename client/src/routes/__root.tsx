@@ -1,6 +1,6 @@
-import { AppLayout } from "@/components/layout/app-layout";
+import { MainLayout } from "@/components/layout/main-layout";
 import { DefaultNotFound } from "@/components/not-found/default-not-found";
-import { AuthProvider, type AuthContext } from "@/providers/auth-provider";
+import { type AuthContext } from "@/providers/auth-provider";
 import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
@@ -10,12 +10,14 @@ interface MyRouterContext {
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
   component: () => (
-    <AuthProvider>
-      <AppLayout>
+    <>
+      <MainLayout>
         <Outlet />
-      </AppLayout>
-      {process.env.NODE_ENV === "development" && <TanStackRouterDevtools />}
-    </AuthProvider>
+      </MainLayout>
+      {process.env.NODE_ENV === "development" && (
+        <TanStackRouterDevtools position="top-right" />
+      )}
+    </>
   ),
   notFoundComponent: () => (
     <DefaultNotFound

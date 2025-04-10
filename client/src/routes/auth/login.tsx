@@ -30,7 +30,7 @@ function Login() {
       setIsSubmitting(true);
       setError(null);
       await login(email, password);
-      navigate({ to: "/" });
+      navigate({ to: "/dashboard" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to login");
     } finally {

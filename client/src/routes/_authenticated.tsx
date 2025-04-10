@@ -1,7 +1,4 @@
-import { AppLayout } from "@/components/layout/app-layout";
 import { DefaultNotFound } from "@/components/not-found/default-not-found";
-import { AuthProvider } from "@/providers/auth-provider";
-import { TRPCProvider } from "@/providers/trpc-provider";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -19,15 +16,7 @@ export const Route = createFileRoute("/_authenticated")({
       });
     }
   },
-  component: () => (
-    <TRPCProvider>
-      <AuthProvider>
-        <AppLayout>
-          <Outlet />
-        </AppLayout>
-      </AuthProvider>
-    </TRPCProvider>
-  ),
+  component: () => <Outlet />,
   notFoundComponent: () => (
     <DefaultNotFound
       title="Page Not Found"
