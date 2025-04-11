@@ -25,6 +25,7 @@ import { Route as AuthenticatedLeasesIndexImport } from './routes/_authenticated
 import { Route as AuthenticatedDashboardIndexImport } from './routes/_authenticated/dashboard/index'
 import { Route as AuthenticatedCalendarIndexImport } from './routes/_authenticated/calendar/index'
 import { Route as AuthenticatedTenantsTenantIdImport } from './routes/_authenticated/tenants/$tenantId'
+import { Route as AuthenticatedSettingsRolesPermissionImport } from './routes/_authenticated/settings/roles-permission'
 import { Route as AuthenticatedFinancesPaymentsImport } from './routes/_authenticated/finances/payments'
 import { Route as AuthenticatedFinancesExpensesImport } from './routes/_authenticated/finances/expenses'
 
@@ -120,6 +121,13 @@ const AuthenticatedTenantsTenantIdRoute =
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 
+const AuthenticatedSettingsRolesPermissionRoute =
+  AuthenticatedSettingsRolesPermissionImport.update({
+    id: '/settings/roles-permission',
+    path: '/settings/roles-permission',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+
 const AuthenticatedFinancesPaymentsRoute =
   AuthenticatedFinancesPaymentsImport.update({
     id: '/finances/payments',
@@ -185,6 +193,13 @@ declare module '@tanstack/react-router' {
       path: '/finances/payments'
       fullPath: '/finances/payments'
       preLoaderRoute: typeof AuthenticatedFinancesPaymentsImport
+      parentRoute: typeof AuthenticatedImport
+    }
+    '/_authenticated/settings/roles-permission': {
+      id: '/_authenticated/settings/roles-permission'
+      path: '/settings/roles-permission'
+      fullPath: '/settings/roles-permission'
+      preLoaderRoute: typeof AuthenticatedSettingsRolesPermissionImport
       parentRoute: typeof AuthenticatedImport
     }
     '/_authenticated/tenants/$tenantId': {
@@ -258,6 +273,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteChildren {
   AuthenticatedFinancesExpensesRoute: typeof AuthenticatedFinancesExpensesRoute
   AuthenticatedFinancesPaymentsRoute: typeof AuthenticatedFinancesPaymentsRoute
+  AuthenticatedSettingsRolesPermissionRoute: typeof AuthenticatedSettingsRolesPermissionRoute
   AuthenticatedTenantsTenantIdRoute: typeof AuthenticatedTenantsTenantIdRoute
   AuthenticatedCalendarIndexRoute: typeof AuthenticatedCalendarIndexRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
@@ -272,6 +288,8 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedFinancesExpensesRoute: AuthenticatedFinancesExpensesRoute,
   AuthenticatedFinancesPaymentsRoute: AuthenticatedFinancesPaymentsRoute,
+  AuthenticatedSettingsRolesPermissionRoute:
+    AuthenticatedSettingsRolesPermissionRoute,
   AuthenticatedTenantsTenantIdRoute: AuthenticatedTenantsTenantIdRoute,
   AuthenticatedCalendarIndexRoute: AuthenticatedCalendarIndexRoute,
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
@@ -295,6 +313,7 @@ export interface FileRoutesByFullPath {
   '/auth/register': typeof AuthRegisterRoute
   '/finances/expenses': typeof AuthenticatedFinancesExpensesRoute
   '/finances/payments': typeof AuthenticatedFinancesPaymentsRoute
+  '/settings/roles-permission': typeof AuthenticatedSettingsRolesPermissionRoute
   '/tenants/$tenantId': typeof AuthenticatedTenantsTenantIdRoute
   '/calendar': typeof AuthenticatedCalendarIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
@@ -314,6 +333,7 @@ export interface FileRoutesByTo {
   '/auth/register': typeof AuthRegisterRoute
   '/finances/expenses': typeof AuthenticatedFinancesExpensesRoute
   '/finances/payments': typeof AuthenticatedFinancesPaymentsRoute
+  '/settings/roles-permission': typeof AuthenticatedSettingsRolesPermissionRoute
   '/tenants/$tenantId': typeof AuthenticatedTenantsTenantIdRoute
   '/calendar': typeof AuthenticatedCalendarIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
@@ -334,6 +354,7 @@ export interface FileRoutesById {
   '/auth/register': typeof AuthRegisterRoute
   '/_authenticated/finances/expenses': typeof AuthenticatedFinancesExpensesRoute
   '/_authenticated/finances/payments': typeof AuthenticatedFinancesPaymentsRoute
+  '/_authenticated/settings/roles-permission': typeof AuthenticatedSettingsRolesPermissionRoute
   '/_authenticated/tenants/$tenantId': typeof AuthenticatedTenantsTenantIdRoute
   '/_authenticated/calendar/': typeof AuthenticatedCalendarIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
@@ -355,6 +376,7 @@ export interface FileRouteTypes {
     | '/auth/register'
     | '/finances/expenses'
     | '/finances/payments'
+    | '/settings/roles-permission'
     | '/tenants/$tenantId'
     | '/calendar'
     | '/dashboard'
@@ -373,6 +395,7 @@ export interface FileRouteTypes {
     | '/auth/register'
     | '/finances/expenses'
     | '/finances/payments'
+    | '/settings/roles-permission'
     | '/tenants/$tenantId'
     | '/calendar'
     | '/dashboard'
@@ -391,6 +414,7 @@ export interface FileRouteTypes {
     | '/auth/register'
     | '/_authenticated/finances/expenses'
     | '/_authenticated/finances/payments'
+    | '/_authenticated/settings/roles-permission'
     | '/_authenticated/tenants/$tenantId'
     | '/_authenticated/calendar/'
     | '/_authenticated/dashboard/'
@@ -444,6 +468,7 @@ export const routeTree = rootRoute
       "children": [
         "/_authenticated/finances/expenses",
         "/_authenticated/finances/payments",
+        "/_authenticated/settings/roles-permission",
         "/_authenticated/tenants/$tenantId",
         "/_authenticated/calendar/",
         "/_authenticated/dashboard/",
@@ -470,6 +495,10 @@ export const routeTree = rootRoute
     },
     "/_authenticated/finances/payments": {
       "filePath": "_authenticated/finances/payments.tsx",
+      "parent": "/_authenticated"
+    },
+    "/_authenticated/settings/roles-permission": {
+      "filePath": "_authenticated/settings/roles-permission.tsx",
       "parent": "/_authenticated"
     },
     "/_authenticated/tenants/$tenantId": {
