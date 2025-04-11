@@ -2,7 +2,7 @@ import { createContext } from "@/trpc/context";
 import { appRouter } from "@/trpc/router";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import express from "express";
-import auth from "./configs/auth.config";
+import auth from "./auth/configs/auth.config";
 
 /**
  * Create tRPC express middleware

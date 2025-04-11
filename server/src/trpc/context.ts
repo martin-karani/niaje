@@ -1,4 +1,4 @@
-import { AuthInstance } from "@/configs/auth.config";
+import { AuthInstance } from "@/auth/configs/auth.config";
 import { db } from "@/db";
 import { inferAsyncReturnType } from "@trpc/server";
 import { CreateExpressContextOptions } from "@trpc/server/adapters/express";

@@ -98,38 +98,6 @@ export const propertyUnits = pgTable("property_units", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const maintenanceRequests = pgTable("maintenance_requests", {
-  id: text("id").primaryKey().$defaultFn(createId),
-  unitId: text("unit_id")
-    .notNull()
-    .references(() => units.id),
-  tenantId: text("tenant_id").references(() => tenants.id),
-  title: text("title").notNull(),
-  description: text("description").notNull(),
-  priority: text("priority").default("medium").notNull(), // low, medium, high, emergency
-  status: text("status").default("open").notNull(), // open, in_progress, completed
-  reportedAt: timestamp("reported_at").defaultNow().notNull(),
-  assignedTo: text("assigned_to").references(() => users.id), // Caretaker
-  resolvedAt: timestamp("resolved_at"),
-  cost: numeric("cost"),
-  images: json("images"), // Array of image URLs
-  notes: text("notes"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export const documents = pgTable("documents", {
-  id: text("id").primaryKey().$defaultFn(createId),
-  name: text("name").notNull(),
-  type: text("type").notNull(), // lease, payment_receipt, maintenance
-  url: text("url").notNull(),
-  relatedId: text("related_id"), // ID of related entity
-  relatedType: text("related_type"), // Type of related entity
-  uploadedBy: text("uploaded_by").references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
 // Define relations for properties table
 export const propertiesRelations = relations(properties, ({ one }) => ({
   owner: one(users, {
@@ -158,7 +126,3 @@ export type Lease = typeof leases.$inferSelect;
 export type NewLease = typeof leases.$inferInsert;
 export type PropertyUnit = typeof propertyUnits.$inferSelect;
 export type NewPropertyUnit = typeof propertyUnits.$inferInsert;
-export type MaintenanceRequest = typeof maintenanceRequests.$inferSelect;
-export type NewMaintenanceRequest = typeof maintenanceRequests.$inferInsert;
-export type Document = typeof documents.$inferSelect;
-export type NewDocument = typeof documents.$inferInsert;

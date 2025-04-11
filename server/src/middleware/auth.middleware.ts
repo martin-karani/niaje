@@ -3,7 +3,7 @@ import { properties, userPermissions } from "@/db/schema";
 import { fromNodeHeaders } from "better-auth/node";
 import { and, eq } from "drizzle-orm";
 import { NextFunction, Request, Response } from "express";
-import { AuthInstance } from "../configs/auth.config";
+import { AuthInstance } from "../auth/configs/auth.config";
 
 /**
  * Enhances the Request object with user and permission helpers
@@ -77,8 +77,8 @@ export function createBetterAuthMiddleware(auth: AuthInstance) {
               ),
             });
 
+            if (!permission) return false;
             return (
-              permission &&
               permission[permissionField as keyof typeof permission] === true
             );
           }

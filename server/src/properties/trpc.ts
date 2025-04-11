@@ -1,4 +1,4 @@
-import { router } from "@/trpc";
+import { router } from "@/trpc/core";
 import {
   landlordProcedure,
   propertyOwnerProcedure,
