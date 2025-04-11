@@ -16,6 +16,7 @@ export const userRoleEnum = pgEnum("user_role", [
   "CARETAKER",
   "AGENT",
   "ADMIN",
+  "TENANT",
 ]);
 
 // Define users table
