@@ -2,11 +2,8 @@ import { properties, userPermissions, users } from "@/db/schema";
 import { TRPCError } from "@trpc/server";
 import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
-import { router } from "../index";
-import {
-  propertyOwnerProcedure,
-  protectedProcedure,
-} from "../middleware/permission.middleware";
+import { router } from "../trpc/core";
+import { propertyOwnerProcedure, protectedProcedure } from "../trpc/middleware";
 
 // Helper function to get default permissions based on role
 const getDefaultPermissionsForRole = (role: string) => {
