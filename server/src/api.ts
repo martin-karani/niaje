@@ -26,7 +26,7 @@ export function setupApi() {
 
   // Mount better-auth handler for all /api/auth/* routes
   // IMPORTANT: Place this before express.json() middleware
-  app.use("/api/auth/*splat", authRoutes);
+  app.use("/api/auth", authRoutes);
 
   app.use(express.json());
 

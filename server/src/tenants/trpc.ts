@@ -1,5 +1,5 @@
 import { router } from "@/trpc/core";
-import { landlordProcedure, tenantManagerProcedure } from "@/trpc/middleware";
+import { tenantsManageProcedure } from "@/trpc/middleware";
 import { TRPCError } from "@trpc/server";
 import {
   createTenantDto,
@@ -11,7 +11,7 @@ import { tenantsService } from "./services/tenants.service";
 
 export const tenantsRouter = router({
   // Get all tenants with filtering
-  getAll: tenantManagerProcedure
+  getAll: tenantsManageProcedure
     .input(tenantFilterDto)
     .query(async ({ ctx, input }) => {
       try {
@@ -26,7 +26,7 @@ export const tenantsRouter = router({
     }),
 
   // Get tenant by ID
-  getById: tenantManagerProcedure
+  getById: tenantsManageProcedure
     .input(tenantIdDto)
     .query(async ({ ctx, input }) => {
       try {
@@ -50,7 +50,7 @@ export const tenantsRouter = router({
     }),
 
   // Create a new tenant
-  create: tenantManagerProcedure
+  create: tenantsManageProcedure
     .input(createTenantDto)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -77,7 +77,7 @@ export const tenantsRouter = router({
     }),
 
   // Update an existing tenant
-  update: tenantManagerProcedure
+  update: tenantsManageProcedure
     .input(updateTenantDto)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -115,7 +115,7 @@ export const tenantsRouter = router({
     }),
 
   // Delete a tenant
-  delete: landlordProcedure
+  delete: tenantsManageProcedure
     .input(tenantIdDto)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -149,7 +149,7 @@ export const tenantsRouter = router({
     }),
 
   // Get tenant statistics
-  getStats: landlordProcedure.query(async ({ ctx }) => {
+  getStats: tenantsManageProcedure.query(async ({ ctx }) => {
     try {
       return tenantsService.getTenantStats(ctx.user.id, ctx.user.role);
     } catch (error: any) {

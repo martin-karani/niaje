@@ -1,7 +1,6 @@
-import { db } from "@/db";
-import { properties, userPermissions } from "@/db/schema";
+import { Permission } from "@/permissions/models";
+import { permissionService } from "@/permissions/services/permissions.service";
 import { fromNodeHeaders } from "better-auth/node";
-import { and, eq } from "drizzle-orm";
 import { NextFunction, Request, Response } from "express";
 import { AuthInstance } from "../auth/configs/auth.config";
 
@@ -11,11 +10,15 @@ import { AuthInstance } from "../auth/configs/auth.config";
 export interface AuthenticatedRequest extends Request {
   user?: any;
   session?: any;
-  isPropertyOwner?: (propertyId: string) => Promise<boolean>;
+  hasPermission?: (permission: Permission) => Promise<boolean>;
   hasPropertyPermission?: (
     propertyId: string,
-    permissionType?: string
+    permission: Permission
   ) => Promise<boolean>;
+  getUserPermissions?: () => Promise<{
+    systemPermissions: Permission[];
+    propertyPermissions: { propertyId: string; permissions: Permission[] }[];
+  }>;
 }
 
 /**
@@ -36,62 +39,34 @@ export function createBetterAuthMiddleware(auth: AuthInstance) {
 
       // If user is authenticated, add permission helper methods
       if (authReq.user) {
-        // Helper to check if user is property owner
-        authReq.isPropertyOwner = async (propertyId: string) => {
-          const property = await db.query.properties.findFirst({
-            where: and(
-              eq(properties.id, propertyId),
-              eq(properties.ownerId, authReq.user.id)
-            ),
-          });
-          return Boolean(property);
+        // Helper to check permissions
+        authReq.hasPermission = async (permission: Permission) => {
+          return permissionService.hasPermission(
+            authReq.user.id,
+            authReq.user.role,
+            permission
+          );
         };
 
         // Helper to check property permissions
         authReq.hasPropertyPermission = async (
           propertyId: string,
-          permissionType?: string
+          permission: Permission
         ) => {
-          // Admin always has all permissions
-          if (authReq.user.role === "ADMIN") return true;
+          return permissionService.hasPropertyPermission(
+            authReq.user.id,
+            authReq.user.role,
+            propertyId,
+            permission
+          );
+        };
 
-          // Check if user is property owner
-          const isOwner = await db.query.properties.findFirst({
-            where: and(
-              eq(properties.id, propertyId),
-              eq(properties.ownerId, authReq.user.id)
-            ),
-          });
-
-          if (isOwner) return true;
-
-          // Check specific permission
-          if (permissionType) {
-            const permissionField = getPermissionField(permissionType);
-            if (!permissionField) return false;
-
-            const permission = await db.query.userPermissions.findFirst({
-              where: and(
-                eq(userPermissions.userId, authReq.user.id),
-                eq(userPermissions.propertyId, propertyId)
-              ),
-            });
-
-            if (!permission) return false;
-            return (
-              permission[permissionField as keyof typeof permission] === true
-            );
-          }
-
-          // Check if user has any permission for this property
-          const permission = await db.query.userPermissions.findFirst({
-            where: and(
-              eq(userPermissions.userId, authReq.user.id),
-              eq(userPermissions.propertyId, propertyId)
-            ),
-          });
-
-          return Boolean(permission);
+        // Helper to get all user permissions
+        authReq.getUserPermissions = async () => {
+          return permissionService.getUserPermissions(
+            authReq.user.id,
+            authReq.user.role
+          );
         };
       }
 
@@ -101,22 +76,6 @@ export function createBetterAuthMiddleware(auth: AuthInstance) {
       next(); // Continue to next middleware even on error
     }
   };
-}
-
-/**
- * Helper function to map permission types to database fields
- */
-function getPermissionField(permissionType: string): string | null {
-  const permissionMap: Record<string, string> = {
-    manageTenants: "canManageTenants",
-    manageLeases: "canManageLeases",
-    collectPayments: "canCollectPayments",
-    viewFinancials: "canViewFinancials",
-    manageMaintenance: "canManageMaintenance",
-    manageProperties: "canManageProperties",
-  };
-
-  return permissionMap[permissionType] || null;
 }
 
 /**
@@ -131,18 +90,25 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
 }
 
 /**
- * Middleware to require specific roles
+ * Middleware to require specific permission
  */
-export function requireRole(roles: string[]) {
-  return (req: Request, res: Response, next: NextFunction) => {
+export function requirePermission(permission: Permission) {
+  return async (req: Request, res: Response, next: NextFunction) => {
     const authReq = req as AuthenticatedRequest;
+
     if (!authReq.user) {
       return res.status(401).json({ error: "Authentication required" });
     }
 
-    const userRole = authReq.user.role;
-    if (!roles.includes(userRole)) {
-      return res.status(403).json({ error: "Insufficient permissions" });
+    if (!authReq.hasPermission) {
+      return res.status(500).json({ error: "Permission check failed" });
+    }
+
+    const hasPermission = await authReq.hasPermission(permission);
+    if (!hasPermission) {
+      return res.status(403).json({
+        error: `You don't have the required permission: ${permission}`,
+      });
     }
 
     next();
@@ -150,9 +116,9 @@ export function requireRole(roles: string[]) {
 }
 
 /**
- * Middleware to require property access
+ * Middleware to require property-specific permission
  */
-export function requirePropertyPermission(permissionType?: string) {
+export function requirePropertyPermission(permission: Permission) {
   return async (req: Request, res: Response, next: NextFunction) => {
     const authReq = req as AuthenticatedRequest;
 
@@ -167,71 +133,20 @@ export function requirePropertyPermission(permissionType?: string) {
       return res.status(400).json({ error: "Property ID is required" });
     }
 
-    // Admin always has access
-    if (authReq.user.role === "ADMIN") {
-      return next();
-    }
-
-    // Check property permissions
-    if (authReq.hasPropertyPermission) {
-      const hasPermission = await authReq.hasPropertyPermission(
-        propertyId,
-        permissionType
-      );
-
-      if (!hasPermission) {
-        return res.status(403).json({
-          error: permissionType
-            ? `You don't have ${permissionType} permission for this property`
-            : "You don't have access to this property",
-        });
-      }
-
-      next();
-    } else {
-      // Fallback if helper isn't available
+    if (!authReq.hasPropertyPermission) {
       return res.status(500).json({ error: "Permission check failed" });
     }
-  };
-}
 
-/**
- * Middleware to require property ownership
- */
-export function requirePropertyOwnership() {
-  return async (req: Request, res: Response, next: NextFunction) => {
-    const authReq = req as AuthenticatedRequest;
-
-    if (!authReq.user) {
-      return res.status(401).json({ error: "Authentication required" });
+    const hasPermission = await authReq.hasPropertyPermission(
+      propertyId,
+      permission
+    );
+    if (!hasPermission) {
+      return res.status(403).json({
+        error: `You don't have the required permission for this property: ${permission}`,
+      });
     }
 
-    // Get propertyId from request params or body
-    const propertyId = req.params.propertyId || req.body.propertyId;
-
-    if (!propertyId) {
-      return res.status(400).json({ error: "Property ID is required" });
-    }
-
-    // Admin always has access
-    if (authReq.user.role === "ADMIN") {
-      return next();
-    }
-
-    // Check property ownership
-    if (authReq.isPropertyOwner) {
-      const isOwner = await authReq.isPropertyOwner(propertyId);
-
-      if (!isOwner) {
-        return res.status(403).json({
-          error: "Only the property owner can perform this action",
-        });
-      }
-
-      next();
-    } else {
-      // Fallback if helper isn't available
-      return res.status(500).json({ error: "Ownership check failed" });
-    }
+    next();
   };
 }

@@ -1,9 +1,8 @@
 import { router } from "@/trpc/core";
 import {
-  landlordProcedure,
-  propertyOwnerProcedure,
-  propertyProcedure,
-  protectedProcedure,
+  propertiesManageProcedure,
+  propertiesViewProcedure,
+  propertyManageProcedure,
 } from "@/trpc/middleware";
 import { TRPCError } from "@trpc/server";
 import {
@@ -14,14 +13,21 @@ import {
 import { propertiesService } from "./services/properties.service";
 
 export const propertiesRouter = router({
-  // Get all properties visible to the current user
-  getAll: protectedProcedure.query(async ({ ctx }) => {
-    const { user } = ctx;
-    return propertiesService.getPropertiesForUser(user.id, user.role);
+  // Get all properties visible to current user
+  getAll: propertiesViewProcedure.query(async ({ ctx }) => {
+    try {
+      return propertiesService.getPropertiesForUser(ctx.user.id, ctx.user.role);
+    } catch (error) {
+      console.error("Error fetching properties:", error);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to fetch properties",
+      });
+    }
   }),
 
-  // Get property by ID (if user has access)
-  getById: propertyProcedure
+  // Get property by ID
+  getById: propertiesViewProcedure
     .input(propertyIdDto)
     .query(async ({ ctx, input }) => {
       try {
@@ -30,13 +36,14 @@ export const propertiesRouter = router({
           ctx.user.id,
           ctx.user.role
         );
-      } catch (error) {
+      } catch (error: any) {
         if (error.name === "NotFoundError") {
           throw new TRPCError({
             code: "NOT_FOUND",
             message: error.message,
           });
         }
+        console.error("Error fetching property:", error);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to fetch property",
@@ -44,13 +51,14 @@ export const propertiesRouter = router({
       }
     }),
 
-  // Create a new property (landlords only)
-  create: landlordProcedure
+  // Create a new property
+  create: propertiesManageProcedure
     .input(createPropertyDto)
     .mutation(async ({ ctx, input }) => {
       try {
         return propertiesService.createProperty(input, ctx.user.id);
       } catch (error) {
+        console.error("Error creating property:", error);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to create property",
@@ -58,8 +66,8 @@ export const propertiesRouter = router({
       }
     }),
 
-  // Update an existing property (property owners only)
-  update: propertyOwnerProcedure
+  // Update an existing property
+  update: propertyManageProcedure
     .input(updatePropertyDto)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -69,19 +77,20 @@ export const propertiesRouter = router({
           ctx.user.id,
           ctx.user.role
         );
-      } catch (error) {
+      } catch (error: any) {
         if (error.name === "NotFoundError") {
           throw new TRPCError({
             code: "NOT_FOUND",
             message: error.message,
           });
         }
-        if (error.name === "PermissionError") {
+        if (error.name === "ConflictError") {
           throw new TRPCError({
-            code: "FORBIDDEN",
+            code: "CONFLICT",
             message: error.message,
           });
         }
+        console.error("Error updating property:", error);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to update property",
@@ -89,8 +98,8 @@ export const propertiesRouter = router({
       }
     }),
 
-  // Delete a property (property owners only)
-  delete: propertyOwnerProcedure
+  // Delete a property
+  delete: propertyManageProcedure
     .input(propertyIdDto)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -100,19 +109,14 @@ export const propertiesRouter = router({
           ctx.user.role
         );
         return { success: true };
-      } catch (error) {
+      } catch (error: any) {
         if (error.name === "NotFoundError") {
           throw new TRPCError({
             code: "NOT_FOUND",
             message: error.message,
           });
         }
-        if (error.name === "PermissionError") {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: error.message,
-          });
-        }
+        console.error("Error deleting property:", error);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to delete property",

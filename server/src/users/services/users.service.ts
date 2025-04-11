@@ -1,5 +1,4 @@
-import { AuthInstance } from "@/configs/auth.config";
-import { ConflictError, NotFoundError, PermissionError } from "@/errors";
+import { ConflictError, NotFoundError } from "@/errors";
 import * as bcrypt from "bcrypt";
 import {
   AdminChangePasswordDto,
@@ -7,31 +6,19 @@ import {
   UpdateUserDto,
   UserFilterDto,
 } from "../dto/users.dto";
-import { usersRepository } from "../repositories/users.repository";
-import {
-  RolePermissions,
-  UserProfile,
-  UserStats,
-  UserWithProperties,
-} from "../types";
+import { usersRepository } from "../repository/users.repository";
+import { UserProfile, UserStats, UserWithProperties } from "../types";
 
 export class UsersService {
-  constructor(private authInstance: AuthInstance) {}
-
   /**
    * Get users with pagination and filtering
+   * Permission check is handled by middleware
    */
-  async getUsers(
-    filters: UserFilterDto,
-    requestingUserRole: string
-  ): Promise<{ users: UserProfile[]; total: number; pages: number }> {
-    // Only admins can view all users unrestricted
-    if (requestingUserRole !== "ADMIN") {
-      throw new PermissionError(
-        "Only administrators can view the complete user list"
-      );
-    }
-
+  async getUsers(filters: UserFilterDto): Promise<{
+    users: UserProfile[];
+    total: number;
+    pages: number;
+  }> {
     const users = await usersRepository.findAll(filters);
     const total = await usersRepository.countUsers(filters);
     const pages = Math.ceil(total / (filters.limit || 20));
@@ -41,11 +28,11 @@ export class UsersService {
 
   /**
    * Get a user by ID with relationships
+   * Permission check is handled by middleware
    */
   async getUserById(
     userId: string,
-    requestingUserId: string,
-    requestingUserRole: string
+    requestingUserId: string
   ): Promise<UserWithProperties> {
     const user = await usersRepository.findById(userId, true);
 
@@ -53,9 +40,8 @@ export class UsersService {
       throw new NotFoundError("User not found");
     }
 
-    // Users can view their own profile, admins can view any profile
-    if (userId !== requestingUserId && requestingUserRole !== "ADMIN") {
-      // For non-admins viewing other users, we'll restrict sensitive data
+    // For users viewing other users' profiles, we'll restrict sensitive data
+    if (userId !== requestingUserId) {
       // This could be extended based on your privacy requirements
       const restrictedUser = {
         ...user,
@@ -76,7 +62,8 @@ export class UsersService {
   }
 
   /**
-   * Update a user (admin only or self-update)
+   * Update a user
+   * Permission check is handled by middleware
    */
   async updateUser(
     userId: string,
@@ -90,11 +77,6 @@ export class UsersService {
       throw new NotFoundError("User not found");
     }
 
-    // Only admins can update other users
-    if (userId !== requestingUserId && requestingUserRole !== "ADMIN") {
-      throw new PermissionError("You can only update your own profile");
-    }
-
     // Non-admins cannot change their own role
     if (
       userId === requestingUserId &&
@@ -102,7 +84,7 @@ export class UsersService {
       userData.role &&
       userData.role !== user.role
     ) {
-      throw new PermissionError("You cannot change your own role");
+      throw new ConflictError("You cannot change your own role");
     }
 
     // If email is being changed, check for conflicts
@@ -122,17 +104,12 @@ export class UsersService {
 
   /**
    * Update profile (limited self-update)
+   * Permission check is handled by middleware
    */
   async updateProfile(
     userId: string,
-    profileData: UpdateProfileDto,
-    requestingUserId: string
+    profileData: UpdateProfileDto
   ): Promise<UserProfile> {
-    // Users can only update their own profile
-    if (userId !== requestingUserId) {
-      throw new PermissionError("You can only update your own profile");
-    }
-
     // Check if user exists
     const user = await usersRepository.findById(userId);
     if (!user) {
@@ -143,20 +120,12 @@ export class UsersService {
   }
 
   /**
-   * Admin change user password - note that this works with better-auth
-   * but should typically be done through better-auth's reset password functionality
+   * Admin change user password
+   * Permission check is handled by middleware
    */
   async adminChangePassword(
-    data: AdminChangePasswordDto,
-    requestingUserRole: string
+    data: AdminChangePasswordDto
   ): Promise<{ success: boolean }> {
-    // Only admins can change other users' passwords
-    if (requestingUserRole !== "ADMIN") {
-      throw new PermissionError(
-        "Only administrators can change other users' passwords"
-      );
-    }
-
     try {
       // For admin password resets, we'll use better-auth's internal functionality
       // This is a placeholder - in practice, admins should use better-auth's UI
@@ -172,23 +141,16 @@ export class UsersService {
 
   /**
    * Set user active/inactive status
+   * Permission check is handled by middleware
    */
   async setActiveStatus(
     userId: string,
     isActive: boolean,
-    requestingUserId: string,
-    requestingUserRole: string
+    requestingUserId: string
   ): Promise<UserProfile> {
-    // Only admins can deactivate/activate accounts
-    if (requestingUserRole !== "ADMIN") {
-      throw new PermissionError(
-        "Only administrators can activate or deactivate accounts"
-      );
-    }
-
     // Prevent deactivating your own account
     if (userId === requestingUserId && !isActive) {
-      throw new PermissionError("You cannot deactivate your own account");
+      throw new ConflictError("You cannot deactivate your own account");
     }
 
     // Check if user exists
@@ -202,20 +164,15 @@ export class UsersService {
 
   /**
    * Delete a user
+   * Permission check is handled by middleware
    */
   async deleteUser(
     userId: string,
-    requestingUserId: string,
-    requestingUserRole: string
+    requestingUserId: string
   ): Promise<{ success: boolean }> {
-    // Only admins can delete users
-    if (requestingUserRole !== "ADMIN") {
-      throw new PermissionError("Only administrators can delete users");
-    }
-
     // Prevent deleting your own account
     if (userId === requestingUserId) {
-      throw new PermissionError("You cannot delete your own account");
+      throw new ConflictError("You cannot delete your own account");
     }
 
     // Check if user exists
@@ -239,101 +196,13 @@ export class UsersService {
   }
 
   /**
-   * Get user statistics (admin only)
+   * Get user statistics
+   * Permission check is handled by middleware
    */
-  async getUserStats(requestingUserRole: string): Promise<UserStats> {
-    if (requestingUserRole !== "ADMIN") {
-      throw new PermissionError("Only administrators can view user statistics");
-    }
-
+  async getUserStats(): Promise<UserStats> {
     return usersRepository.getUserStats();
-  }
-
-  /**
-   * Get permissions for a specific role
-   */
-  getRolePermissions(role: string): RolePermissions {
-    // Define permission presets for each role
-    const rolePermissions: Record<string, RolePermissions> = {
-      ADMIN: {
-        role: "ADMIN",
-        permissions: {
-          canManageUsers: true,
-          canManageRoles: true,
-          canManageProperties: true,
-          canManageTenants: true,
-          canManageLeases: true,
-          canManagePayments: true,
-          canViewReports: true,
-          canManageMaintenance: true,
-        },
-      },
-      LANDLORD: {
-        role: "LANDLORD",
-        permissions: {
-          canManageUsers: false,
-          canManageRoles: false,
-          canManageProperties: true,
-          canManageTenants: true,
-          canManageLeases: true,
-          canManagePayments: true,
-          canViewReports: true,
-          canManageMaintenance: true,
-        },
-      },
-      CARETAKER: {
-        role: "CARETAKER",
-        permissions: {
-          canManageUsers: false,
-          canManageRoles: false,
-          canManageProperties: false,
-          canManageTenants: true,
-          canManageLeases: false,
-          canManagePayments: true,
-          canViewReports: false,
-          canManageMaintenance: true,
-        },
-      },
-      AGENT: {
-        role: "AGENT",
-        permissions: {
-          canManageUsers: false,
-          canManageRoles: false,
-          canManageProperties: false,
-          canManageTenants: true,
-          canManageLeases: true,
-          canManagePayments: false,
-          canViewReports: false,
-          canManageMaintenance: false,
-        },
-      },
-    };
-
-    return (
-      rolePermissions[role] || {
-        role: "UNKNOWN",
-        permissions: {
-          canManageUsers: false,
-          canManageRoles: false,
-          canManageProperties: false,
-          canManageTenants: false,
-          canManageLeases: false,
-          canManagePayments: false,
-          canViewReports: false,
-          canManageMaintenance: false,
-        },
-      }
-    );
-  }
-
-  /**
-   * Get all available roles with their permissions
-   */
-  getAllRolePermissions(): RolePermissions[] {
-    const roles = ["ADMIN", "LANDLORD", "CARETAKER", "AGENT"];
-    return roles.map((role) => this.getRolePermissions(role));
   }
 }
 
-// The service instance will be created when the auth instance is available
-// This will be used in the route handlers
+// Export a singleton instance
+export const usersService = new UsersService();

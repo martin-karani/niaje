@@ -1,3 +1,5 @@
+// src/trpc/middleware.ts
+import { Permission } from "@/permissions/models";
 import { TRPCError } from "@trpc/server";
 import { t } from "./init";
 
@@ -45,20 +47,10 @@ export const hasRole = (allowedRoles: string[]) =>
   });
 
 /**
- * Middleware that checks property-specific permissions
+ * Middleware that requires a specific permission
  */
-export const checkPropertyPermission = (permissionType?: string) => {
-  return t.middleware(async ({ ctx, next, input }) => {
-    // Only apply to inputs that have propertyId
-    if (!input || typeof input !== "object" || !("propertyId" in input)) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Property ID is required",
-      });
-    }
-
-    const propertyId = (input as any).id || (input as any).propertyId;
-
+export const requirePermission = (permission: Permission) => {
+  return t.middleware(async ({ ctx, next }) => {
     if (!ctx.user) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
@@ -66,28 +58,11 @@ export const checkPropertyPermission = (permissionType?: string) => {
       });
     }
 
-    // For admins, skip permission check
-    if (ctx.user.role === "ADMIN") {
-      return next();
-    }
-
-    // Check if user is the property owner
-    const isOwner = await ctx.isPropertyOwner(propertyId);
-    if (isOwner) {
-      return next();
-    }
-
-    // For normal users, check property permission
-    const hasPermission = await ctx.hasPropertyPermission(
-      propertyId,
-      permissionType
-    );
+    const hasPermission = await ctx.permissions.hasPermission(permission);
     if (!hasPermission) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: permissionType
-          ? `You don't have ${permissionType} permission for this property`
-          : "You don't have access to this property",
+        message: `You don't have the required permission: ${permission}`,
       });
     }
 
@@ -96,24 +71,10 @@ export const checkPropertyPermission = (permissionType?: string) => {
 };
 
 /**
- * Middleware for routes that only property owners can access
+ * Middleware that requires property-specific permission
  */
-export const checkPropertyOwnership = t.middleware(
-  async ({ ctx, next, input }) => {
-    // Only apply to inputs that have propertyId
-    if (
-      !input ||
-      typeof input !== "object" ||
-      !("id" in input || "propertyId" in input)
-    ) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Property ID is required",
-      });
-    }
-
-    const propertyId = (input as any).id || (input as any).propertyId;
-
+export const requirePropertyPermission = (permission: Permission) => {
+  return t.middleware(async ({ ctx, next, input }) => {
     if (!ctx.user) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
@@ -121,53 +82,101 @@ export const checkPropertyOwnership = t.middleware(
       });
     }
 
-    // Allow admins
-    if (ctx.user.role === "ADMIN") {
-      return next();
+    // Get property ID from input
+    if (
+      !input ||
+      typeof input !== "object" ||
+      !("propertyId" in input || "id" in input)
+    ) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Property ID is required",
+      });
     }
 
-    // Check if user is the property owner
-    const isOwner = await ctx.isPropertyOwner(propertyId);
-    if (!isOwner) {
+    const propertyId = (input as any).propertyId || (input as any).id;
+
+    const hasPermission = await ctx.permissions.hasPropertyPermission(
+      propertyId,
+      permission
+    );
+    if (!hasPermission) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "Only the property owner can perform this action",
+        message: `You don't have the required permission for this property: ${permission}`,
       });
     }
 
     return next();
-  }
+  });
+};
+
+// Base procedure
+export const protectedProcedure = t.procedure.use(isAuthenticated);
+
+// Create descriptive procedures for common operations
+export const adminProcedure = protectedProcedure.use(
+  requirePermission("users:manage")
 );
 
-// Create convenience procedures with permission checks
-export const protectedProcedure = t.procedure.use(isAuthenticated);
-export const adminProcedure = protectedProcedure.use(hasRole(["ADMIN"]));
-export const landlordProcedure = protectedProcedure.use(
-  hasRole(["LANDLORD", "ADMIN"])
+// Property management procedures
+export const propertiesManageProcedure = protectedProcedure.use(
+  requirePermission("properties:manage")
+);
+export const propertiesViewProcedure = protectedProcedure.use(
+  requirePermission("properties:view")
+);
+
+// Tenant management procedures
+export const tenantsManageProcedure = protectedProcedure.use(
+  requirePermission("tenants:manage")
+);
+export const tenantsViewProcedure = protectedProcedure.use(
+  requirePermission("tenants:view")
+);
+
+// Lease management procedures
+export const leasesManageProcedure = protectedProcedure.use(
+  requirePermission("leases:manage")
+);
+export const leasesViewProcedure = protectedProcedure.use(
+  requirePermission("leases:view")
+);
+
+// Payment procedures
+export const paymentsCollectProcedure = protectedProcedure.use(
+  requirePermission("payments:collect")
+);
+export const paymentsViewProcedure = protectedProcedure.use(
+  requirePermission("payments:view")
+);
+
+// Maintenance procedures
+export const maintenanceManageProcedure = protectedProcedure.use(
+  requirePermission("maintenance:manage")
+);
+export const maintenanceViewProcedure = protectedProcedure.use(
+  requirePermission("maintenance:view")
+);
+
+// Reports procedure
+export const reportsViewProcedure = protectedProcedure.use(
+  requirePermission("reports:view")
 );
 
 // Property-specific procedures
-export const propertyProcedure = protectedProcedure.use(
-  checkPropertyPermission()
+export const propertyManageProcedure = protectedProcedure.use(
+  requirePropertyPermission("properties:manage")
 );
-export const propertyOwnerProcedure = protectedProcedure.use(
-  checkPropertyOwnership
+export const propertyTenantsProcedure = protectedProcedure.use(
+  requirePropertyPermission("tenants:manage")
 );
-export const tenantManagerProcedure = protectedProcedure.use(
-  checkPropertyPermission("manageTenants")
+export const propertyLeasesProcedure = protectedProcedure.use(
+  requirePropertyPermission("leases:manage")
 );
-export const leaseManagerProcedure = protectedProcedure.use(
-  checkPropertyPermission("manageLeases")
+export const propertyMaintenanceProcedure = protectedProcedure.use(
+  requirePropertyPermission("maintenance:manage")
 );
-export const paymentCollectorProcedure = protectedProcedure.use(
-  checkPropertyPermission("collectPayments")
-);
-export const financialViewerProcedure = protectedProcedure.use(
-  checkPropertyPermission("viewFinancials")
-);
-export const maintenanceManagerProcedure = protectedProcedure.use(
-  checkPropertyPermission("manageMaintenance")
-);
-export const propertyManagerProcedure = protectedProcedure.use(
-  checkPropertyPermission("manageProperties")
+export const propertyPaymentsProcedure = protectedProcedure.use(
+  requirePropertyPermission("payments:collect")
 );

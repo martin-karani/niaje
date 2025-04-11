@@ -1,5 +1,5 @@
 import { router } from "@/trpc/core";
-import { landlordProcedure, leaseManagerProcedure } from "@/trpc/middleware";
+import { leasesManageProcedure } from "@/trpc/middleware";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
@@ -14,7 +14,7 @@ import { leasesService } from "./services/leases.service";
 
 export const leasesRouter = router({
   // Get all leases with filtering and pagination
-  getAll: leaseManagerProcedure
+  getAll: leasesManageProcedure
     .input(leaseFilterDto)
     .query(async ({ ctx, input }) => {
       try {
@@ -34,7 +34,7 @@ export const leasesRouter = router({
     }),
 
   // Get lease by ID
-  getById: leaseManagerProcedure
+  getById: leasesManageProcedure
     .input(
       leaseIdDto.extend({
         withTransactions: z.boolean().optional().default(false),
@@ -64,7 +64,7 @@ export const leasesRouter = router({
     }),
 
   // Create a new lease
-  create: leaseManagerProcedure
+  create: leasesManageProcedure
     .input(createLeaseDto)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -91,7 +91,7 @@ export const leasesRouter = router({
     }),
 
   // Update an existing lease
-  update: leaseManagerProcedure
+  update: leasesManageProcedure
     .input(updateLeaseDto)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -129,7 +129,7 @@ export const leasesRouter = router({
     }),
 
   // Terminate a lease
-  terminate: landlordProcedure
+  terminate: leasesManageProcedure
     .input(terminateLeaseDto)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -162,7 +162,7 @@ export const leasesRouter = router({
     }),
 
   // Renew a lease
-  renew: leaseManagerProcedure
+  renew: leasesManageProcedure
     .input(renewLeaseDto)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -195,7 +195,7 @@ export const leasesRouter = router({
     }),
 
   // Delete a lease (admin only)
-  delete: landlordProcedure
+  delete: leasesManageProcedure
     .input(leaseIdDto)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -229,7 +229,7 @@ export const leasesRouter = router({
     }),
 
   // Get lease statistics
-  getStats: leaseManagerProcedure
+  getStats: leasesManageProcedure
     .input(
       z.object({
         propertyId: z.string().optional(),
@@ -252,7 +252,7 @@ export const leasesRouter = router({
     }),
 
   // Get leases expiring soon
-  getExpiringLeases: leaseManagerProcedure
+  getExpiringLeases: leasesManageProcedure
     .input(
       z.object({
         daysAhead: z.number().positive().default(30),
@@ -275,7 +275,7 @@ export const leasesRouter = router({
     }),
 
   // Get leases by tenant ID
-  getByTenant: leaseManagerProcedure
+  getByTenant: leasesManageProcedure
     .input(
       z.object({
         tenantId: z.string(),
@@ -298,7 +298,7 @@ export const leasesRouter = router({
     }),
 
   // Get leases by unit ID
-  getByUnit: leaseManagerProcedure
+  getByUnit: leasesManageProcedure
     .input(
       z.object({
         unitId: z.string(),
@@ -321,7 +321,7 @@ export const leasesRouter = router({
     }),
 
   // Get active lease for a unit
-  getActiveLeaseForUnit: leaseManagerProcedure
+  getActiveLeaseForUnit: leasesManageProcedure
     .input(
       z.object({
         unitId: z.string(),

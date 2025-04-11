@@ -7,6 +7,6 @@ import * as authController from "../controller/auth.controller";
 const router = Router();
 
 // All other auth routes go through the auth handler
-router.all("/*", authController.handleAuthRequest);
+router.all("/*splat", authController.handleAuthRequest);
 
 export const authRoutes = router;

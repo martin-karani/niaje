@@ -1,4 +1,3 @@
-import * as bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import { eq } from "drizzle-orm";
 import { db } from "../src/db";
@@ -66,7 +65,7 @@ async function createUserWithAccount(userData: {
   }
 
   // Hash the password for the Account model
-  const hashedPassword = await bcrypt.hash(userData.passwordPlainText, 10);
+  const hashedPassword = userData.passwordPlainText;
 
   // Find existing account
   const existingAccount = await db.query.accounts.findFirst({

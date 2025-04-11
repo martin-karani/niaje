@@ -1,9 +1,5 @@
 import { router } from "@/trpc/core";
-import {
-  adminProcedure,
-  landlordProcedure,
-  protectedProcedure,
-} from "@/trpc/middleware";
+import { adminProcedure, protectedProcedure } from "@/trpc/middleware";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
@@ -336,7 +332,7 @@ export const usersRouter = router({
     }),
 
   // Get all role permissions (useful for admin UI)
-  getAllRolePermissions: landlordProcedure.query(async ({ ctx }) => {
+  getAllRolePermissions: adminProcedure.query(async ({ ctx }) => {
     // Create service instance with auth
     const usersService = new UsersService(ctx.auth);
     return usersService.getAllRolePermissions();

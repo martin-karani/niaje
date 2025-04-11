@@ -1,7 +1,7 @@
 import { router } from "@/trpc/core";
 import {
-  landlordProcedure,
-  maintenanceManagerProcedure,
+  adminProcedure,
+  maintenanceManageProcedure,
   protectedProcedure,
 } from "@/trpc/middleware";
 import { TRPCError } from "@trpc/server";
@@ -21,7 +21,7 @@ import { maintenanceService } from "./services/maintenance.service";
 
 export const maintenanceRouter = router({
   // Get all maintenance requests with filtering and pagination
-  getAll: maintenanceManagerProcedure
+  getAll: maintenanceManageProcedure
     .input(maintenanceRequestFilterDto)
     .query(async ({ ctx, input }) => {
       try {
@@ -42,7 +42,7 @@ export const maintenanceRouter = router({
     }),
 
   // Get maintenance request by ID
-  getById: maintenanceManagerProcedure
+  getById: maintenanceManageProcedure
     .input(maintenanceRequestIdDto)
     .query(async ({ ctx, input }) => {
       try {
@@ -67,7 +67,7 @@ export const maintenanceRouter = router({
     }),
 
   // Create a new maintenance request
-  create: maintenanceManagerProcedure
+  create: maintenanceManageProcedure
     .input(createMaintenanceRequestDto)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -92,7 +92,7 @@ export const maintenanceRouter = router({
     }),
 
   // Update an existing maintenance request
-  update: maintenanceManagerProcedure
+  update: maintenanceManageProcedure
     .input(updateMaintenanceRequestDto)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -130,7 +130,7 @@ export const maintenanceRouter = router({
     }),
 
   // Assign a maintenance request
-  assign: maintenanceManagerProcedure
+  assign: maintenanceManageProcedure
     .input(assignMaintenanceRequestDto)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -161,7 +161,7 @@ export const maintenanceRouter = router({
     }),
 
   // Resolve a maintenance request
-  resolve: maintenanceManagerProcedure
+  resolve: maintenanceManageProcedure
     .input(resolveMaintenanceRequestDto)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -198,7 +198,7 @@ export const maintenanceRouter = router({
     }),
 
   // Add a comment to a maintenance request
-  addComment: maintenanceManagerProcedure
+  addComment: maintenanceManageProcedure
     .input(createMaintenanceCommentDto)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -219,7 +219,7 @@ export const maintenanceRouter = router({
     }),
 
   // Delete a maintenance request
-  delete: landlordProcedure
+  delete: adminProcedure
     .input(maintenanceRequestIdDto)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -251,7 +251,7 @@ export const maintenanceRouter = router({
     }),
 
   // Get maintenance statistics
-  getStats: maintenanceManagerProcedure
+  getStats: maintenanceManageProcedure
     .input(
       z.object({
         propertyId: z.string().optional(),
@@ -274,7 +274,7 @@ export const maintenanceRouter = router({
     }),
 
   // Create a new maintenance category
-  createCategory: landlordProcedure
+  createCategory: maintenanceManageProcedure
     .input(createMaintenanceCategoryDto)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -312,7 +312,7 @@ export const maintenanceRouter = router({
   }),
 
   // Generate a maintenance report
-  generateReport: maintenanceManagerProcedure
+  generateReport: maintenanceManageProcedure
     .input(generateMaintenanceReportDto)
     .mutation(async ({ ctx, input }) => {
       try {
