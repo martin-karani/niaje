@@ -1,4 +1,3 @@
-import { createId } from "@/db/utils";
 import { ConflictError, NotFoundError, PermissionError } from "@/errors";
 import { generateLeaseAgreement } from "@/services/document-generator";
 import {
@@ -68,7 +67,6 @@ export class LeasesService {
       const newLease = await leasesRepository.create({
         ...leaseData,
         createdBy: userId,
-        id: createId(), // This will be handled by the DB, but adding for clarity
       });
 
       // If successful, generate a lease document
