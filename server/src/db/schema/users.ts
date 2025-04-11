@@ -1,3 +1,4 @@
+import { relations } from "drizzle-orm";
 import {
   boolean,
   json,
@@ -100,6 +101,25 @@ export const notifications = pgTable("notifications", {
   isRead: boolean("is_read").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const userPermissionsRelations = relations(
+  userPermissions,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [userPermissions.userId],
+      references: [users.id],
+    }),
+    property: one(properties, {
+      fields: [userPermissions.propertyId],
+      references: [properties.id],
+    }),
+    grantedByUser: one(users, {
+      fields: [userPermissions.grantedBy],
+      references: [users.id],
+      relationName: "permissionGrantor",
+    }),
+  })
+);
 
 // // Define relations for the users table
 // export const usersRelations = relations(users, ({ many, one }) => ({

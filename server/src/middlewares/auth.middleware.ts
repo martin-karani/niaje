@@ -1,6 +1,6 @@
 import { fromNodeHeaders } from "better-auth/node";
 import { NextFunction, Request, Response } from "express";
-import { AuthInstance } from "./config";
+import { AuthInstance } from "../configs/auth.config";
 
 export function createBetterAuthMiddleware(auth: AuthInstance) {
   return async (req: Request, res: Response, next: NextFunction) => {
