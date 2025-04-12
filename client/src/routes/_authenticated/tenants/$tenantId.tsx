@@ -1,60 +1,42 @@
 import { TenantNotFound } from "@/components/not-found/tenant-not-found";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 import { TenantProfile } from "@/features/tenants/tenant-profile";
-import { trpc } from "@/utils/trpc";
-import { useQuery } from "@tanstack/react-query";
+import { useTenants } from "@/hooks/use-trpc";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/tenants/$tenantId")({
-  loader: async ({ params }) => {
-    try {
-      const tenantId = params.tenantId;
+  loader: ({ params }) => {
+    const tenantId = params.tenantId;
 
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-      const { data } = useQuery({
-        queryKey: ["tenant", tenantId],
-        queryFn: () => trpc.tenants.getById.query(tenantId),
-      });
-
-      const tenant = data.tenant;
-
-      return {
-        tenant,
-        crumb: [
-          {
-            label: "Dashboard",
-            path: "/dashboard",
-            hideOnMobile: true,
-          },
-          {
-            label: "Tenants",
-            path: "/tenants",
-            hideOnMobile: true,
-          },
-          {
-            label: tenant.name,
-            path: `/tenants/${tenant.id}`,
-            hideOnMobile: false,
-          },
-        ],
-      };
-    } catch (error) {
-      console.error("Error loading tenant:", error);
-      throw new Error("Failed to load tenant");
-    }
+    return {
+      tenantId,
+      crumb: [
+        {
+          label: "Dashboard",
+          path: "/dashboard",
+          hideOnMobile: true,
+        },
+        {
+          label: "Tenants",
+          path: "/tenants",
+          hideOnMobile: true,
+        },
+        {
+          label: "", // Will be filled with tenant name once data is loaded
+          path: `/tenants/${tenantId}`,
+          hideOnMobile: false,
+        },
+      ],
+    };
   },
-  pendingComponent: LoadingTenant,
-  errorComponent: TenantError,
-  notFoundComponent: TenantNotFound,
   component: TenantDetail,
 });
 
 function LoadingTenant() {
   return (
     <div className="flex items-center justify-center p-12">
-      <div className="text-center">
-        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-        <p className="mt-4">Loading tenant information...</p>
-      </div>
+      <LoadingSpinner size="lg" />
+      <p className="ml-4">Loading tenant information...</p>
     </div>
   );
 }
@@ -83,8 +65,25 @@ function TenantError({ error }: { error: { message?: string } }) {
 
 // Main component
 function TenantDetail() {
-  const { tenant } = Route.useLoaderData();
-  return <TenantProfile tenant={tenant} />;
+  const { tenantId } = Route.useLoaderData();
+
+  // Fetch tenant data using the tRPC hook
+  const { getById } = useTenants();
+  const { data, isLoading, error } = getById(tenantId);
+
+  if (isLoading) {
+    return <LoadingTenant />;
+  }
+
+  if (error || !data) {
+    return <TenantError error={error || { message: "Tenant not found" }} />;
+  }
+
+  if (!data.tenant) {
+    return <TenantNotFound />;
+  }
+
+  return <TenantProfile tenant={data.tenant} />;
 }
 
 export default TenantDetail;

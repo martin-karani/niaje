@@ -1,6 +1,11 @@
 import { QueryClient } from "@tanstack/react-query";
-import { createTRPCClient, httpBatchLink, loggerLink } from "@trpc/client";
-import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query";
+import { httpBatchLink, loggerLink } from "@trpc/client";
+import {
+  createTRPCReact,
+  type inferReactQueryProcedureOptions,
+} from "@trpc/react-query";
+import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
+
 import type { AppRouter } from "../../../server/src/trpc/index";
 
 export const queryClient = new QueryClient({
@@ -8,6 +13,7 @@ export const queryClient = new QueryClient({
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes
       refetchOnWindowFocus: false,
+      retry: 1,
     },
   },
 });
@@ -15,10 +21,8 @@ export const queryClient = new QueryClient({
 export function getBaseUrl() {
   return `http://localhost:3001`;
 }
-export function getUrl() {
-  return getBaseUrl() + "/api/trpc";
-}
-const trpcClient = createTRPCClient<AppRouter>({
+
+export const trpcConfig = {
   links: [
     loggerLink({
       enabled: (opts) =>
@@ -26,9 +30,8 @@ const trpcClient = createTRPCClient<AppRouter>({
         (opts.direction === "down" && opts.result instanceof Error),
     }),
     httpBatchLink({
-      url: getUrl(),
+      url: `${getBaseUrl()}/api/trpc`,
       // Include credentials to send cookies with the request
-      // This is crucial for auth to work properly
       fetch(url, options) {
         return fetch(url, {
           ...options,
@@ -37,9 +40,12 @@ const trpcClient = createTRPCClient<AppRouter>({
       },
     }),
   ],
-});
+};
+export const trpc = createTRPCReact<AppRouter>();
 
-export const trpc = createTRPCOptionsProxy<AppRouter>({
-  client: trpcClient,
-  queryClient,
-});
+export const trpcClient = trpc.createClient<AppRouter>(trpcConfig);
+
+// infer the types for your router
+export type ReactQueryOptions = inferReactQueryProcedureOptions<AppRouter>;
+export type RouterInputs = inferRouterInputs<AppRouter>;
+export type RouterOutputs = inferRouterOutputs<AppRouter>;

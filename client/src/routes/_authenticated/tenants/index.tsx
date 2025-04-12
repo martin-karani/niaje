@@ -9,6 +9,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import LoadingSpinner from "@/components/ui/loading-spinner";
+import { useTenants } from "@/hooks/use-trpc";
 import { useAuth } from "@/providers/auth-provider";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
@@ -46,89 +48,46 @@ export const Route = createFileRoute("/_authenticated/tenants/")({
   component: Tenants,
 });
 
-// Mock tenant data based on Image 1
-const TENANTS_DATA = [
-  {
-    id: "tenant-1",
-    name: "Kathryn Murphy",
-    rentFrom: "Jan 2025",
-    location: "Corona, Michigan",
-    phone: "(702) 555-0122",
-    email: "hanson@gmail.com",
-  },
-  {
-    id: "tenant-2",
-    name: "Eleanor Pena",
-    rentFrom: "Nov 2024",
-    location: "Coppell, Virginia",
-    phone: "(629) 555-0129",
-    email: "georgia@gmail.com",
-  },
-  {
-    id: "tenant-3",
-    name: "Jacob Jones",
-    rentFrom: "Sep 2024",
-    location: "Syracuse, Connecticut",
-    phone: "(405) 555-0128",
-    email: "tanya.hill@gmail.com",
-  },
-  {
-    id: "tenant-4",
-    name: "Leslie Alexander",
-    rentFrom: "Jun 2024",
-    location: "Lansing, Illinois",
-    phone: "(505) 555-0125",
-    email: "dolores@gmail.com",
-  },
-  {
-    id: "tenant-5",
-    name: "Jacob Jones",
-    rentFrom: "Apr 2024",
-    location: "Great Falls, Maryland",
-    phone: "(208) 555-0112",
-    email: "debbie@gmail.com",
-  },
-  {
-    id: "tenant-6",
-    name: "Kathryn Murphy",
-    rentFrom: "Feb 2024",
-    location: "Pasadena, Oklahoma",
-    phone: "(808) 555-0111",
-    email: "lawson@gmail.com",
-  },
-  {
-    id: "tenant-7",
-    name: "Leslie Alexander",
-    rentFrom: "Dec 2023",
-    location: "Lansing, Illinois",
-    phone: "(406) 555-0120",
-    email: "felicia@gmail.com",
-  },
-  {
-    id: "tenant-8",
-    name: "Eleanor Pena",
-    rentFrom: "Oct 2023",
-    location: "Lafayette, California",
-    phone: "(480) 555-0103",
-    email: "roberts@gmail.com",
-  },
-];
-
 function Tenants() {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  // Filter tenants based on search term and status filter
-  const filteredTenants = TENANTS_DATA.filter((tenant) => {
-    const matchesSearch =
-      tenant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tenant.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tenant.location.toLowerCase().includes(searchTerm.toLowerCase());
-
-    // For demo purposes, we're not implementing actual status filtering
-    return matchesSearch;
+  // Use the tRPC hook to fetch tenants data
+  const { getAll, isLoading } = useTenants();
+  const { data: tenantsData = [], error } = getAll({
+    search: searchTerm,
+    status: statusFilter !== "all" ? statusFilter : undefined,
   });
+
+  // Filter tenants based on search term and status filter
+  // This filtering will be handled by the backend, but we'll keep this for flexibility
+  const filteredTenants = tenantsData;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-destructive">
+          Error loading tenants: {error.message}
+        </p>
+        <Button
+          variant="outline"
+          onClick={() => window.location.reload()}
+          className="mt-4"
+        >
+          Try Again
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -229,7 +188,14 @@ function Tenants() {
                     </Avatar>
                     <h3 className="font-medium text-center">{tenant.name}</h3>
                     <p className="text-sm text-muted-foreground text-center">
-                      Rent from {tenant.rentFrom}
+                      {tenant.moveInDate
+                        ? `Rent from ${new Date(
+                            tenant.moveInDate
+                          ).toLocaleDateString("en-US", {
+                            month: "short",
+                            year: "numeric",
+                          })}`
+                        : "No move-in date"}
                     </p>
                   </div>
                   <div className="flex">
@@ -258,15 +224,17 @@ function Tenants() {
                 <div className="mt-4 space-y-2">
                   <div className="flex items-center text-sm">
                     <Building className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span>{tenant.location}</span>
+                    <span>{tenant.address || "No address"}</span>
                   </div>
                   <div className="flex items-center text-sm">
                     <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span>{tenant.phone}</span>
+                    <span>{tenant.phone || "No phone"}</span>
                   </div>
                   <div className="flex items-center text-sm">
                     <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span className="truncate">{tenant.email}</span>
+                    <span className="truncate">
+                      {tenant.email || "No email"}
+                    </span>
                   </div>
                 </div>
 
@@ -292,7 +260,7 @@ function Tenants() {
           </div>
           <h3 className="text-lg font-medium">No tenants found</h3>
           <p className="text-muted-foreground mt-1 mb-4">
-            {searchTerm
+            {searchTerm || statusFilter !== "all"
               ? "No tenants match your search criteria"
               : "You haven't added any tenants yet"}
           </p>

@@ -1,4 +1,6 @@
 import { Button } from "@/components/ui/button";
+import LoadingSpinner from "@/components/ui/loading-spinner";
+import { useMaintenance } from "@/hooks/use-trpc";
 import { useAuth } from "@/providers/auth-provider";
 import { createFileRoute } from "@tanstack/react-router";
 import {
@@ -15,114 +17,56 @@ export const Route = createFileRoute("/_authenticated/maintenance/")({
   component: WorkOrders,
 });
 
-// Mock data for work orders
-const MOCK_WORK_ORDERS = [
-  {
-    id: "E-1935",
-    type: "Electricity",
-    priority: "high",
-    location: "Unit 671",
-    description:
-      "The lights in the hallway leading to my apartment are not working properly. It has become quite dark and inconvenient to navigate through the area at night.",
-    reportedBy: {
-      id: "aurelia-james",
-      name: "Aurelia James",
-      image: null,
-    },
-    images: ["/path/to/image1.jpg", "/path/to/image2.jpg"],
-    status: "pending",
-    createdAt: "2023-12-22T10:00:00Z",
-  },
-  {
-    id: "H-933",
-    type: "HVAC",
-    priority: "normal",
-    location: "Unit 598",
-    description:
-      "There is a persistent mold issue in the bathroom ceiling due to poor ventilation. It would be highly appreciated if the maintenance team could address this issue as soon as possible.",
-    reportedBy: {
-      id: "amanda-taylor",
-      name: "Amanda Taylor",
-      image: null,
-    },
-    images: [
-      "/path/to/image3.jpg",
-      "/path/to/image4.jpg",
-      "/path/to/image5.jpg",
-    ],
-    status: "assigned",
-    assignedTo: {
-      id: "ricardo-emmerson",
-      name: "Ricardo Emmerson",
-      image: null,
-    },
-  },
-  {
-    id: "H-482",
-    type: "HVAC",
-    priority: "normal",
-    location: "Unit 1073",
-    description:
-      "The air conditioning unit in my apartment is not cooling properly. Despite adjusting the temperature settings, the air coming out is not as cold as it should be.",
-    reportedBy: {
-      id: "sasha-turner",
-      name: "Sasha Turner",
-      image: null,
-    },
-    status: "in-progress",
-  },
-  {
-    id: "E-1935",
-    type: "Electricity",
-    priority: "normal",
-    location: "Unit 202",
-    description:
-      "The bedroom door seems to be sticking and difficult to open and close.",
-    reportedBy: {
-      id: "hugh-manship",
-      name: "Hugh Manship",
-      image: null,
-    },
-    status: "pending",
-  },
-  {
-    id: "H-452",
-    type: "HVAC",
-    priority: "high",
-    location: "Unit 714",
-    description:
-      "The light fixture in the living room has stopped working despite changing the bulb. Requesting a maintenance technician to inspect and potentially replace the fixture.",
-    reportedBy: {
-      id: "hugh-manship",
-      name: "Hugh Manship",
-      image: null,
-    },
-    status: "assigned",
-    assignedTo: {
-      id: "alistair-dunlap",
-      name: "Alistair Dunlap",
-      image: null,
-    },
-  },
-];
-
 function WorkOrders() {
   const { user } = useAuth();
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [activeTab, setActiveTab] = useState("pending");
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // Filter work orders based on the active tab
-  const filteredOrders = MOCK_WORK_ORDERS.filter((order) => {
-    if (activeTab === "pending") return order.status === "pending";
-    if (activeTab === "assigned") return order.status === "assigned";
-    if (activeTab === "in-progress") return order.status === "in-progress";
-    return true; // "all" tab
-  });
+  // Use the tRPC hooks to fetch maintenance requests
+  const { getAll, isLoading, error } = useMaintenance();
+
+  // Filter parameters based on the active tab
+  const filterParams = {
+    status: activeTab !== "all" ? activeTab : undefined,
+    search: searchTerm || undefined,
+  };
+
+  // Fetch maintenance requests with filter
+  const { data: maintenanceData = [] } = getAll(filterParams);
+
+  // Filter maintenance requests based on active tab
+  const filteredOrders = maintenanceData;
 
   // Handler for when a work order is clicked
   const handleOrderClick = (order) => {
     setSelectedOrder(order);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-destructive">
+          Error loading maintenance requests: {error.message}
+        </p>
+        <Button
+          variant="outline"
+          onClick={() => window.location.reload()}
+          className="mt-4"
+        >
+          Try Again
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col">
@@ -150,6 +94,8 @@ function WorkOrders() {
                 type="text"
                 placeholder="Search work orders..."
                 className="w-full py-2 pl-10 pr-4 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             <Button variant="outline" className="flex items-center gap-2">
@@ -161,7 +107,7 @@ function WorkOrders() {
           {/* Tab Navigation */}
           <div className="border-b mb-4">
             <div className="flex flex-wrap -mb-px">
-              {["pending", "assigned", "in-progress", "completed"].map(
+              {["pending", "assigned", "in-progress", "completed", "all"].map(
                 (tab) => (
                   <button
                     key={tab}
@@ -203,8 +149,14 @@ function WorkOrders() {
                     ? "There are no assigned work orders at the moment."
                     : activeTab === "in-progress"
                     ? "There are no work orders in progress at the moment."
-                    : "There are no completed work orders at the moment."}
+                    : activeTab === "completed"
+                    ? "There are no completed work orders at the moment."
+                    : "There are no work orders at the moment."}
                 </p>
+                <Button className="mt-4">
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Work Order
+                </Button>
               </div>
             )}
           </div>
@@ -213,7 +165,17 @@ function WorkOrders() {
         {/* Right panel - Work Order Details */}
         <div className="hidden lg:block w-1/3 border-l pl-4">
           {selectedOrder ? (
-            <WorkOrderDetail order={selectedOrder} />
+            <WorkOrderDetail
+              order={selectedOrder}
+              onStatusChange={(newStatus) => {
+                // Here you would call the API to update the status
+                // Then refetch the orders or update the local state
+                setSelectedOrder({
+                  ...selectedOrder,
+                  status: newStatus,
+                });
+              }}
+            />
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center p-6">
               <Wrench className="h-16 w-16 text-muted-foreground mb-4" />
@@ -237,7 +199,16 @@ function WorkOrders() {
             >
               &larr; Back to list
             </Button>
-            <WorkOrderDetail order={selectedOrder} />
+            <WorkOrderDetail
+              order={selectedOrder}
+              onStatusChange={(newStatus) => {
+                // Same as above
+                setSelectedOrder({
+                  ...selectedOrder,
+                  status: newStatus,
+                });
+              }}
+            />
           </div>
         </div>
       )}
@@ -274,13 +245,14 @@ const WorkOrderCard = ({ order, isSelected, onClick }) => {
             order.priority
           )}`}
         >
-          {order.priority.charAt(0).toUpperCase() + order.priority.slice(1)}
+          {order.priority?.charAt(0).toUpperCase() + order.priority?.slice(1) ||
+            "Normal"}
         </div>
       </div>
 
       <div className="mb-3">
         <h3 className="font-medium text-sm mb-1">Location</h3>
-        <p className="text-sm">{order.location}</p>
+        <p className="text-sm">{order.location || "Unknown location"}</p>
       </div>
 
       <div className="mb-3">
@@ -290,10 +262,10 @@ const WorkOrderCard = ({ order, isSelected, onClick }) => {
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center text-xs">
-            {order.reportedBy.name.charAt(0)}
+            {order.reportedBy?.name?.charAt(0) || "?"}
           </div>
           <span className="text-xs text-muted-foreground">
-            Reported by {order.reportedBy.name}
+            Reported by {order.reportedBy?.name || "Unknown"}
           </span>
         </div>
 
@@ -318,9 +290,7 @@ const WorkOrderCard = ({ order, isSelected, onClick }) => {
 };
 
 // Work Order Detail Component
-const WorkOrderDetail = ({ order }) => {
-  const [status, setStatus] = useState(order.status);
-
+const WorkOrderDetail = ({ order, onStatusChange }) => {
   const getStatusLabel = (statusValue) => {
     const labels = {
       pending: "Pending",
@@ -338,7 +308,7 @@ const WorkOrderDetail = ({ order }) => {
         <div>
           <h2 className="text-xl font-semibold">Work Order Details</h2>
           <p className="text-sm text-muted-foreground">
-            {getStatusLabel(status)}
+            {getStatusLabel(order.status)}
           </p>
         </div>
         <Button variant="outline" size="icon">
@@ -379,9 +349,9 @@ const WorkOrderDetail = ({ order }) => {
           </h3>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-              {order.reportedBy.name.charAt(0)}
+              {order.reportedBy?.name.charAt(0) || "?"}
             </div>
-            <span>{order.reportedBy.name}</span>
+            <span>{order.reportedBy?.name || "Unknown"}</span>
           </div>
         </div>
 
@@ -417,18 +387,26 @@ const WorkOrderDetail = ({ order }) => {
       </div>
 
       <div className="mt-6 space-y-3">
-        {(status === "pending" || !status) && (
+        {(order.status === "pending" || !order.status) && (
           <>
-            <Button className="w-full">Assign Technician</Button>
+            <Button
+              className="w-full"
+              onClick={() => onStatusChange("assigned")}
+            >
+              Assign Technician
+            </Button>
             <Button variant="outline" className="w-full">
               Schedule for Later
             </Button>
           </>
         )}
 
-        {status === "assigned" && (
+        {order.status === "assigned" && (
           <>
-            <Button className="w-full" onClick={() => setStatus("in-progress")}>
+            <Button
+              className="w-full"
+              onClick={() => onStatusChange("in-progress")}
+            >
               Mark In Progress
             </Button>
             <Button variant="outline" className="w-full">
@@ -437,9 +415,12 @@ const WorkOrderDetail = ({ order }) => {
           </>
         )}
 
-        {status === "in-progress" && (
+        {order.status === "in-progress" && (
           <>
-            <Button className="w-full" onClick={() => setStatus("completed")}>
+            <Button
+              className="w-full"
+              onClick={() => onStatusChange("completed")}
+            >
               Mark as Complete
             </Button>
             <Button variant="outline" className="w-full">
@@ -448,12 +429,16 @@ const WorkOrderDetail = ({ order }) => {
           </>
         )}
 
-        {status === "completed" && (
+        {order.status === "completed" && (
           <>
             <Button variant="outline" className="w-full">
               View Report
             </Button>
-            <Button variant="ghost" className="w-full text-muted-foreground">
+            <Button
+              variant="ghost"
+              className="w-full text-muted-foreground"
+              onClick={() => onStatusChange("pending")}
+            >
               Reopen
             </Button>
           </>

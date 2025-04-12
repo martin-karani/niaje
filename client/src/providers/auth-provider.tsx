@@ -1,5 +1,5 @@
 import { signIn, signOut, signUp, useSession } from "@/auth/auth-client";
-import { trpc } from "@/hooks/use-trpc";
+import { trpc } from "@/utils/trpc";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
 export type UserRole = "landlord" | "caretaker" | "agent" | "admin";

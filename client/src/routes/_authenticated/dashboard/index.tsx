@@ -10,7 +10,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useLeases, useMaintenance, useProperties } from "@/hooks/use-trpc";
+import {
+  useLeases,
+  useMaintenance,
+  useProperties,
+  useTenants,
+} from "@/hooks/use-trpc";
 import { useAuth } from "@/providers/auth-provider";
 import { createFileRoute } from "@tanstack/react-router";
 import {
@@ -55,28 +60,23 @@ export const Route = createFileRoute("/_authenticated/dashboard/")({
   component: Dashboard,
 });
 
-// The revenueData would ideally come from the backend, but we'll keep it as is for now
-const revenueData = [
-  { month: "Jan", amount: 20000 },
-  { month: "Feb", amount: 35000 },
-  { month: "Mar", amount: 15000 },
-  { month: "Apr", amount: 20000 },
-  { month: "May", amount: 15000 },
-  { month: "Jun", amount: 35000 },
-  { month: "Jul", amount: 20000 },
-];
-
 const OCCUPANCY_COLORS = ["#4f46e5", "#e4e4e7"];
 const MAINTENANCE_COLORS = ["#f59e0b", "#3b82f6", "#10b981"];
 
 function Dashboard() {
   const { user } = useAuth();
+
+  // Use the tRPC hooks to fetch real data
   const { getAll: getProperties, isLoading: propertiesLoading } =
     useProperties();
-  const propertiesData = getProperties.data;
+  const propertiesData = getProperties().data || [];
 
-  const { getStats: getLeaseStats } = useLeases();
-  const leaseStats = getLeaseStats().data;
+  const { getStats: getLeaseStats, isLoading: leaseStatsLoading } = useLeases();
+  const leaseStats = getLeaseStats().data || {
+    totalMonthlyRent: 0,
+    activeLeases: 0,
+    expiringNext30Days: 0,
+  };
 
   const { getAll: getRecentTransactions, isLoading: transactionsLoading } =
     useLeases();
@@ -86,107 +86,114 @@ function Dashboard() {
       page: 1,
     }).data?.leases || [];
 
-  const { getStats: getMaintenanceStats } = useMaintenance();
-  const maintenanceStats = getMaintenanceStats().data;
+  const { getStats: getMaintenanceStats, isLoading: maintenanceLoading } =
+    useMaintenance();
+  const maintenanceStats = getMaintenanceStats().data || {
+    openRequests: 0,
+    inProgressRequests: 0,
+    completedRequests: 0,
+    totalMaintenanceCost: 0,
+  };
 
-  const { getExpiringLeases } = useLeases();
+  const { getExpiringLeases, isLoading: expiringLeasesLoading } = useLeases();
   const upcomingEvents = getExpiringLeases(7).data || [];
 
-  // Stats data based on real data or fallback to defaults
+  const { getStats: getTenantStats, isLoading: tenantStatsLoading } =
+    useTenants();
+  const tenantStats = getTenantStats().data || { totalTenants: 0 };
+
+  // Show loading state if any data is still loading
+  const isLoading =
+    propertiesLoading ||
+    leaseStatsLoading ||
+    transactionsLoading ||
+    maintenanceLoading ||
+    expiringLeasesLoading ||
+    tenantStatsLoading;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  // Stats data based on real data
   const statsData = {
     rentReceived: {
-      amount: leaseStats
-        ? `$${Math.floor(leaseStats.totalMonthlyRent).toLocaleString()}`
-        : "$1,450.00",
-      change: "15.8%",
+      amount: `$${Math.floor(
+        leaseStats.totalMonthlyRent || 0
+      ).toLocaleString()}`,
+      change: "15.8%", // You might want to calculate this based on historical data
       isUp: false,
-      details: leaseStats
-        ? `${leaseStats.activeLeases} active leases`
-        : "Due this month",
-      value: leaseStats
-        ? `$${Math.floor(leaseStats.totalMonthlyRent * 1.2).toLocaleString()}`
-        : "$6,000",
+      details: `${leaseStats.activeLeases || 0} active leases`,
+      value: `$${Math.floor(
+        (leaseStats.totalMonthlyRent || 0) * 1.2
+      ).toLocaleString()}`,
     },
     upcomingPayments: {
-      amount: leaseStats
-        ? `$${Math.floor(leaseStats.totalMonthlyRent * 0.4).toLocaleString()}`
-        : "$2,450.00",
+      amount: `$${Math.floor(
+        (leaseStats.totalMonthlyRent || 0) * 0.4
+      ).toLocaleString()}`,
       change: "15.8%",
       isUp: true,
-      details: leaseStats
-        ? `${leaseStats.expiringNext30Days} expiring soon`
-        : "2 this month",
+      details: `${leaseStats.expiringNext30Days || 0} expiring soon`,
     },
     rentOverdue: {
-      amount: "$1,450.00",
+      amount: "$1,450.00", // This could be calculated based on actual overdue payments
       change: "15.8%",
       isUp: false,
-      details: "5 Overdue",
+      details: "5 Overdue", // This should come from the API
     },
     totalExpense: {
-      amount: maintenanceStats
-        ? `$${Math.floor(
-            maintenanceStats.totalMaintenanceCost
-          ).toLocaleString()}`
-        : "$2,450.00",
+      amount: `$${Math.floor(
+        maintenanceStats.totalMaintenanceCost || 0
+      ).toLocaleString()}`,
       change: "15.8%",
       isUp: true,
-      details: maintenanceStats
-        ? `${
-            maintenanceStats.openRequests + maintenanceStats.inProgressRequests
-          } pending`
-        : "31 works",
+      details: `${
+        (maintenanceStats.openRequests || 0) +
+        (maintenanceStats.inProgressRequests || 0)
+      } pending`,
     },
   };
 
   // Create maintenance data from real stats
-  const maintenanceData = maintenanceStats
-    ? [
-        { name: "Pending", value: maintenanceStats.openRequests || 0 },
-        {
-          name: "In Progress",
-          value: maintenanceStats.inProgressRequests || 0,
-        },
-        { name: "Completed", value: maintenanceStats.completedRequests || 0 },
-      ]
-    : [
-        { name: "Pending", value: 23 },
-        { name: "In Progress", value: 14 },
-        { name: "Completed", value: 42 },
-      ];
+  const maintenanceData = [
+    { name: "Pending", value: maintenanceStats.openRequests || 0 },
+    { name: "In Progress", value: maintenanceStats.inProgressRequests || 0 },
+    { name: "Completed", value: maintenanceStats.completedRequests || 0 },
+  ];
 
   // Create occupancy data based on lease stats
-  const occupancyData = leaseStats
-    ? [
-        { name: "Occupied", value: leaseStats.activeLeases || 0 },
-        {
-          name: "Vacant",
-          value: (propertiesData?.length || 4) - (leaseStats.activeLeases || 0),
-        },
-      ]
-    : [
-        { name: "Occupied", value: 87 },
-        { name: "Vacant", value: 13 },
-      ];
+  const occupancyData = [
+    { name: "Occupied", value: leaseStats.activeLeases || 0 },
+    {
+      name: "Vacant",
+      value: (propertiesData.length || 0) - (leaseStats.activeLeases || 0),
+    },
+  ];
 
   // Generate dashboard stats
   const dashboardStats = {
-    totalProperties: propertiesData?.length || 4,
-    totalTenants: 289,
+    totalProperties: propertiesData.length || 0,
+    totalTenants: tenantStats.totalTenants || 0,
     occupancyRate:
-      (occupancyData[0].value /
-        (occupancyData[0].value + occupancyData[1].value)) *
-        100 || 87,
-    pendingRequests: maintenanceStats?.openRequests || 23,
-    overdueMaintenance: maintenanceStats?.inProgressRequests || 14,
-    totalRevenue: leaseStats
-      ? `$${Math.floor(leaseStats.totalMonthlyRent).toLocaleString()}`
-      : "$9,245.25",
-    expensesThisMonth: maintenanceStats
-      ? `$${Math.floor(
-          maintenanceStats.totalMaintenanceCost / 12
-        ).toLocaleString()}`
-      : "$2,125.74",
+      occupancyData[0].value &&
+      occupancyData[0].value + occupancyData[1].value > 0
+        ? (occupancyData[0].value /
+            (occupancyData[0].value + occupancyData[1].value)) *
+          100
+        : 0,
+    pendingRequests: maintenanceStats.openRequests || 0,
+    overdueMaintenance: maintenanceStats.inProgressRequests || 0,
+    totalRevenue: `$${Math.floor(
+      leaseStats.totalMonthlyRent || 0
+    ).toLocaleString()}`,
+    expensesThisMonth: `$${Math.floor(
+      (maintenanceStats.totalMaintenanceCost || 0) / 12
+    ).toLocaleString()}`,
   };
 
   // Format transactions for display
@@ -211,15 +218,6 @@ function Dashboard() {
     amount: lease.rentAmount || 0,
     partiallyPaid: "$0.00",
   }));
-
-  // Show loading state if data is still loading
-  if (propertiesLoading || transactionsLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
 
   // Get role-specific greeting
   const getRoleBasedGreeting = () => {
@@ -252,6 +250,17 @@ function Dashboard() {
         return "bg-gray-100 text-gray-800";
     }
   };
+
+  // Revenue data - This could also come from the API
+  const revenueData = [
+    { month: "Jan", amount: 20000 },
+    { month: "Feb", amount: 35000 },
+    { month: "Mar", amount: 15000 },
+    { month: "Apr", amount: 20000 },
+    { month: "May", amount: 15000 },
+    { month: "Jun", amount: 35000 },
+    { month: "Jul", amount: 20000 },
+  ];
 
   // Stat Card Component
   const StatCard = ({
@@ -413,7 +422,7 @@ function Dashboard() {
               <span className="text-sm text-muted-foreground">
                 {propertiesData && propertiesData.length > 0
                   ? propertiesData[0].name
-                  : "3217 W. Gray St"}
+                  : "N/A"}
               </span>
             </div>
             <ChevronDown className="h-4 w-4" />

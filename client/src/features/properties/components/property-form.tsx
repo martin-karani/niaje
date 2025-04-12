@@ -1,6 +1,5 @@
-// client/src/components/properties/property-form.tsx
-import { useCreateProperty, useUpdateProperty } from "@/api/trpc-hooks";
 import { Button } from "@/components/ui/button";
+import { useProperties, useUserManagement } from "@/hooks/use-trpc";
 import { AlertCircle, Check, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { z } from "zod";
@@ -46,21 +45,30 @@ export const PropertyForm = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Fetch users for assignment dropdowns
+  const { getAll: getUsers, isLoading: usersLoading } = useUserManagement();
+  const { data: usersData = [] } = getUsers({ role: "caretaker" });
+  const { data: agentsData = [] } = getUsers({ role: "agent" });
+
   // tRPC hooks for creating/updating properties
+  const { create, update } = useProperties();
+
   const {
-    createProperty,
+    mutateAsync: createProperty,
     isLoading: isCreating,
     error: createError,
-    successMessage: createSuccess,
     reset: resetCreate,
-  } = useCreateProperty();
+  } = create;
+
   const {
-    updateProperty,
+    mutateAsync: updateProperty,
     isLoading: isUpdating,
     error: updateError,
-    successMessage: updateSuccess,
     reset: resetUpdate,
-  } = useUpdateProperty();
+  } = update;
+
+  // Success message state
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Populate form data if property is provided (edit mode)
   useEffect(() => {
@@ -83,7 +91,7 @@ export const PropertyForm = ({
     >
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value === "" ? null : value }));
 
     // Clear error for this field when user changes it
     if (errors[name]) {
@@ -118,6 +126,7 @@ export const PropertyForm = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setSuccessMessage(null);
 
     if (!validateForm()) {
       setIsSubmitting(false);
@@ -131,14 +140,18 @@ export const PropertyForm = ({
           id: property.id,
           ...formData,
         });
+        setSuccessMessage("Property updated successfully!");
       } else {
         // Create new property
         await createProperty(formData);
+        setSuccessMessage("Property created successfully!");
       }
 
       // Call onSuccess callback if provided
       if (onSuccess) {
-        onSuccess();
+        setTimeout(() => {
+          onSuccess();
+        }, 1500); // Give user time to see success message
       }
     } catch (error) {
       console.error("Error submitting property form:", error);
@@ -173,6 +186,7 @@ export const PropertyForm = ({
     setErrors({});
     resetCreate();
     resetUpdate();
+    setSuccessMessage(null);
   };
 
   // Handle cancel button
@@ -183,10 +197,8 @@ export const PropertyForm = ({
     }
   };
 
-  // Get the current error or success message
-  const errorMessage = createError || updateError;
-  const successMessage = createSuccess || updateSuccess;
-  const isLoading = isCreating || isUpdating || isSubmitting;
+  // Get the current error
+  const errorMessage = createError?.message || updateError?.message;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -283,7 +295,7 @@ export const PropertyForm = ({
         />
       </div>
 
-      {/* Caretaker (This would be a dropdown populated from users with caretaker role) */}
+      {/* Caretaker */}
       <div className="space-y-1">
         <label className="block text-sm font-medium">Assign Caretaker</label>
         <select
@@ -291,15 +303,21 @@ export const PropertyForm = ({
           value={formData.caretakerId || ""}
           onChange={handleChange}
           className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+          disabled={usersLoading}
         >
           <option value="">None</option>
-          <option value="1">John Smith</option>
-          <option value="2">Sarah Johnson</option>
-          <option value="3">Michael Brown</option>
+          {usersData.map((caretaker) => (
+            <option key={caretaker.id} value={caretaker.id}>
+              {caretaker.name}
+            </option>
+          ))}
         </select>
+        {usersLoading && (
+          <p className="text-sm text-muted-foreground">Loading caretakers...</p>
+        )}
       </div>
 
-      {/* Agent (This would be a dropdown populated from users with agent role) */}
+      {/* Agent */}
       <div className="space-y-1">
         <label className="block text-sm font-medium">Assign Agent</label>
         <select
@@ -307,12 +325,18 @@ export const PropertyForm = ({
           value={formData.agentId || ""}
           onChange={handleChange}
           className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+          disabled={usersLoading}
         >
           <option value="">None</option>
-          <option value="4">Emily Davis</option>
-          <option value="5">Robert Wilson</option>
-          <option value="6">Laura Martin</option>
+          {agentsData.map((agent) => (
+            <option key={agent.id} value={agent.id}>
+              {agent.name}
+            </option>
+          ))}
         </select>
+        {usersLoading && (
+          <p className="text-sm text-muted-foreground">Loading agents...</p>
+        )}
       </div>
 
       {/* Form Actions */}
@@ -325,8 +349,8 @@ export const PropertyForm = ({
         >
           Cancel
         </Button>
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? (
+        <Button type="submit" disabled={isLoading || isSubmitting}>
+          {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               {isEditing ? "Updating..." : "Creating..."}
