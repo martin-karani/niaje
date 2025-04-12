@@ -1,10 +1,10 @@
 import { auth } from "@/auth/configs/auth.config";
 import { createBetterAuthMiddleware } from "@/middleware/auth.middleware";
 import { errorHandler } from "@/middleware/error.middleware";
+import { toNodeHandler } from "better-auth/node";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
-import { authRoutes } from "./auth/routes/auth.route";
 import { trpcMiddleware } from "./trpc";
 
 /**
@@ -26,7 +26,7 @@ export function setupApi() {
 
   // Mount better-auth handler for all /api/auth/* routes
   // IMPORTANT: Place this before express.json() middleware
-  app.use("/api/auth", authRoutes);
+  app.all("/api/auth/*splat", toNodeHandler(auth));
 
   app.use(express.json());
 

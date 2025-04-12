@@ -21,6 +21,9 @@ const usersRelations = relations(users, ({ many }) => ({
 }));
 
 export * from "./accounts";
+export * from "./audit";
+export * from "./documents";
+export * from "./maintenance";
 export * from "./properties";
 export * from "./sessions";
 export * from "./users";

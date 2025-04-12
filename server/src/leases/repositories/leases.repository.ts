@@ -895,8 +895,8 @@ export class LeasesRepository {
         status: r.status,
         count: Number(r.count),
       })),
-      averageRent: avgRentResult.avgRent || 0,
-      totalMonthlyRent: totalRentResult.totalRent || 0,
+      averageRent: Number(avgRentResult.avgRent) || 0,
+      totalMonthlyRent: Number(totalRentResult.totalRent) || 0,
     };
   }
 }

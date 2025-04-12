@@ -1,5 +1,5 @@
 import { ConflictError, NotFoundError } from "@/errors";
-import * as bcrypt from "bcrypt";
+import * as bcrypt from "bcryptjs";
 import {
   AdminChangePasswordDto,
   UpdateProfileDto,
