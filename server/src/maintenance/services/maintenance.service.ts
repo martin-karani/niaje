@@ -10,7 +10,7 @@ import {
   ResolveMaintenanceRequestDto,
   UpdateMaintenanceRequestDto,
 } from "../dto/maintenance.dto";
-import { maintenanceRepository } from "../repositories/maintenance.repository";
+import { maintenanceRepository } from "../repository/maintenance.repository";
 import { MaintenanceRequestWithRelations, MaintenanceStats } from "../types";
 
 export class MaintenanceService {
