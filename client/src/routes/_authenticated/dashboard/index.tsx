@@ -1,6 +1,7 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 import {
   Table,
   TableBody,
@@ -9,8 +10,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useLeases, useMaintenance, useProperties } from "@/hooks/use-trpc";
 import { useAuth } from "@/providers/auth-provider";
-import { trpc } from "@/utils/trpc";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   ArrowDown,
@@ -54,7 +55,7 @@ export const Route = createFileRoute("/_authenticated/dashboard/")({
   component: Dashboard,
 });
 
-// Chart data
+// The revenueData would ideally come from the backend, but we'll keep it as is for now
 const revenueData = [
   { month: "Jan", amount: 20000 },
   { month: "Feb", amount: 35000 },
@@ -65,41 +66,56 @@ const revenueData = [
   { month: "Jul", amount: 20000 },
 ];
 
-const occupancyData = [
-  { name: "Occupied", value: 87 },
-  { name: "Vacant", value: 13 },
-];
-
 const OCCUPANCY_COLORS = ["#4f46e5", "#e4e4e7"];
-
-const maintenanceData = [
-  { name: "Pending", value: 23 },
-  { name: "In Progress", value: 14 },
-  { name: "Completed", value: 42 },
-];
-
 const MAINTENANCE_COLORS = ["#f59e0b", "#3b82f6", "#10b981"];
 
 function Dashboard() {
   const { user } = useAuth();
-  const { data: propertiesData, isLoading: propertiesLoading } = useQuery(
-    trpc.properties.getAll
-  );
+  const { getAll: getProperties, isLoading: propertiesLoading } =
+    useProperties();
+  const propertiesData = getProperties.data;
 
-  // Stats data
+  const { getStats: getLeaseStats } = useLeases();
+  const leaseStats = getLeaseStats().data;
+
+  const { getAll: getRecentTransactions, isLoading: transactionsLoading } =
+    useLeases();
+  const recentTransactionsData =
+    getRecentTransactions({
+      limit: 10,
+      page: 1,
+    }).data?.leases || [];
+
+  const { getStats: getMaintenanceStats } = useMaintenance();
+  const maintenanceStats = getMaintenanceStats().data;
+
+  const { getExpiringLeases } = useLeases();
+  const upcomingEvents = getExpiringLeases(7).data || [];
+
+  // Stats data based on real data or fallback to defaults
   const statsData = {
     rentReceived: {
-      amount: "$1,450.00",
+      amount: leaseStats
+        ? `$${Math.floor(leaseStats.totalMonthlyRent).toLocaleString()}`
+        : "$1,450.00",
       change: "15.8%",
       isUp: false,
-      details: "Due this month",
-      value: "$6,000",
+      details: leaseStats
+        ? `${leaseStats.activeLeases} active leases`
+        : "Due this month",
+      value: leaseStats
+        ? `$${Math.floor(leaseStats.totalMonthlyRent * 1.2).toLocaleString()}`
+        : "$6,000",
     },
     upcomingPayments: {
-      amount: "$2,450.00",
+      amount: leaseStats
+        ? `$${Math.floor(leaseStats.totalMonthlyRent * 0.4).toLocaleString()}`
+        : "$2,450.00",
       change: "15.8%",
       isUp: true,
-      details: "2 this month",
+      details: leaseStats
+        ? `${leaseStats.expiringNext30Days} expiring soon`
+        : "2 this month",
     },
     rentOverdue: {
       amount: "$1,450.00",
@@ -108,169 +124,102 @@ function Dashboard() {
       details: "5 Overdue",
     },
     totalExpense: {
-      amount: "$2,450.00",
+      amount: maintenanceStats
+        ? `$${Math.floor(
+            maintenanceStats.totalMaintenanceCost
+          ).toLocaleString()}`
+        : "$2,450.00",
       change: "15.8%",
       isUp: true,
-      details: "31 works",
+      details: maintenanceStats
+        ? `${
+            maintenanceStats.openRequests + maintenanceStats.inProgressRequests
+          } pending`
+        : "31 works",
     },
   };
 
-  // Mock data for dashboard stats
+  // Create maintenance data from real stats
+  const maintenanceData = maintenanceStats
+    ? [
+        { name: "Pending", value: maintenanceStats.openRequests || 0 },
+        {
+          name: "In Progress",
+          value: maintenanceStats.inProgressRequests || 0,
+        },
+        { name: "Completed", value: maintenanceStats.completedRequests || 0 },
+      ]
+    : [
+        { name: "Pending", value: 23 },
+        { name: "In Progress", value: 14 },
+        { name: "Completed", value: 42 },
+      ];
+
+  // Create occupancy data based on lease stats
+  const occupancyData = leaseStats
+    ? [
+        { name: "Occupied", value: leaseStats.activeLeases || 0 },
+        {
+          name: "Vacant",
+          value: (propertiesData?.length || 4) - (leaseStats.activeLeases || 0),
+        },
+      ]
+    : [
+        { name: "Occupied", value: 87 },
+        { name: "Vacant", value: 13 },
+      ];
+
+  // Generate dashboard stats
   const dashboardStats = {
     totalProperties: propertiesData?.length || 4,
     totalTenants: 289,
-    occupancyRate: 87,
-    pendingRequests: 23,
-    overdueMaintenance: 14,
-    totalRevenue: "$9,245.25",
-    expensesThisMonth: "$2,125.74",
+    occupancyRate:
+      (occupancyData[0].value /
+        (occupancyData[0].value + occupancyData[1].value)) *
+        100 || 87,
+    pendingRequests: maintenanceStats?.openRequests || 23,
+    overdueMaintenance: maintenanceStats?.inProgressRequests || 14,
+    totalRevenue: leaseStats
+      ? `$${Math.floor(leaseStats.totalMonthlyRent).toLocaleString()}`
+      : "$9,245.25",
+    expensesThisMonth: maintenanceStats
+      ? `$${Math.floor(
+          maintenanceStats.totalMaintenanceCost / 12
+        ).toLocaleString()}`
+      : "$2,125.74",
   };
 
-  // Recent transactions
-  const recentTransactions = [
-    {
-      id: "3066",
-      customer: {
-        name: "Jacob Jones",
-        image: null,
-      },
-      date: "N/A",
-      status: "Overdue",
-      unit: "3517 W. Gray St",
-      amount: 450.0,
-      partiallyPaid: "$0.00",
+  // Format transactions for display
+  const formattedTransactions = recentTransactionsData.map((lease) => ({
+    id: lease.id.substring(0, 4),
+    customer: {
+      name: lease.tenant?.name || "Unknown Tenant",
+      image: null,
     },
-    {
-      id: "3066",
-      customer: {
-        name: "Robert Fox",
-        image: null,
-      },
-      date: "05/07/2024",
-      status: "Partially Paid",
-      unit: "4517 Washington",
-      amount: 350.0,
-      partiallyPaid: "$200.00",
-    },
-    {
-      id: "3066",
-      customer: {
-        name: "Leslie Alexander",
-        image: null,
-      },
-      date: "28/06/2024",
-      status: "Processing",
-      unit: "4140 Parker Rd",
-      amount: 400.0,
-      partiallyPaid: "$0.00",
-    },
-    {
-      id: "3066",
-      customer: {
-        name: "Arlene McCoy",
-        image: null,
-      },
-      date: "20/06/2024",
-      status: "Paid",
-      unit: "8502 Preston Rd",
-      amount: 340.0,
-      partiallyPaid: "$0.00",
-    },
-    {
-      id: "3066",
-      customer: {
-        name: "Leslie Alex",
-        image: null,
-      },
-      date: "N/A",
-      status: "Overdue",
-      unit: "2464 Royal Ln",
-      amount: 500.0,
-      partiallyPaid: "$0.00",
-    },
-    {
-      id: "3066",
-      customer: {
-        name: "Eleanor Pena",
-        image: null,
-      },
-      date: "12/06/2024",
-      status: "Partially Paid",
-      unit: "2715 Ash Dr. San",
-      amount: 480.0,
-      partiallyPaid: "$400.00",
-    },
-    {
-      id: "3066",
-      customer: {
-        name: "Leslie Alexander",
-        image: null,
-      },
-      date: "N/A",
-      status: "Processing",
-      unit: "2972 Westheimer",
-      amount: 350.0,
-      partiallyPaid: "$0.00",
-    },
-    {
-      id: "3066",
-      customer: {
-        name: "Eleanor Pena",
-        image: null,
-      },
-      date: "15/05/2024",
-      status: "Paid",
-      unit: "4517 Washington",
-      amount: 400.0,
-      partiallyPaid: "$0.00",
-    },
-    {
-      id: "3066",
-      customer: {
-        name: "Kathryn Murphy",
-        image: null,
-      },
-      date: "N/A",
-      status: "Overdue",
-      unit: "3891 Ranchview",
-      amount: 350.0,
-      partiallyPaid: "$0.00",
-    },
-    {
-      id: "3066",
-      customer: {
-        name: "Leslie Alexander",
-        image: null,
-      },
-      date: "28/05/2024",
-      status: "Partially Paid",
-      unit: "2118 Thornridge Cir",
-      amount: 450.0,
-      partiallyPaid: "$350.00",
-    },
-  ];
+    date: lease.startDate
+      ? new Date(lease.startDate).toLocaleDateString()
+      : "N/A",
+    status:
+      lease.status === "active"
+        ? "Paid"
+        : lease.status === "expiring-soon"
+        ? "Partially Paid"
+        : lease.status === "upcoming"
+        ? "Processing"
+        : "Overdue",
+    unit: lease.unit?.name || "Unknown Unit",
+    amount: lease.rentAmount || 0,
+    partiallyPaid: "$0.00",
+  }));
 
-  // Upcoming events
-  const upcomingEvents = [
-    {
-      id: 1,
-      title: "Property Viewing",
-      property: "Sobha Garden, Unit 402",
-      date: "Today, 3:00 PM",
-    },
-    {
-      id: 2,
-      title: "Lease Signing",
-      property: "Crown Tower, Unit 202",
-      date: "Tomorrow, 11:00 AM",
-    },
-    {
-      id: 3,
-      title: "Maintenance Visit",
-      property: "Sobha Garden, Unit 201",
-      date: "Jun 18, 9:30 AM",
-    },
-  ];
+  // Show loading state if data is still loading
+  if (propertiesLoading || transactionsLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
 
   // Get role-specific greeting
   const getRoleBasedGreeting = () => {
@@ -414,9 +363,11 @@ function Dashboard() {
           </div>
           <div className="flex flex-col sm:flex-row gap-1 text-sm">
             <span className="text-muted-foreground">Rental Income:</span>
-            <span className="font-medium">$9,245.25</span>
+            <span className="font-medium">{dashboardStats.totalRevenue}</span>
             <span className="text-muted-foreground ml-3">Expenses:</span>
-            <span className="font-medium">$2,125.74</span>
+            <span className="font-medium">
+              {dashboardStats.expensesThisMonth}
+            </span>
           </div>
         </CardHeader>
         <CardContent className="h-[250px]">
@@ -460,7 +411,9 @@ function Dashboard() {
             <div>
               <CardTitle>Property Valuation</CardTitle>
               <span className="text-sm text-muted-foreground">
-                3217 W. Gray St
+                {propertiesData && propertiesData.length > 0
+                  ? propertiesData[0].name
+                  : "3217 W. Gray St"}
               </span>
             </div>
             <ChevronDown className="h-4 w-4" />
@@ -517,7 +470,9 @@ function Dashboard() {
           <CardContent className="flex justify-center items-center">
             <div className="h-[225px] w-full flex items-center justify-center">
               <div className="relative">
-                <div className="text-7xl font-bold text-center">289</div>
+                <div className="text-7xl font-bold text-center">
+                  {dashboardStats.totalTenants}
+                </div>
                 <div className="text-sm text-center mt-2">Units</div>
                 <div className="absolute -top-10 -right-10">
                   <div className="relative w-48 h-48">
@@ -539,7 +494,9 @@ function Dashboard() {
                         stroke="#8b5cf6"
                         strokeWidth="10"
                         strokeDasharray="283"
-                        strokeDashoffset="42"
+                        strokeDashoffset={
+                          283 * (1 - dashboardStats.occupancyRate / 100)
+                        }
                         strokeLinecap="round"
                       />
                     </svg>
@@ -594,7 +551,7 @@ function Dashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {recentTransactions
+                    {formattedTransactions
                       .slice(0, 5)
                       .map((transaction, index) => (
                         <TableRow key={index}>
@@ -665,7 +622,9 @@ function Dashboard() {
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Compliance (12)</span>
+                  <span className="text-sm font-medium">
+                    Compliance ({dashboardStats.pendingRequests})
+                  </span>
                   <span className="text-sm font-medium">Maintenance</span>
                   <span className="text-sm font-medium">Task</span>
                 </div>
@@ -771,21 +730,28 @@ function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {upcomingEvents.map((event) => (
-                  <div key={event.id} className="border rounded-md p-3">
+                {upcomingEvents.slice(0, 3).map((event, index) => (
+                  <div key={index} className="border rounded-md p-3">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h4 className="text-sm font-medium">{event.title}</h4>
+                        <h4 className="text-sm font-medium">
+                          {event.tenant?.name || "Lease Expiring"}
+                        </h4>
                         <p className="text-xs text-muted-foreground mt-1">
-                          {event.property}
+                          {event.unit?.name || "Unknown Unit"}
                         </p>
                       </div>
                       <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full">
-                        {event.date}
+                        Expires {new Date(event.endDate).toLocaleDateString()}
                       </span>
                     </div>
                   </div>
                 ))}
+                {upcomingEvents.length === 0 && (
+                  <div className="text-center py-6">
+                    <p className="text-muted-foreground">No upcoming events</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -804,36 +770,38 @@ function Dashboard() {
             <CardContent className="p-0">
               <div className="p-4 border-t">
                 <div className="space-y-4">
-                  {recentTransactions.slice(0, 3).map((transaction, index) => (
-                    <div
-                      key={index}
-                      className="flex justify-between items-center"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback>
-                            {transaction.customer.name.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
+                  {formattedTransactions
+                    .slice(0, 3)
+                    .map((transaction, index) => (
+                      <div
+                        key={index}
+                        className="flex justify-between items-center"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-8 w-8">
+                            <AvatarFallback>
+                              {transaction.customer.name.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium">
+                              {transaction.customer.name}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {transaction.unit}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
                           <div className="font-medium">
-                            {transaction.customer.name}
+                            ${transaction.amount.toFixed(2)}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            {transaction.unit}
+                            {transaction.date}
                           </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-medium">
-                          ${transaction.amount.toFixed(2)}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {transaction.date}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               </div>
             </CardContent>

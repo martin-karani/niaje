@@ -6,7 +6,7 @@ import type { AppRouter } from "../../../server/src/trpc/routers/index";
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000,
+      staleTime: 5 * 60 * 1000, // 5 minutes
       refetchOnWindowFocus: false,
     },
   },
