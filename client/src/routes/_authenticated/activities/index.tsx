@@ -171,7 +171,7 @@ function ActivityLog() {
   return (
     <div className="h-screen overflow-y-auto">
       <div className="p-4 border-b flex justify-between items-center">
-        <h1 className="text-xl font-semibold">Activity</h1>
+        <h1 className="text-xl font-semibold">Activity Logs</h1>
         <div className="flex items-center gap-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
