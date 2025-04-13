@@ -22,19 +22,26 @@ function WorkOrdersBoard() {
 
   // Use the maintenance hook
   const {
-    getAll: getAllMaintenance,
+    getWorkOrders,
+    getById,
     update: updateMaintenance,
     getCategories,
   } = useMaintenance();
 
-  // Fetch maintenance requests with filters
+  // Fetch work orders with filters
   const {
-    data: maintenanceData,
+    data: workOrdersData,
     isLoading,
     error,
-  } = getAllMaintenance({
+  } = getWorkOrders({
     propertyId: activeProperty?.id,
+    search: searchTerm || undefined,
   });
+
+  // Fetch selected work order details
+  const { data: selectedOrderDetails, isLoading: isLoadingDetails } = getById(
+    selectedWorkOrder || ""
+  );
 
   // Get categories
   const { data: categories } = getCategories();
@@ -65,7 +72,7 @@ function WorkOrdersBoard() {
 
   // Group work orders by status
   const groupWorkOrdersByStatus = () => {
-    if (!maintenanceData?.requests) return {};
+    if (!workOrdersData?.workOrders) return {};
 
     const grouped: Record<string, any[]> = {
       pending: [],
@@ -74,10 +81,14 @@ function WorkOrdersBoard() {
       canceled: [],
     };
 
-    maintenanceData.requests.forEach((order) => {
-      if (order.status === "open") {
+    workOrdersData.workOrders.forEach((order) => {
+      // Map statuses from backend to our UI grouping
+      if (order.status === "open" || order.status === "pending") {
         grouped.pending.push(order);
-      } else if (order.status === "in_progress") {
+      } else if (
+        order.status === "in_progress" ||
+        order.status === "assigned"
+      ) {
         grouped.assigned.push(order);
       } else if (order.status === "completed") {
         grouped.completed.push(order);
@@ -256,7 +267,10 @@ function WorkOrdersBoard() {
       {selectedWorkOrder && (
         <WorkOrderDetailModal
           workOrderId={selectedWorkOrder}
+          workOrderDetails={selectedOrderDetails}
+          isLoading={isLoadingDetails}
           onClose={() => setSelectedWorkOrder(null)}
+          updateWorkOrder={updateMaintenance}
         />
       )}
 
@@ -283,7 +297,7 @@ const WorkOrderCard = ({
   onClick: () => void;
 }) => {
   const getPriorityBadge = (priority: string) => {
-    switch (priority.toLowerCase()) {
+    switch (priority?.toLowerCase()) {
       case "high":
         return (
           <div className="px-3 py-1 bg-orange-500 text-white rounded-md text-xs font-medium">
@@ -291,15 +305,23 @@ const WorkOrderCard = ({
           </div>
         );
       case "urgent":
+      case "emergency":
         return (
           <div className="px-3 py-1 bg-rose-500 text-white rounded-md text-xs font-medium">
             Urgent
           </div>
         );
       case "normal":
+      case "medium":
         return (
           <div className="px-3 py-1 bg-green-500 text-white rounded-md text-xs font-medium">
             Normal
+          </div>
+        );
+      case "low":
+        return (
+          <div className="px-3 py-1 bg-blue-500 text-white rounded-md text-xs font-medium">
+            Low
           </div>
         );
       default:
@@ -351,7 +373,7 @@ const WorkOrderCard = ({
       case "hvac":
         return `H-${id.substring(0, 3)}`;
       default:
-        return `E-${id.substring(0, 4)}`;
+        return `${category.charAt(0).toUpperCase()}-${id.substring(0, 4)}`;
     }
   };
 
@@ -367,7 +389,7 @@ const WorkOrderCard = ({
       case "hvac":
         return "HVAC";
       default:
-        return "Electricity";
+        return category.charAt(0).toUpperCase() + category.slice(1);
     }
   };
 
@@ -456,17 +478,20 @@ const WorkOrderCard = ({
 // Work Order Detail Modal Component
 const WorkOrderDetailModal = ({
   workOrderId,
+  workOrderDetails,
+  isLoading,
   onClose,
+  updateWorkOrder,
 }: {
   workOrderId: string;
+  workOrderDetails: any;
+  isLoading: boolean;
   onClose: () => void;
+  updateWorkOrder: any;
 }) => {
-  const { getById, update, resolve } = useMaintenance();
-  const { data: workOrder, isLoading } = getById(workOrderId);
-
   const handleStatusChange = async (newStatus: string) => {
     try {
-      await update.mutateAsync({
+      await updateWorkOrder.mutateAsync({
         id: workOrderId,
         status: newStatus,
       });
@@ -476,11 +501,14 @@ const WorkOrderDetailModal = ({
     }
   };
 
-  if (isLoading || !workOrder) {
+  if (isLoading || !workOrderDetails) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
         <div className="bg-card rounded-lg p-6 w-full max-w-md">
-          <LoadingSpinner size="lg" />
+          <div className="flex justify-center">
+            <LoadingSpinner size="lg" />
+          </div>
+          <p className="text-center mt-4">Loading work order details...</p>
         </div>
       </div>
     );
@@ -492,7 +520,7 @@ const WorkOrderDetailModal = ({
         <div className="p-6">
           <div className="flex justify-between items-start mb-4">
             <h2 className="text-xl font-semibold">
-              {workOrder.title || "Work Order Details"}
+              {workOrderDetails.title || "Work Order Details"}
             </h2>
             <Button variant="outline" size="sm" onClick={onClose}>
               Close
@@ -509,21 +537,25 @@ const WorkOrderDetailModal = ({
                   <label className="text-xs text-muted-foreground">
                     Description
                   </label>
-                  <p className="text-sm">{workOrder.description}</p>
+                  <p className="text-sm">{workOrderDetails.description}</p>
                 </div>
 
                 <div>
                   <label className="text-xs text-muted-foreground">
                     Priority
                   </label>
-                  <p className="text-sm capitalize">{workOrder.priority}</p>
+                  <p className="text-sm capitalize">
+                    {workOrderDetails.priority}
+                  </p>
                 </div>
 
                 <div>
                   <label className="text-xs text-muted-foreground">
                     Status
                   </label>
-                  <p className="text-sm capitalize">{workOrder.status}</p>
+                  <p className="text-sm capitalize">
+                    {workOrderDetails.status}
+                  </p>
                 </div>
 
                 <div>
@@ -531,7 +563,9 @@ const WorkOrderDetailModal = ({
                     Reported On
                   </label>
                   <p className="text-sm">
-                    {new Date(workOrder.reportedAt).toLocaleDateString()}
+                    {new Date(
+                      workOrderDetails.reportedAt || workOrderDetails.createdAt
+                    ).toLocaleDateString()}
                   </p>
                 </div>
               </div>
@@ -547,13 +581,15 @@ const WorkOrderDetailModal = ({
                     Property
                   </label>
                   <p className="text-sm">
-                    {workOrder.unit?.property?.name || "Unknown"}
+                    {workOrderDetails.unit?.property?.name || "Unknown"}
                   </p>
                 </div>
 
                 <div>
                   <label className="text-xs text-muted-foreground">Unit</label>
-                  <p className="text-sm">{workOrder.unit?.name || "Unknown"}</p>
+                  <p className="text-sm">
+                    {workOrderDetails.unit?.name || "Unknown"}
+                  </p>
                 </div>
 
                 <div>
@@ -562,24 +598,26 @@ const WorkOrderDetailModal = ({
                   </label>
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs">
-                      {workOrder.tenant?.name?.charAt(0) || "T"}
+                      {workOrderDetails.tenant?.name?.charAt(0) || "T"}
                     </div>
                     <span className="text-sm">
-                      {workOrder.tenant?.name || "Unknown"}
+                      {workOrderDetails.tenant?.name || "Unknown"}
                     </span>
                   </div>
                 </div>
 
-                {workOrder.assignee && (
+                {workOrderDetails.assignee && (
                   <div>
                     <label className="text-xs text-muted-foreground">
                       Assigned To
                     </label>
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs">
-                        {workOrder.assignee.name.charAt(0)}
+                        {workOrderDetails.assignee.name.charAt(0)}
                       </div>
-                      <span className="text-sm">{workOrder.assignee.name}</span>
+                      <span className="text-sm">
+                        {workOrderDetails.assignee.name}
+                      </span>
                     </div>
                   </div>
                 )}
@@ -592,40 +630,53 @@ const WorkOrderDetailModal = ({
               Actions
             </h3>
             <div className="flex flex-wrap gap-2">
-              {workOrder.status === "open" && (
+              {workOrderDetails.status === "open" && (
                 <>
-                  <Button onClick={() => handleStatusChange("in_progress")}>
-                    Assign Order
+                  <Button
+                    onClick={() => handleStatusChange("in_progress")}
+                    disabled={updateWorkOrder.isPending}
+                  >
+                    {updateWorkOrder.isPending ? "Updating..." : "Assign Order"}
                   </Button>
                   <Button
                     variant="outline"
                     onClick={() => handleStatusChange("canceled")}
+                    disabled={updateWorkOrder.isPending}
                   >
-                    Cancel Order
+                    {updateWorkOrder.isPending ? "Updating..." : "Cancel Order"}
                   </Button>
                 </>
               )}
 
-              {workOrder.status === "in_progress" && (
+              {workOrderDetails.status === "in_progress" && (
                 <>
-                  <Button onClick={() => handleStatusChange("completed")}>
-                    Mark as Completed
+                  <Button
+                    onClick={() => handleStatusChange("completed")}
+                    disabled={updateWorkOrder.isPending}
+                  >
+                    {updateWorkOrder.isPending
+                      ? "Updating..."
+                      : "Mark as Completed"}
                   </Button>
                   <Button
                     variant="outline"
                     onClick={() => handleStatusChange("open")}
+                    disabled={updateWorkOrder.isPending}
                   >
-                    Move Back to Pending
+                    {updateWorkOrder.isPending
+                      ? "Updating..."
+                      : "Move Back to Pending"}
                   </Button>
                 </>
               )}
 
-              {workOrder.status === "completed" && (
+              {workOrderDetails.status === "completed" && (
                 <Button
                   variant="outline"
                   onClick={() => handleStatusChange("in_progress")}
+                  disabled={updateWorkOrder.isPending}
                 >
-                  Reopen Order
+                  {updateWorkOrder.isPending ? "Updating..." : "Reopen Order"}
                 </Button>
               )}
             </div>
@@ -764,7 +815,9 @@ const NewWorkOrderModal = ({
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit">Create Work Order</Button>
+              <Button type="submit" disabled={create.isPending}>
+                {create.isPending ? "Creating..." : "Create Work Order"}
+              </Button>
             </div>
           </form>
         </div>
@@ -772,4 +825,5 @@ const NewWorkOrderModal = ({
     </div>
   );
 };
+
 export default WorkOrdersBoard;
