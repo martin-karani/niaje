@@ -11,6 +11,7 @@ import { createId } from "../utils";
 import { units } from "./properties";
 import { tenants, users } from "./users";
 
+// First, declare both tables without circular references
 export const maintenanceRequests = pgTable("maintenance_requests", {
   id: text("id").primaryKey().$defaultFn(createId),
   unitId: text("unit_id")
@@ -21,11 +22,50 @@ export const maintenanceRequests = pgTable("maintenance_requests", {
   description: text("description").notNull(),
   priority: text("priority").default("medium").notNull(), // low, medium, high, emergency
   status: text("status").default("open").notNull(), // open, in_progress, completed
+  workOrderId: text("work_order_id"), // We'll add the reference in relations
   reportedAt: timestamp("reported_at").defaultNow().notNull(),
-  assignedTo: text("assigned_to").references(() => users.id), // Caretaker
+
+  // Internal assignee (user in the system)
+  assignedTo: text("assigned_to").references(() => users.id), // Optional reference to internal user
+
+  // External assignee fields (used when assignedTo is null)
+  assignedToName: text("assigned_to_name"), // Name of external assignee
+  assignedToPhone: text("assigned_to_phone"), // Phone of external assignee
+  assignedToEmail: text("assigned_to_email"), // Optional email of external assignee
+
   resolvedAt: timestamp("resolved_at"),
   cost: numeric("cost"),
   images: json("images"), // Array of image URLs
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const workOrders = pgTable("work_orders", {
+  id: text("id").primaryKey().$defaultFn(createId),
+  requestId: text("request_id"), // We'll add the reference in relations
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  priority: text("priority").default("normal").notNull(), // low, normal, high, urgent
+  status: text("status").default("pending").notNull(), // pending, assigned, completed, canceled
+  unitId: text("unit_id")
+    .notNull()
+    .references(() => units.id),
+  tenantId: text("tenant_id").references(() => tenants.id),
+
+  // Internal assignee (user in the system)
+  assignedTo: text("assigned_to").references(() => users.id), // Optional reference to internal user
+
+  // External assignee fields (used when assignedTo is null)
+  assignedToName: text("assigned_to_name"), // Name of external assignee
+  assignedToPhone: text("assigned_to_phone"), // Phone of external assignee (required for external)
+  assignedToEmail: text("assigned_to_email"), // Optional email of external assignee
+
+  reportedAt: timestamp("reported_at").defaultNow().notNull(),
+  resolvedAt: timestamp("resolved_at"),
+  category: text("category"),
+  cost: numeric("cost"),
+  images: json("images"),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -71,7 +111,7 @@ export const maintenanceCommentsRelations = relations(
   })
 );
 
-// Add relation to maintenanceRequests if needed
+// Now add the relations with the circular references
 export const maintenanceRequestsRelations = relations(
   maintenanceRequests,
   ({ one, many }) => ({
@@ -89,8 +129,31 @@ export const maintenanceRequestsRelations = relations(
       relationName: "maintenanceAssignee",
     }),
     comments: many(maintenanceComments),
+    workOrder: one(workOrders, {
+      fields: [maintenanceRequests.workOrderId],
+      references: [workOrders.id],
+    }),
   })
 );
+
+export const workOrdersRelations = relations(workOrders, ({ one }) => ({
+  maintenanceRequest: one(maintenanceRequests, {
+    fields: [workOrders.requestId],
+    references: [maintenanceRequests.id],
+  }),
+  unit: one(units, {
+    fields: [workOrders.unitId],
+    references: [units.id],
+  }),
+  tenant: one(tenants, {
+    fields: [workOrders.tenantId],
+    references: [tenants.id],
+  }),
+  assignee: one(users, {
+    fields: [workOrders.assignedTo],
+    references: [users.id],
+  }),
+}));
 
 export const maintenanceCategoriesRelations = relations(
   maintenanceCategories,
@@ -98,6 +161,7 @@ export const maintenanceCategoriesRelations = relations(
     requests: many(maintenanceRequests),
   })
 );
+
 // Types
 export type MaintenanceRequest = typeof maintenanceRequests.$inferSelect;
 export type NewMaintenanceRequest = typeof maintenanceRequests.$inferInsert;
@@ -105,3 +169,5 @@ export type MaintenanceComment = typeof maintenanceComments.$inferSelect;
 export type NewMaintenanceComment = typeof maintenanceComments.$inferInsert;
 export type MaintenanceCategory = typeof maintenanceCategories.$inferSelect;
 export type NewMaintenanceCategory = typeof maintenanceCategories.$inferInsert;
+export type WorkOrder = typeof workOrders.$inferSelect;
+export type NewWorkOrder = typeof workOrders.$inferInsert;
