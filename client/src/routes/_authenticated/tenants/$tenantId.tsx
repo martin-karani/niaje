@@ -1,7 +1,8 @@
 import { TenantNotFound } from "@/components/not-found/tenant-not-found";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { TenantProfile } from "@/features/tenants/tenant-profile";
-import { useTenants } from "@/hooks/use-trpc";
+import { usePayments } from "@/hooks/use-payments";
+import { useTenants } from "@/hooks/use-tenants";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/tenants/$tenantId")({
@@ -64,26 +65,85 @@ function TenantError({ error }: { error: { message?: string } }) {
 }
 
 // Main component
+// Main component
 function TenantDetail() {
   const { tenantId } = Route.useLoaderData();
 
+  console.log("Tenant ID:", tenantId);
   // Fetch tenant data using the tRPC hook
   const { getById } = useTenants();
-  const { data, isLoading, error } = getById(tenantId);
+  const {
+    data,
+    isLoading: isLoadingTenant,
+    error: tenantError,
+  } = getById(tenantId);
 
+  // Fetch recent transactions for this tenant
+  const { transactions } = usePayments();
+  const {
+    data: transactionsData,
+    isLoading: isLoadingTransactions,
+    error: transactionsError,
+  } = transactions.getAll({
+    tenantId,
+    limit: 5, // Only get the 5 most recent transactions
+  });
+
+  // Combined loading state
+  const isLoading = isLoadingTenant || isLoadingTransactions;
+
+  // Handle loading state
   if (isLoading) {
     return <LoadingTenant />;
   }
 
-  if (error || !data) {
-    return <TenantError error={error || { message: "Tenant not found" }} />;
+  // Handle error state
+  if (tenantError || !data) {
+    return (
+      <TenantError
+        error={tenantError || { message: "Failed to load tenant information" }}
+      />
+    );
   }
 
-  if (!data.tenant) {
+  // The tenant data is directly in 'data', not in 'data.tenant'
+  const tenant = data;
+
+  // Handle not found state - check if the tenant object is empty or doesn't have an id
+  if (!tenant || !tenant.id) {
     return <TenantNotFound />;
   }
 
-  return <TenantProfile tenant={data.tenant} />;
+  // If we have transaction data, prepare it for the component
+  const recentTransactions =
+    transactionsData?.transactions?.map((tx) => ({
+      id: tx.id,
+      date: tx.paymentDate
+        ? new Date(tx.paymentDate).toLocaleDateString()
+        : "N/A",
+      status:
+        tx.status === "completed"
+          ? "Paid"
+          : tx.status === "pending"
+          ? "Pending"
+          : tx.status === "failed"
+          ? "Failed"
+          : "Overdue",
+      unit: tx.lease?.unit?.name || "Unknown",
+      memo: tx.notes || tx.type || "Transaction",
+      amount: Number(tx.amount),
+    })) || [];
+
+  // If there was an error loading transactions, we'll still show the tenant
+  // profile but with empty transactions
+  if (transactionsError) {
+    console.error("Error loading transactions:", transactionsError);
+  }
+
+  // Pass the tenant directly (not data.tenant) and transactions data to the profile component
+  return (
+    <TenantProfile tenant={tenant} recentTransactions={recentTransactions} />
+  );
 }
 
 export default TenantDetail;

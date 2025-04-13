@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import LoadingSpinner from "@/components/ui/loading-spinner";
-import { useMaintenance } from "@/hooks/use-trpc";
+import { useMaintenance } from "@/hooks/use-maintenance";
 import { useAuth } from "@/providers/auth-provider";
 import { createFileRoute } from "@tanstack/react-router";
 import {

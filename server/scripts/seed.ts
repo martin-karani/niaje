@@ -2391,7 +2391,237 @@ async function seedDatabase() {
     });
 
     console.log("User permissions created successfully");
+    // Create notifications
+    console.log("Creating notifications...");
 
+    // Notifications for landlord1
+    if (lease1) {
+      // Rent payment notification
+      await createNotification({
+        userId: landlord1.id,
+        title: "Rent Payment Received",
+        message: `Rent payment of $${lease1.rentAmount} received from ${tenant1.name} for Unit 101`,
+        type: "payment_received",
+        relatedId: lease1.id,
+        relatedType: "lease",
+        isRead: true,
+      });
+
+      // Upcoming lease expiration
+      await createNotification({
+        userId: landlord1.id,
+        title: "Lease Expiring Soon",
+        message: `The lease with ${
+          tenant1.name
+        } for Unit 101 will expire in 3 months on ${
+          lease1.endDate.toISOString().split("T")[0]
+        }`,
+        type: "lease",
+        relatedId: lease1.id,
+        relatedType: "lease",
+        isRead: false,
+      });
+    }
+
+    // Maintenance notifications for caretaker1
+    const maintenanceReq1 = await db.query.maintenanceRequests.findFirst({
+      where: (req, { and, eq }) =>
+        and(
+          eq(req.title, "Leaking bathroom faucet"),
+          eq(req.status, "in_progress")
+        ),
+    });
+
+    if (maintenanceReq1) {
+      await createNotification({
+        userId: caretaker1.id,
+        title: "Maintenance Request Assigned",
+        message:
+          "You have been assigned to fix a leaking bathroom faucet in Unit 101",
+        type: "maintenance",
+        relatedId: maintenanceReq1.id,
+        relatedType: "maintenance",
+        isRead: true,
+      });
+
+      // Also notify landlord
+      await createNotification({
+        userId: landlord1.id,
+        title: "New Maintenance Request",
+        message:
+          "A maintenance request for a leaking bathroom faucet has been submitted for Unit 101",
+        type: "maintenance",
+        relatedId: maintenanceReq1.id,
+        relatedType: "maintenance",
+        isRead: false,
+      });
+    }
+
+    // Notifications for tenant2
+    if (lease2) {
+      await createNotification({
+        userId: tenant2.id,
+        title: "Rent Payment Confirmation",
+        message: `Your rent payment of $${lease2.rentAmount} for Unit 103 has been processed successfully`,
+        type: "payment_received",
+        relatedId: lease2.id,
+        relatedType: "lease",
+        isRead: true,
+      });
+
+      // Rent due reminder
+      await createNotification({
+        userId: tenant2.id,
+        title: "Rent Payment Due Soon",
+        message: `Your monthly rent of $${lease2.rentAmount} for Unit 103 is due in 5 days`,
+        type: "payment_due",
+        relatedId: lease2.id,
+        relatedType: "lease",
+        isRead: false,
+      });
+    }
+
+    // Utility bill notification for tenant5
+    const utilityBill = await db.query.utilityBills.findFirst({
+      where: (bill, { and, eq }) =>
+        and(eq(bill.leaseId, lease5?.id || ""), eq(bill.isPaid, false)),
+    });
+
+    if (utilityBill && lease5) {
+      await createNotification({
+        userId: tenant5.id,
+        title: "Utility Bill Due",
+        message: `Your ${utilityBill.utilityType} bill of $${
+          utilityBill.tenantAmount
+        } is due on ${
+          new Date(utilityBill.dueDate).toISOString().split("T")[0]
+        }`,
+        type: "utility_bill",
+        relatedId: utilityBill.id,
+        relatedType: "utility_bill",
+        isRead: false,
+      });
+    }
+
+    // System notifications for admin
+    await createNotification({
+      userId: admin1.id,
+      title: "New User Registration",
+      message:
+        "A new landlord has registered on the platform and requires approval",
+      type: "system",
+      isRead: false,
+    });
+
+    await createNotification({
+      userId: admin1.id,
+      title: "System Maintenance",
+      message: "Scheduled system maintenance will occur tonight at 2:00 AM UTC",
+      type: "system",
+      isRead: true,
+    });
+
+    // Multiple maintenance notifications for caretaker2
+    if (property2) {
+      await createNotification({
+        userId: caretaker2.id,
+        title: "Maintenance Request Updated",
+        message: "The garage door opener repair has been marked as completed",
+        type: "maintenance",
+        isRead: true,
+      });
+
+      await createNotification({
+        userId: caretaker2.id,
+        title: "New Comment on Maintenance Request",
+        message: "Tenant has added a comment to the garage door repair request",
+        type: "maintenance",
+        isRead: false,
+      });
+
+      await createNotification({
+        userId: caretaker2.id,
+        title: "Scheduled Maintenance Due",
+        message:
+          "Quarterly HVAC maintenance check is due for all units in Riverside Homes",
+        type: "maintenance",
+        relatedId: property2.id,
+        relatedType: "property",
+        isRead: false,
+      });
+    }
+    // Function to create a notification
+    async function createNotification(notificationData: {
+      userId: string;
+      title: string;
+      message: string;
+      type: string;
+      relatedId?: string;
+      relatedType?: string;
+      isRead?: boolean;
+    }) {
+      try {
+        if (!schema.notifications) {
+          console.log(
+            "Notifications table not found in schema, skipping creation"
+          );
+          return null;
+        }
+
+        const [notification] = await db
+          .insert(schema.notifications)
+          .values({
+            id: createId(),
+            userId: notificationData.userId,
+            title: notificationData.title,
+            message: notificationData.message,
+            type: notificationData.type,
+            relatedId: notificationData.relatedId || null,
+            relatedType: notificationData.relatedType || null,
+            isRead: notificationData.isRead || false,
+            createdAt: new Date(),
+          })
+          .returning();
+
+        console.log(
+          `Created notification: ${notification.title} for user ${notificationData.userId}`
+        );
+        return notification;
+      } catch (error) {
+        console.error(
+          `Error creating notification "${notificationData.title}":`,
+          error
+        );
+        return null;
+      }
+    }
+    // Lease renewal notification for agent
+    if (lease7) {
+      await createNotification({
+        userId: agent2.id,
+        title: "Lease Renewal Opportunity",
+        message: `The lease for ${tenant7.name} in Office 102 expires in 3 months. Contact tenant about renewal.`,
+        type: "lease",
+        relatedId: lease7.id,
+        relatedType: "lease",
+        isRead: false,
+      });
+
+      // Also notify landlord
+      await createNotification({
+        userId: landlord2.id,
+        title: "Upcoming Lease Expiration",
+        message: `The commercial lease for Office 102 will expire in 3 months on ${
+          lease7.endDate.toISOString().split("T")[0]
+        }`,
+        type: "lease",
+        relatedId: lease7.id,
+        relatedType: "lease",
+        isRead: false,
+      });
+    }
+
+    console.log("Notifications created successfully");
     console.log("Enhanced seeding completed successfully!");
   } catch (error) {
     console.error("Seeding failed:", error);

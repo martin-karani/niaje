@@ -41,9 +41,20 @@ interface TenantProfileProps {
       dateOfBirth?: string;
     };
   };
+  recentTransactions?: {
+    id: string;
+    date: string;
+    status: string;
+    unit: string;
+    memo: string;
+    amount: number;
+  }[];
 }
 
-export function TenantProfile({ tenant }: TenantProfileProps) {
+export function TenantProfile({
+  tenant,
+  recentTransactions = [],
+}: TenantProfileProps) {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
 
@@ -78,49 +89,8 @@ export function TenantProfile({ tenant }: TenantProfileProps) {
   const canManageFinances =
     user?.role === "landlord" || user?.role === "caretaker";
 
-  // Mock transaction data
-  const recentTransactions = [
-    {
-      id: "3066",
-      date: "N/A",
-      status: "Overdue",
-      unit: "3517 W. Gray St",
-      memo: "Monthly rent",
-      amount: 450.0,
-    },
-    {
-      id: "3066",
-      date: "05/07/2024",
-      status: "Partially Paid",
-      unit: "4517 Washington",
-      memo: "Monthly rent",
-      amount: 350.0,
-    },
-    {
-      id: "3066",
-      date: "28/06/2024",
-      status: "Processing",
-      unit: "4140 Parker Rd",
-      memo: "Monthly rent",
-      amount: 400.0,
-    },
-    {
-      id: "3066",
-      date: "20/06/2024",
-      status: "Paid",
-      unit: "8502 Preston Rd",
-      memo: "Monthly rent",
-      amount: 340.0,
-    },
-    {
-      id: "3066",
-      date: "N/A",
-      status: "Overdue",
-      unit: "2464 Royal Ln",
-      memo: "Monthly rent",
-      amount: 500.0,
-    },
-  ];
+  // Use provided transactions or empty array if none provided
+  const transactions = recentTransactions.length > 0 ? recentTransactions : [];
 
   // Helper to get CSS classes for transaction status
   const getStatusBadgeVariant = (status: string) => {
@@ -130,41 +100,14 @@ export function TenantProfile({ tenant }: TenantProfileProps) {
       case "Partially Paid":
         return "bg-blue-100 text-blue-800";
       case "Processing":
+      case "Pending":
         return "bg-amber-100 text-amber-800";
+      case "Failed":
       case "Overdue":
         return "bg-red-100 text-red-700";
       default:
         return "bg-gray-100 text-gray-800";
     }
-  };
-
-  // Stats data for financial info
-  const statsData = {
-    rentReceived: {
-      amount: "$1,450.00",
-      change: "15.8%",
-      isUp: false,
-      details: "Due this month",
-      value: "$6,000",
-    },
-    upcomingPayments: {
-      amount: "$2,450.00",
-      change: "15.8%",
-      isUp: true,
-      details: "2 this month",
-    },
-    rentOverdue: {
-      amount: "$1,450.00",
-      change: "15.8%",
-      isUp: false,
-      details: "5 Overdue",
-    },
-    totalExpense: {
-      amount: "$2,450.00",
-      change: "15.8%",
-      isUp: true,
-      details: "31 works",
-    },
   };
 
   return (
@@ -340,37 +283,43 @@ export function TenantProfile({ tenant }: TenantProfileProps) {
                         </div>
                       </div>
                       <div className="divide-y">
-                        {recentTransactions.map((transaction, index) => (
-                          <div
-                            key={index}
-                            className="grid grid-cols-6 py-3 px-4 hover:bg-muted/50 transition-colors text-sm"
-                          >
-                            <div>{transaction.date}</div>
-                            <div>
-                              <Badge
-                                className={`font-normal ${getStatusBadgeVariant(
-                                  transaction.status
-                                )}`}
-                              >
-                                {transaction.status}
-                              </Badge>
+                        {transactions.length > 0 ? (
+                          transactions.map((transaction, index) => (
+                            <div
+                              key={`${transaction.id}-${index}`}
+                              className="grid grid-cols-6 py-3 px-4 hover:bg-muted/50 transition-colors text-sm"
+                            >
+                              <div>{transaction.date}</div>
+                              <div>
+                                <Badge
+                                  className={`font-normal ${getStatusBadgeVariant(
+                                    transaction.status
+                                  )}`}
+                                >
+                                  {transaction.status}
+                                </Badge>
+                              </div>
+                              <div>{transaction.unit}</div>
+                              <div>{transaction.memo}</div>
+                              <div className="text-right font-medium">
+                                ${transaction.amount.toFixed(2)}
+                              </div>
+                              <div className="text-right">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
-                            <div>{transaction.unit}</div>
-                            <div>{transaction.memo}</div>
-                            <div className="text-right font-medium">
-                              ${transaction.amount.toFixed(2)}
-                            </div>
-                            <div className="text-right">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0"
-                              >
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </div>
+                          ))
+                        ) : (
+                          <div className="py-8 text-center text-muted-foreground">
+                            No transaction history available
                           </div>
-                        ))}
+                        )}
                       </div>
                     </div>
                   </div>

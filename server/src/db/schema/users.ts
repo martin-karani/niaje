@@ -45,6 +45,8 @@ export const tenants = pgTable("tenants", {
   phone: text("phone"),
   emergencyContactName: text("emergency_contact_name"),
   emergencyContactPhone: text("emergency_contact_phone"),
+  emergencyContactEmail: text("emergency_contact_email"),
+  emergencyContactRelation: text("emergency_contact_relation"),
   dateOfBirth: timestamp("date_of_birth"),
   status: text("status").default("active").notNull(), // active, past, blacklisted
   documents: json("documents"), // IDs, references or URLs to tenant documents

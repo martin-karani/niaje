@@ -10,7 +10,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useLeases, useMaintenance, useTenants } from "@/hooks/use-trpc";
+import { useLeases } from "@/hooks/use-leases";
+import { useMaintenance } from "@/hooks/use-maintenance";
+import { usePayments } from "@/hooks/use-payments";
+import { useTenants } from "@/hooks/use-tenants";
+import { useUnits } from "@/hooks/use-units";
+
 import { useAuth } from "@/providers/auth-provider";
 import { createFileRoute } from "@tanstack/react-router";
 import {
@@ -61,14 +66,21 @@ const MAINTENANCE_COLORS = ["#f59e0b", "#3b82f6", "#10b981"];
 function Dashboard() {
   const { user, activeProperty } = useAuth();
 
+  // Get unit stats to replace property data
+  const { getStats: getUnitStats } = useUnits();
+  const { data: unitStats, status: unitStatsStatus } = getUnitStats(
+    activeProperty?.id
+  );
+
   const { getStats: getLeaseStats } = useLeases();
   const { data: leaseStats, status: leaseStatsStatus } = getLeaseStats(
     activeProperty?.id || ""
   );
 
-  const { getAll: getRecentTransactions } = useLeases();
+  // Use payments for transactions instead of leases
+  const { transactions } = usePayments();
   const { data: recentTransactionsData, status: transactionsStatus } =
-    getRecentTransactions({
+    transactions.getAll({
       limit: 10,
       page: 1,
       propertyId: activeProperty?.id,
@@ -78,24 +90,23 @@ function Dashboard() {
   const { data: maintenanceStats, status: maintenanceStatsStatus } =
     getMaintenanceStats(activeProperty?.id || "");
 
-  console.log(maintenanceStats);
-
   const { getExpiringLeases } = useLeases();
   const { data: upcomingEvents, status: expiringLeasesStatus } =
     getExpiringLeases(7);
 
   const { getStats: getTenantStats } = useTenants();
-  const { data: tenantStats, status: tenantStatsStatus } = getTenantStats(
+  const { status: tenantStatsStatus } = getTenantStats(
     activeProperty?.id || ""
   );
 
   // Show loading state if any data is still loading
   const isLoading =
-    leaseStatsStatus == "pending" ||
-    transactionsStatus == "pending" ||
-    maintenanceStatsStatus == "pending" ||
-    tenantStatsStatus == "pending" ||
-    expiringLeasesStatus == "pending";
+    leaseStatsStatus === "pending" ||
+    transactionsStatus === "pending" ||
+    maintenanceStatsStatus === "pending" ||
+    tenantStatsStatus === "pending" ||
+    expiringLeasesStatus === "pending" ||
+    unitStatsStatus === "pending";
 
   if (isLoading) {
     return (
@@ -109,22 +120,22 @@ function Dashboard() {
   const statsData = {
     rentReceived: {
       amount: `$${Math.floor(
-        leaseStats.totalMonthlyRent || 0
+        leaseStats?.totalMonthlyRent || 0
       ).toLocaleString()}`,
       change: "15.8%", // You might want to calculate this based on historical data
       isUp: false,
-      details: `${leaseStats.activeLeases || 0} active leases`,
+      details: `${leaseStats?.activeLeases || 0} active leases`,
       value: `$${Math.floor(
-        (leaseStats.totalMonthlyRent || 0) * 1.2
+        (leaseStats?.totalMonthlyRent || 0) * 1.2
       ).toLocaleString()}`,
     },
     upcomingPayments: {
       amount: `$${Math.floor(
-        (leaseStats.totalMonthlyRent || 0) * 0.4
+        (leaseStats?.totalMonthlyRent || 0) * 0.4
       ).toLocaleString()}`,
       change: "15.8%",
       isUp: true,
-      details: `${leaseStats.expiringNext30Days || 0} expiring soon`,
+      details: `${leaseStats?.expiringNext30Days || 0} expiring soon`,
     },
     rentOverdue: {
       amount: "$1,450.00", // This could be calculated based on actual overdue payments
@@ -134,13 +145,13 @@ function Dashboard() {
     },
     totalExpense: {
       amount: `$${Math.floor(
-        maintenanceStats.totalMaintenanceCost || 0
+        maintenanceStats?.totalMaintenanceCost || 0
       ).toLocaleString()}`,
       change: "15.8%",
       isUp: true,
       details: `${
-        (maintenanceStats.openRequests || 0) +
-        (maintenanceStats.inProgressRequests || 0)
+        (maintenanceStats?.openRequests || 0) +
+        (maintenanceStats?.inProgressRequests || 0)
       } pending`,
     },
   };
@@ -148,62 +159,61 @@ function Dashboard() {
   // Create maintenance data from real stats
   const maintenanceData = [
     { name: "Pending", value: maintenanceStats?.openRequests || 0 },
-    { name: "In Progress", value: maintenanceStats.inProgressRequests || 0 },
-    { name: "Completed", value: maintenanceStats.completedRequests || 0 },
+    { name: "In Progress", value: maintenanceStats?.inProgressRequests || 0 },
+    { name: "Completed", value: maintenanceStats?.completedRequests || 0 },
   ];
 
-  // Create occupancy data based on lease stats
+  // Create occupancy data based on unit stats
   const occupancyData = [
-    { name: "Occupied", value: leaseStats.activeLeases || 0 },
-    {
-      name: "Vacant",
-      value: (propertiesData.length || 0) - (leaseStats.activeLeases || 0),
-    },
+    { name: "Occupied", value: unitStats?.occupiedUnits || 0 },
+    { name: "Vacant", value: unitStats?.vacantUnits || 0 },
   ];
 
   // Generate dashboard stats
   const dashboardStats = {
-    totalProperties: propertiesData.length || 0,
-    totalTenants: tenantStats.totalTenants || 0,
-    occupancyRate:
-      occupancyData[0].value &&
-      occupancyData[0].value + occupancyData[1].value > 0
-        ? (occupancyData[0].value /
-            (occupancyData[0].value + occupancyData[1].value)) *
-          100
-        : 0,
-    pendingRequests: maintenanceStats.openRequests || 0,
-    overdueMaintenance: maintenanceStats.inProgressRequests || 0,
+    totalProperties: activeProperty ? 1 : 0,
+    totalUnits: unitStats?.totalUnits || 0,
+    occupancyRate: unitStats?.occupancyRate || 0,
+    pendingRequests: maintenanceStats?.openRequests || 0,
+    overdueMaintenance: maintenanceStats?.inProgressRequests || 0,
     totalRevenue: `$${Math.floor(
-      leaseStats.totalMonthlyRent || 0
+      leaseStats?.totalMonthlyRent || 0
     ).toLocaleString()}`,
     expensesThisMonth: `$${Math.floor(
-      (maintenanceStats.totalMaintenanceCost || 0) / 12
+      (maintenanceStats?.totalMaintenanceCost || 0) / 12
     ).toLocaleString()}`,
   };
 
-  // Format transactions for display
-  const formattedTransactions = recentTransactionsData.map((lease) => ({
-    id: lease.id.substring(0, 4),
-    customer: {
-      name: lease.tenant?.name || "Unknown Tenant",
-      image: null,
-    },
-    date: lease.startDate
-      ? new Date(lease.startDate).toLocaleDateString()
-      : "N/A",
-    status:
-      lease.status === "active"
-        ? "Paid"
-        : lease.status === "expiring-soon"
-        ? "Partially Paid"
-        : lease.status === "upcoming"
-        ? "Processing"
-        : "Overdue",
-    unit: lease.unit?.name || "Unknown Unit",
-    amount: lease.rentAmount || 0,
-    partiallyPaid: "$0.00",
-  }));
+  // Format transactions for display - using transactions instead of leases
+  const formattedTransactions = (
+    recentTransactionsData?.transactions || []
+  ).map((transaction) => {
+    const lease = transaction.lease || {};
+    const tenant = lease.tenant || { name: "Unknown Tenant" };
+    const unit = lease.unit || { name: "Unknown Unit" };
+
+    return {
+      id: transaction.id?.substring(0, 4) || "N/A",
+      customer: {
+        name: tenant.name,
+        image: null,
+      },
+      date: transaction.paymentDate
+        ? new Date(transaction.paymentDate).toLocaleDateString()
+        : "N/A",
+      status:
+        transaction.status === "completed"
+          ? "Paid"
+          : transaction.status === "pending"
+          ? "Processing"
+          : transaction.status === "failed"
+          ? "Overdue"
+          : "Partially Paid",
+      unit: unit.name,
+      amount: transaction.amount || 0,
+      partiallyPaid: "$0.00",
+    };
+  });
 
   // Get role-specific greeting
   const getRoleBasedGreeting = () => {
@@ -406,9 +416,7 @@ function Dashboard() {
             <div>
               <CardTitle>Property Valuation</CardTitle>
               <span className="text-sm text-muted-foreground">
-                {/* {propertiesData && propertiesData.length > 0
-                  ? propertiesData[0].name
-                  : "N/A"} */}
+                {activeProperty?.name || "N/A"}
               </span>
             </div>
             <ChevronDown className="h-4 w-4" />
@@ -466,7 +474,7 @@ function Dashboard() {
             <div className="h-[225px] w-full flex items-center justify-center">
               <div className="relative">
                 <div className="text-7xl font-bold text-center">
-                  {dashboardStats.totalTenants}
+                  {dashboardStats.totalUnits}
                 </div>
                 <div className="text-sm text-center mt-2">Units</div>
                 <div className="absolute -top-10 -right-10">
@@ -574,7 +582,7 @@ function Dashboard() {
                           <TableCell>{transaction.unit}</TableCell>
                           <TableCell>{transaction.partiallyPaid}</TableCell>
                           <TableCell className="text-right">
-                            ${transaction.amount.toFixed(2)}
+                            ${Number(transaction.amount).toFixed(2)}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
@@ -725,7 +733,7 @@ function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {upcomingEvents.slice(0, 3).map((event, index) => (
+                {upcomingEvents?.slice(0, 3).map((event, index) => (
                   <div key={index} className="border rounded-md p-3">
                     <div className="flex justify-between items-start">
                       <div>
@@ -742,7 +750,7 @@ function Dashboard() {
                     </div>
                   </div>
                 ))}
-                {upcomingEvents.length === 0 && (
+                {(!upcomingEvents || upcomingEvents.length === 0) && (
                   <div className="text-center py-6">
                     <p className="text-muted-foreground">No upcoming events</p>
                   </div>
@@ -789,7 +797,7 @@ function Dashboard() {
                         </div>
                         <div className="text-right">
                           <div className="font-medium">
-                            ${transaction.amount.toFixed(2)}
+                            ${Number(transaction.amount).toFixed(2)}
                           </div>
                           <div className="text-xs text-muted-foreground">
                             {transaction.date}

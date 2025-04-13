@@ -2,10 +2,17 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import LoadingSpinner from "@/components/ui/loading-spinner";
-import { useProperties } from "@/hooks/use-trpc";
+import { useUnits } from "@/hooks/use-units";
+import { useAuth } from "@/providers/auth-provider";
 import { createFileRoute } from "@tanstack/react-router";
-import { Building, Download, Filter, Plus, Search } from "lucide-react";
+import {
+  Building,
+  Download,
+  Filter,
+  Loader2,
+  Plus,
+  Search,
+} from "lucide-react";
 import { useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/units/")({
@@ -29,31 +36,22 @@ export const Route = createFileRoute("/_authenticated/units/")({
 });
 
 function Units() {
+  const { activeProperty } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
-  // Get properties and their units using the tRPC hooks
-  const { getAll: getProperties, isLoading: propertiesLoading } =
-    useProperties();
-  const { data: properties = [] } = getProperties();
+  // Use the units hook
+  const units = useUnits();
 
-  // We'll need to choose which property to display
-  const [activePropertyId, setActivePropertyId] = useState<string | null>(
-    properties && properties.length > 0 ? properties[0]?.id : null
+  // Fetch units for the active property
+  const { data: unitsData, isLoading: unitsLoading } = units.getAll(
+    activeProperty ? { propertyId: activeProperty.id } : undefined
   );
 
-  // We're assuming each property has units data embedded
-  // If not, there would be another API call to get units by propertyId
-  const activeProperty =
-    properties.find((prop) => prop.id === activePropertyId) || properties[0];
-
-  if (propertiesLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
+  // Fetch stats for the active property
+  const { data: statsData, isLoading: statsLoading } = units.getStats(
+    activeProperty?.id
+  );
 
   if (!activeProperty) {
     return (
@@ -69,36 +67,53 @@ function Units() {
     );
   }
 
+  if (unitsLoading || statsLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const allUnits = unitsData?.units || [];
+
   // Filter units based on search term and filter
-  const filteredUnits = (activeProperty.units || []).filter((unit) => {
+  const filteredUnits = allUnits.filter((unit) => {
     // Search term filter
     const matchesSearch =
       !searchTerm ||
-      unit.unitNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      unit.location?.toLowerCase().includes(searchTerm.toLowerCase());
+      unit.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      unit.type?.toLowerCase().includes(searchTerm.toLowerCase());
 
     // Status filter
     const matchesFilter =
       !statusFilter ||
-      (statusFilter === "leased" && unit.status === "leased") ||
+      (statusFilter === "leased" && unit.status === "occupied") ||
       (statusFilter === "vacant" && unit.status === "vacant") ||
-      (statusFilter === "upcoming" && unit.status === "upcoming");
+      (statusFilter === "upcoming" && unit.status === "reserved");
 
     return matchesSearch && matchesFilter;
   });
 
-  // Calculate property statistics
-  const stats = {
-    residents: activeProperty.stats?.totalResidents || 0,
-    totalUnits: activeProperty.units?.length || 0,
-    vacant:
-      activeProperty.units?.filter((u) => u.status === "vacant").length || 0,
-    upcoming:
-      activeProperty.units?.filter((u) => u.status === "upcoming").length || 0,
-    leased:
-      activeProperty.units?.filter((u) => u.status === "leased").length || 0,
-    leasedPercentage: activeProperty.stats?.occupancyRate || 0,
-    upcomingPercentage: activeProperty.stats?.upcomingPercentage || 0,
+  // Use stats from the hook
+  const stats = statsData || {
+    totalUnits: 0,
+    vacantUnits: 0,
+    occupiedUnits: 0,
+    reservedUnits: 0,
+    maintenanceUnits: 0,
+    unavailableUnits: 0,
+    occupancyRate: 0,
+    averageRent: 0,
+  };
+
+  // Calculate additional stats
+  const upcomingPercentage =
+    stats.totalUnits > 0 ? (stats.reservedUnits / stats.totalUnits) * 100 : 0;
+
+  // Handler for adding a new unit
+  const handleAddUnit = () => {
+    // Navigate to add unit form or open modal
   };
 
   return (
@@ -106,22 +121,24 @@ function Units() {
       {/* Header with stats */}
       <div className="bg-card border rounded-lg p-6">
         <div className="grid grid-cols-4 gap-4">
-          <StatItem label="Residents" value={stats.residents} />
+          <StatItem label="Occupied" value={stats.occupiedUnits} />
           <StatItem label="Units" value={stats.totalUnits} />
-          <StatItem label="Vacant" value={stats.vacant} />
-          <StatItem label="Upcoming" value={stats.upcoming} />
+          <StatItem label="Vacant" value={stats.vacantUnits} />
+          <StatItem label="Upcoming" value={stats.reservedUnits} />
 
           <div className="col-span-4 mt-2">
             <div className="flex items-center text-sm">
-              <span className="mr-2">Leased by {stats.leasedPercentage}%</span>
+              <span className="mr-2">
+                Occupied {stats.occupancyRate?.toFixed(1)}%
+              </span>
               <span className="ml-auto">
-                {stats.upcomingPercentage}% Upcoming
+                {upcomingPercentage.toFixed(1)}% Upcoming
               </span>
             </div>
             <div className="w-full bg-muted rounded-full h-2 mt-1">
               <div
                 className="bg-yellow-400 h-2 rounded-full"
-                style={{ width: `${stats.leasedPercentage}%` }}
+                style={{ width: `${stats.occupancyRate}%` }}
               />
             </div>
           </div>
@@ -175,35 +192,19 @@ function Units() {
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Button>
+          <Button onClick={handleAddUnit}>
             <Plus className="h-4 w-4 mr-2" />
             Add Unit
           </Button>
         </div>
       </div>
 
-      {/* Property selector (if multiple properties) */}
-      {properties.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          {properties.map((property) => (
-            <Button
-              key={property.id}
-              variant={property.id === activePropertyId ? "default" : "outline"}
-              onClick={() => setActivePropertyId(property.id)}
-              className="whitespace-nowrap"
-            >
-              {property.name}
-            </Button>
-          ))}
-        </div>
-      )}
-
       {/* Property header */}
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">
           <h2 className="text-2xl font-semibold">{activeProperty.name}</h2>
           <span className="text-sm text-muted-foreground">
-            {activeProperty.units?.length || 0} Units
+            {stats.totalUnits} Units
           </span>
         </div>
       </div>
@@ -225,7 +226,7 @@ function Units() {
               ? "Try adjusting your search or filters"
               : "No units have been added yet"}
           </p>
-          <Button className="mt-4">
+          <Button className="mt-4" onClick={handleAddUnit}>
             <Plus className="h-4 w-4 mr-2" />
             Add Unit
           </Button>
@@ -245,6 +246,22 @@ const StatItem = ({ label, value }) => (
 
 // Unit Card Component
 const UnitCard = ({ unit }) => {
+  // Map status from API to UI status
+  const mapStatus = (status) => {
+    switch (status) {
+      case "occupied":
+        return "leased";
+      case "vacant":
+        return "vacant";
+      case "reserved":
+        return "upcoming";
+      default:
+        return status;
+    }
+  };
+
+  const uiStatus = mapStatus(unit.status);
+
   const getStatusBadge = (status) => {
     switch (status) {
       case "leased":
@@ -264,21 +281,41 @@ const UnitCard = ({ unit }) => {
     }
   };
 
+  // Extract data from the unit object
+  const {
+    name: unitNumber = "",
+    type: location = "",
+    bedrooms = 0,
+    rent: rentAmount = 0,
+    size: area = 0,
+    activeLeases = [],
+  } = unit;
+
+  // Get tenant info from active lease if available
+  const activeLease =
+    activeLeases && activeLeases.length > 0 ? activeLeases[0] : null;
+  const tenant = activeLease
+    ? {
+        name: activeLease.tenantName || "Tenant",
+        image: null,
+      }
+    : null;
+
   return (
     <Card className="overflow-hidden hover:border-primary transition-colors cursor-pointer">
       <div className="relative">
-        {getStatusBadge(unit.status)}
+        {getStatusBadge(uiStatus)}
         <div className="h-48 bg-muted">
           <img
-            src={unit.image || "/api/placeholder/800/600"}
-            alt={`Unit ${unit.unitNumber}`}
+            src={unit.images?.[0] || "/api/placeholder/800/600"}
+            alt={`Unit ${unitNumber}`}
             className="w-full h-full object-cover"
           />
         </div>
         <div className="absolute top-3 right-3 bg-white/90 rounded-md px-3 py-1">
-          <div className="text-sm font-medium">Unit {unit.unitNumber}</div>
+          <div className="text-sm font-medium">Unit {unitNumber}</div>
           <div className="text-xs text-muted-foreground">
-            {unit.bedrooms} bedroom{unit.bedrooms !== 1 ? "s" : ""}
+            {bedrooms} bedroom{bedrooms !== 1 ? "s" : ""}
           </div>
         </div>
       </div>
@@ -287,42 +324,35 @@ const UnitCard = ({ unit }) => {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <div className="text-xs text-muted-foreground">Location</div>
-            <div className="text-sm">{unit.location}</div>
+            <div className="text-sm">{location}</div>
           </div>
           <div>
             <div className="text-xs text-muted-foreground">Expiry</div>
             <div className="text-sm">
-              {unit.lease?.endDate
-                ? new Date(unit.lease.endDate).toLocaleDateString()
+              {activeLease?.endDate
+                ? new Date(activeLease.endDate).toLocaleDateString()
                 : "—"}
             </div>
           </div>
           <div>
             <div className="text-xs text-muted-foreground">Area</div>
-            <div className="text-sm">{unit.area}</div>
+            <div className="text-sm">{area} sqft</div>
           </div>
           <div>
             <div className="text-xs text-muted-foreground">Price</div>
-            <div className="text-sm">
-              ${unit.rentAmount?.toLocaleString()}/m
-            </div>
+            <div className="text-sm">${rentAmount?.toLocaleString()}/m</div>
           </div>
         </div>
 
-        {unit.status !== "vacant" && unit.tenant && (
+        {uiStatus !== "vacant" && tenant && (
           <div className="pt-3 border-t">
             <div className="text-xs text-muted-foreground mb-2">Leased by</div>
             <div className="flex items-center">
               <Avatar className="h-8 w-8 mr-2">
-                <AvatarImage
-                  src={unit.tenant.image || ""}
-                  alt={unit.tenant.name}
-                />
-                <AvatarFallback>
-                  {unit.tenant.name?.charAt(0) || "?"}
-                </AvatarFallback>
+                <AvatarImage src={tenant.image || ""} alt={tenant.name} />
+                <AvatarFallback>{tenant.name?.charAt(0) || "?"}</AvatarFallback>
               </Avatar>
-              <span className="text-sm">{unit.tenant.name}</span>
+              <span className="text-sm">{tenant.name}</span>
             </div>
           </div>
         )}

@@ -1,7 +1,7 @@
 import { db } from "@/db";
-import { leases, maintenanceRequests, tenants } from "@/db/schema";
+import { leases, maintenanceRequests, tenants, units } from "@/db/schema";
 import { Tenant, TenantWithRelations } from "@/tenants/types";
-import { and, eq, ilike, or, sql } from "drizzle-orm";
+import { and, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import {
   CreateTenantDto,
   TenantFilterDto,
@@ -9,12 +9,7 @@ import {
 } from "../dto/tenants.dto";
 
 export class TenantsRepository {
-  /**
-   * Find all tenants with optional filtering
-   */
   async findAll(filters?: TenantFilterDto): Promise<TenantWithRelations[]> {
-    let query = db.query.tenants;
-
     // Build query conditions based on filters
     const conditions = [];
 
@@ -31,37 +26,43 @@ export class TenantsRepository {
       );
     }
 
-    // Fetch tenants with basic filtering
-    let result = await query.findMany({
-      where: conditions.length ? and(...conditions) : undefined,
-      orderBy: [sql`created_at desc`],
-    });
-
-    // If propertyId filter is applied, we need to filter by property
-    // This is more complex as it requires joining through leases
+    // Handle property filtering
     if (filters?.propertyId) {
-      // Fetch all lease IDs for the property
+      // First, get all unit IDs for the property
+      const propertyUnits = await db.query.units.findMany({
+        where: eq(units.propertyId, filters.propertyId),
+        columns: { id: true },
+      });
+
+      const unitIds = propertyUnits.map((unit) => unit.id);
+
+      if (unitIds.length === 0) {
+        // No units found for this property, so there can't be any tenants
+        return [];
+      }
+
+      // Get all tenant IDs with leases in these units
       const propertyLeases = await db.query.leases.findMany({
-        where: (leases, { eq }) =>
-          eq(
-            leases.unitId,
-            db
-              .select({ id: sql<string>`id` })
-              .from(sql`units`)
-              .where(sql`property_id = ${filters.propertyId}`)
-          ),
+        where: inArray(leases.unitId, unitIds),
         columns: { tenantId: true },
       });
 
       const tenantIds = propertyLeases.map((lease) => lease.tenantId);
 
-      // Filter tenants by these IDs
-      if (tenantIds.length) {
-        result = result.filter((tenant) => tenantIds.includes(tenant.id));
-      } else {
-        result = [];
+      if (tenantIds.length === 0) {
+        // No leases found for units in this property
+        return [];
       }
+
+      // Add tenant ID filter
+      conditions.push(inArray(tenants.id, tenantIds));
     }
+
+    // Execute the query with all conditions
+    const result = await db.query.tenants.findMany({
+      where: conditions.length ? and(...conditions) : undefined,
+      orderBy: [sql`created_at desc`],
+    });
 
     return result;
   }

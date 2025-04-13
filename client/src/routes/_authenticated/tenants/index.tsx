@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import LoadingSpinner from "@/components/ui/loading-spinner";
-import { useTenants } from "@/hooks/use-trpc";
+import { useTenants } from "@/hooks/use-tenants";
 import { useAuth } from "@/providers/auth-provider";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
@@ -49,15 +49,20 @@ export const Route = createFileRoute("/_authenticated/tenants/")({
 });
 
 function Tenants() {
-  const { user } = useAuth();
+  const { user, activeProperty } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
   // Use the tRPC hook to fetch tenants data
-  const { getAll, isLoading } = useTenants();
-  const { data: tenantsData = [], error } = getAll({
-    search: searchTerm,
-    status: statusFilter !== "all" ? statusFilter : undefined,
+  const { getAll } = useTenants();
+  const {
+    data: tenantsData = [],
+    error,
+    isLoading,
+  } = getAll({
+    // search: searchTerm,
+    // status: statusFilter !== "all" ? statusFilter : undefined,
+    propertyId: activeProperty?.id,
   });
 
   // Filter tenants based on search term and status filter
