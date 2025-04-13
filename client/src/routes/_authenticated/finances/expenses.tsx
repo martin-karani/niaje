@@ -1,4 +1,7 @@
 import { Button } from "@/components/ui/button";
+import { usePayments } from "@/hooks/use-payments";
+import { useAuth } from "@/providers/auth-provider";
+import { RouterInputs } from "@/utils/trpc";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   ArrowUpDown,
@@ -7,6 +10,7 @@ import {
   Download,
   Edit,
   FileText,
+  Loader2,
   PieChart,
   Plus,
   Search,
@@ -19,7 +23,7 @@ export const Route = createFileRoute("/_authenticated/finances/expenses")({
   component: ExpenseManagement,
 });
 
-// Mock expense categories
+// Define expense categories (ideally this should come from the backend as well)
 const EXPENSE_CATEGORIES = [
   {
     id: "maintenance",
@@ -40,158 +44,70 @@ const EXPENSE_CATEGORIES = [
   { id: "other", name: "Other Expenses", color: "text-teal-600" },
 ];
 
-// Mock expense data
-const EXPENSE_DATA = [
-  {
-    id: "exp-1",
-    date: "2023-06-10",
-    category: "maintenance",
-    description: "Plumbing repair in Unit 304",
-    amount: 450,
-    property: "Sobha Garden",
-    unit: "304",
-    paymentMethod: "credit_card",
-    receipt: true,
-    recurring: false,
-    vendorName: "City Plumbing Services",
-    createdBy: "John Smith",
-  },
-  {
-    id: "exp-2",
-    date: "2023-06-08",
-    category: "utilities",
-    description: "Electricity bill for May 2023",
-    amount: 1250,
-    property: "Sobha Garden",
-    unit: null,
-    paymentMethod: "bank_transfer",
-    receipt: true,
-    recurring: true,
-    vendorName: "City Power & Light",
-    createdBy: "John Smith",
-  },
-  {
-    id: "exp-3",
-    date: "2023-06-05",
-    category: "insurance",
-    description: "Property insurance premium",
-    amount: 2800,
-    property: "Sobha Garden",
-    unit: null,
-    paymentMethod: "bank_transfer",
-    receipt: true,
-    recurring: true,
-    vendorName: "Guardian Insurance Co.",
-    createdBy: "John Smith",
-  },
-  {
-    id: "exp-4",
-    date: "2023-06-02",
-    category: "maintenance",
-    description: "Landscaping services - June",
-    amount: 750,
-    property: "Sobha Garden",
-    unit: null,
-    paymentMethod: "credit_card",
-    receipt: true,
-    recurring: true,
-    vendorName: "Green Thumb Landscaping",
-    createdBy: "John Smith",
-  },
-  {
-    id: "exp-5",
-    date: "2023-05-28",
-    category: "advertising",
-    description: "Online listing subscription",
-    amount: 99,
-    property: null,
-    unit: null,
-    paymentMethod: "credit_card",
-    receipt: false,
-    recurring: true,
-    vendorName: "PropertyLister.com",
-    createdBy: "John Smith",
-  },
-  {
-    id: "exp-6",
-    date: "2023-05-25",
-    category: "maintenance",
-    description: "HVAC maintenance - Unit 214",
-    amount: 780,
-    property: "Crown Tower",
-    unit: "214",
-    paymentMethod: "bank_transfer",
-    receipt: true,
-    recurring: false,
-    vendorName: "Cool Air Services",
-    createdBy: "John Smith",
-  },
-  {
-    id: "exp-7",
-    date: "2023-05-20",
-    category: "legal",
-    description: "Legal consultation",
-    amount: 350,
-    property: null,
-    unit: null,
-    paymentMethod: "bank_transfer",
-    receipt: true,
-    recurring: false,
-    vendorName: "Johnson & Reed Law Firm",
-    createdBy: "John Smith",
-  },
-  {
-    id: "exp-8",
-    date: "2023-05-15",
-    category: "utilities",
-    description: "Water bill for April 2023",
-    amount: 680,
-    property: "Sobha Garden",
-    unit: null,
-    paymentMethod: "bank_transfer",
-    receipt: true,
-    recurring: true,
-    vendorName: "City Water Utilities",
-    createdBy: "John Smith",
-  },
-  {
-    id: "exp-9",
-    date: "2023-05-12",
-    category: "maintenance",
-    description: "Window repair - Unit 402",
-    amount: 320,
-    property: "Crown Tower",
-    unit: "402",
-    paymentMethod: "credit_card",
-    receipt: true,
-    recurring: false,
-    vendorName: "Clear View Glass Co.",
-    createdBy: "John Smith",
-  },
-  {
-    id: "exp-10",
-    date: "2023-05-08",
-    category: "supplies",
-    description: "Office supplies",
-    amount: 85,
-    property: null,
-    unit: null,
-    paymentMethod: "credit_card",
-    receipt: true,
-    recurring: false,
-    vendorName: "Office Supply Depot",
-    createdBy: "John Smith",
-  },
-];
+// Map transaction types/categories to our expense categories
+const mapTransactionToCategory = (transaction: any): string => {
+  // This is a simplified mapping function
+  // In practice, you would need to define a proper mapping strategy based on
+  // how your transactions are categorized on the backend
+
+  // If there's a category field in the transaction, use that
+  if (transaction.category) {
+    // Map category to one of our expense categories
+    const categoryMapping: Record<string, string> = {
+      water: "utilities",
+      electricity: "utilities",
+      gas: "utilities",
+      internet: "utilities",
+      repairs: "maintenance",
+      legal: "legal",
+      marketing: "advertising",
+      tax: "property_tax",
+      management: "management",
+      supplies: "supplies",
+      insurance: "insurance",
+      // Add more mappings as needed
+    };
+
+    return categoryMapping[transaction.category.toLowerCase()] || "other";
+  }
+
+  // If there's no category, try to infer from type or notes
+  if (transaction.notes) {
+    const notes = transaction.notes.toLowerCase();
+    if (
+      notes.includes("repair") ||
+      notes.includes("maintenance") ||
+      notes.includes("fix")
+    ) {
+      return "maintenance";
+    }
+    if (
+      notes.includes("utility") ||
+      notes.includes("water") ||
+      notes.includes("electric")
+    ) {
+      return "utilities";
+    }
+    // Add more inferences as needed
+  }
+
+  // Default to "other" if we can't determine a category
+  return "other";
+};
 
 function ExpenseManagement() {
-  // const { properties = [], isLoading: propertiesLoading } = useProperties();
-  const properties = [];
+  const { activeProperty } = useAuth();
+
+  // Use payments hook to fetch transaction data
+  const payments = usePayments();
+
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
-  const [propertyFilter, setPropertyFilter] = useState<string | null>(null);
+  const [propertyFilter, setPropertyFilter] = useState<string | null>(
+    activeProperty?.id || null
+  );
   const [dateRange, setDateRange] = useState({
-    start: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+    start: new Date(new Date().getFullYear(), new Date().getMonth() - 3, 1)
       .toISOString()
       .slice(0, 10),
     end: new Date().toISOString().slice(0, 10),
@@ -202,53 +118,92 @@ function ExpenseManagement() {
   const [selectedExpense, setSelectedExpense] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "chart">("table");
 
-  // Filtered and sorted expenses
-  const filteredExpenses = EXPENSE_DATA.filter((expense) => {
-    // Category filter
-    if (categoryFilter && expense.category !== categoryFilter) return false;
+  // Prepare filters for transaction query
+  const transactionFilters: RouterInputs["payments"]["getAllTransactions"] = {
+    propertyId: propertyFilter,
+    // Transactions for expenses are typically outgoing payments
+    // Adjust this filter based on your actual data model
+    type: "fee", // This could also be 'refund' or other types that represent expenses
+    dateFrom: new Date(dateRange.start),
+    dateTo: new Date(dateRange.end),
+    limit: 100, // Adjust based on your needs
+  };
 
-    // Property filter
-    if (propertyFilter && expense.property !== propertyFilter) return false;
+  // Fetch transactions
+  const {
+    data: transactionsData,
+    isLoading: isLoadingTransactions,
+    error: transactionsError,
+  } = payments.transactions.getAll(transactionFilters);
 
-    // Date range filter
-    const expenseDate = new Date(expense.date);
-    const startDate = new Date(dateRange.start);
-    const endDate = new Date(dateRange.end);
-    if (expenseDate < startDate || expenseDate > endDate) return false;
+  // Transform transactions to expense format
+  const transformTransactionsToExpenses = (transactions: any[]) => {
+    return (
+      transactions?.map((transaction) => ({
+        id: transaction.id,
+        date: transaction.paymentDate
+          ? new Date(transaction.paymentDate).toISOString().slice(0, 10)
+          : "",
+        category: mapTransactionToCategory(transaction),
+        description: transaction.notes || "Expense",
+        amount: Math.abs(Number(transaction.amount)), // Ensure positive for expense display
+        property:
+          transaction.lease?.unit?.property?.name || activeProperty?.name || "",
+        unit: transaction.lease?.unit?.name || "",
+        paymentMethod: transaction.paymentMethod || "bank_transfer",
+        receipt: !!transaction.receiptUrl,
+        recurring: false, // Ideally this would come from the transaction data
+        vendorName: transaction.paymentMethod || "Unknown",
+        createdBy: transaction.recorder?.name || "System",
+      })) || []
+    );
+  };
 
-    // Search term
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      return (
-        expense.description.toLowerCase().includes(searchLower) ||
-        (expense.property &&
-          expense.property.toLowerCase().includes(searchLower)) ||
-        (expense.vendorName &&
-          expense.vendorName.toLowerCase().includes(searchLower)) ||
-        (expense.unit && expense.unit.toLowerCase().includes(searchLower))
-      );
-    }
+  // Get expenses from transformed transactions
+  const allExpenses = transactionsData?.transactions
+    ? transformTransactionsToExpenses(transactionsData.transactions)
+    : [];
 
-    return true;
-  }).sort((a, b) => {
-    // Sorting logic
-    if (sortBy === "date") {
-      return sortOrder === "asc"
-        ? new Date(a.date).getTime() - new Date(b.date).getTime()
-        : new Date(b.date).getTime() - new Date(a.date).getTime();
-    } else if (sortBy === "amount") {
-      return sortOrder === "asc" ? a.amount - b.amount : b.amount - a.amount;
-    } else if (sortBy === "category") {
-      return sortOrder === "asc"
-        ? a.category.localeCompare(b.category)
-        : b.category.localeCompare(a.category);
-    } else if (sortBy === "description") {
-      return sortOrder === "asc"
-        ? a.description.localeCompare(b.description)
-        : b.description.localeCompare(a.description);
-    }
-    return 0;
-  });
+  // Client-side filtering (for filters not handled by the backend)
+  const filteredExpenses = allExpenses
+    .filter((expense) => {
+      // Category filter
+      if (categoryFilter && expense.category !== categoryFilter) return false;
+
+      // Search term
+      if (searchTerm) {
+        const searchLower = searchTerm.toLowerCase();
+        return (
+          expense.description.toLowerCase().includes(searchLower) ||
+          (expense.property &&
+            expense.property.toLowerCase().includes(searchLower)) ||
+          (expense.vendorName &&
+            expense.vendorName.toLowerCase().includes(searchLower)) ||
+          (expense.unit && expense.unit.toLowerCase().includes(searchLower))
+        );
+      }
+
+      return true;
+    })
+    .sort((a, b) => {
+      // Sorting logic
+      if (sortBy === "date") {
+        return sortOrder === "asc"
+          ? new Date(a.date).getTime() - new Date(b.date).getTime()
+          : new Date(b.date).getTime() - new Date(a.date).getTime();
+      } else if (sortBy === "amount") {
+        return sortOrder === "asc" ? a.amount - b.amount : b.amount - a.amount;
+      } else if (sortBy === "category") {
+        return sortOrder === "asc"
+          ? a.category.localeCompare(b.category)
+          : b.category.localeCompare(a.category);
+      } else if (sortBy === "description") {
+        return sortOrder === "asc"
+          ? a.description.localeCompare(b.description)
+          : b.description.localeCompare(a.description);
+      }
+      return 0;
+    });
 
   // Calculate summary statistics
   const summarizeExpenses = () => {
@@ -272,27 +227,20 @@ function ExpenseManagement() {
       .filter((c) => c.amount > 0)
       .sort((a, b) => b.amount - a.amount);
 
-    // Group by property
-    const byProperty = properties
-      .map((property) => {
-        const expenses = filteredExpenses.filter(
-          (e) => e.property === property.name
-        );
-        const amount = expenses.reduce((sum, e) => sum + e.amount, 0);
-        const percentage = total > 0 ? Math.round((amount / total) * 100) : 0;
+    // Group by property (if we have property info)
+    const byProperty = activeProperty
+      ? [
+          {
+            id: activeProperty.id,
+            name: activeProperty.name,
+            amount: total,
+            percentage: 100,
+            count: filteredExpenses.length,
+          },
+        ]
+      : [];
 
-        return {
-          id: property.id,
-          name: property.name,
-          amount,
-          percentage,
-          count: expenses.length,
-        };
-      })
-      .filter((p) => p.amount > 0)
-      .sort((a, b) => b.amount - a.amount);
-
-    // Calculate recurring vs one-time
+    // Calculate recurring vs one-time (assuming all are one-time for now)
     const recurring = filteredExpenses
       .filter((e) => e.recurring)
       .reduce((sum, e) => sum + e.amount, 0);
@@ -336,10 +284,65 @@ function ExpenseManagement() {
     setShowAddExpenseModal(true);
   };
 
-  // Mock delete expense function
-  const handleDeleteExpense = (expenseId: string) => {
-    console.log(`Deleting expense: ${expenseId}`);
-    // In a real app, this would call the API to delete the expense
+  // Handle delete expense
+  const handleDeleteExpense = async (expenseId: string) => {
+    try {
+      await payments.transactions.delete({ id: expenseId });
+      // Refresh data after delete
+      payments.transactions.getAll(transactionFilters);
+    } catch (error) {
+      console.error("Error deleting expense:", error);
+    }
+  };
+
+  // Handle create expense
+  const handleCreateExpense = async (expenseData: any) => {
+    try {
+      // Transform expense data to transaction format
+      const transactionData = {
+        leaseId: expenseData.leaseId || "", // This might need to be handled differently
+        amount: expenseData.amount,
+        type: "fee", // Adjust based on your data model
+        category: expenseData.category,
+        paymentMethod: expenseData.paymentMethod,
+        paymentDate: new Date(expenseData.date),
+        notes: expenseData.description,
+        status: "completed",
+      };
+
+      await payments.transactions.create(transactionData);
+      setShowAddExpenseModal(false);
+
+      // Refresh data after create
+      payments.transactions.getAll(transactionFilters);
+    } catch (error) {
+      console.error("Error creating expense:", error);
+    }
+  };
+
+  // Handle update expense
+  const handleUpdateExpense = async (expenseId: string, expenseData: any) => {
+    try {
+      // Transform expense data to transaction format
+      const transactionData = {
+        id: expenseId,
+        amount: expenseData.amount,
+        category: expenseData.category,
+        paymentMethod: expenseData.paymentMethod,
+        paymentDate: new Date(expenseData.date),
+        notes: expenseData.description,
+        status: "completed",
+      };
+
+      await payments.transactions.update(transactionData);
+      setShowAddExpenseModal(false);
+      setSelectedExpense(null);
+
+      // Refresh data after update
+      payments.transactions.getAll(transactionFilters);
+    } catch (error) {
+      console.error("Error updating expense:", error);
+    }
   };
 
   return (
@@ -428,14 +431,14 @@ function ExpenseManagement() {
               <span className="text-muted-foreground">Recurring</span>
               <span>
                 ${summary.recurring.toLocaleString()} (
-                {Math.round((summary.recurring / summary.total) * 100)}%)
+                {Math.round((summary.recurring / summary.total) * 100) || 0}%)
               </span>
             </div>
             <div className="flex justify-between text-sm mt-1">
               <span className="text-muted-foreground">One-time</span>
               <span>
                 ${summary.oneTime.toLocaleString()} (
-                {Math.round((summary.oneTime / summary.total) * 100)}%)
+                {Math.round((summary.oneTime / summary.total) * 100) || 0}%)
               </span>
             </div>
           </div>
@@ -517,8 +520,30 @@ function ExpenseManagement() {
         </div>
       </div>
 
+      {/* Loading state */}
+      {isLoadingTransactions && (
+        <div className="flex justify-center items-center p-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-2">Loading expenses...</span>
+        </div>
+      )}
+
+      {/* Error state */}
+      {transactionsError && (
+        <div className="p-8 text-center text-destructive border border-destructive/20 rounded-lg">
+          <p>Failed to load expenses: {transactionsError.message}</p>
+          <Button
+            variant="outline"
+            className="mt-4"
+            onClick={() => payments.transactions.getAll(transactionFilters)}
+          >
+            Retry
+          </Button>
+        </div>
+      )}
+
       {/* Table View */}
-      {viewMode === "table" && (
+      {viewMode === "table" && !isLoadingTransactions && !transactionsError && (
         <div className="bg-card border rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -660,13 +685,13 @@ function ExpenseManagement() {
                     </td>
                   </tr>
                 ))}
-                {filteredExpenses.length === 0 && (
+                {filteredExpenses.length === 0 && !isLoadingTransactions && (
                   <tr>
                     <td colSpan={6} className="py-8 text-center">
                       <DollarSign className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
                       <p className="font-medium">No expenses found</p>
                       <p className="text-sm text-muted-foreground">
-                        {searchTerm || categoryFilter || propertyFilter
+                        {searchTerm || categoryFilter
                           ? "Try adjusting your search or filters"
                           : "No expenses for this period"}
                       </p>
@@ -680,7 +705,7 @@ function ExpenseManagement() {
       )}
 
       {/* Chart View */}
-      {viewMode === "chart" && (
+      {viewMode === "chart" && !isLoadingTransactions && !transactionsError && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Category Breakdown */}
           <div className="bg-card border rounded-lg p-4">
@@ -762,14 +787,21 @@ function ExpenseManagement() {
         <ExpenseFormModal
           expense={
             selectedExpense
-              ? EXPENSE_DATA.find((e) => e.id === selectedExpense)
+              ? filteredExpenses.find((e) => e.id === selectedExpense)
               : null
           }
           categories={EXPENSE_CATEGORIES}
-          properties={properties}
+          properties={activeProperty ? [activeProperty] : []}
           onClose={() => {
             setShowAddExpenseModal(false);
             setSelectedExpense(null);
+          }}
+          onSubmit={(formData) => {
+            if (selectedExpense) {
+              handleUpdateExpense(selectedExpense, formData);
+            } else {
+              handleCreateExpense(formData);
+            }
           }}
         />
       )}
@@ -778,7 +810,13 @@ function ExpenseManagement() {
 }
 
 // Expense Form Modal Component
-const ExpenseFormModal = ({ expense, categories, properties, onClose }) => {
+const ExpenseFormModal = ({
+  expense,
+  categories,
+  properties,
+  onClose,
+  onSubmit,
+}) => {
   const isEditing = !!expense;
 
   const [formData, setFormData] = useState({
@@ -816,9 +854,7 @@ const ExpenseFormModal = ({ expense, categories, properties, onClose }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form data:", formData);
-    // In a real app, this would call the API to save the expense
-    onClose();
+    onSubmit(formData);
   };
 
   return (

@@ -20,12 +20,13 @@ import { Route as AuthenticatedUnitsIndexImport } from './routes/_authenticated/
 import { Route as AuthenticatedTenantsIndexImport } from './routes/_authenticated/tenants/index'
 import { Route as AuthenticatedSettingsIndexImport } from './routes/_authenticated/settings/index'
 import { Route as AuthenticatedReportsIndexImport } from './routes/_authenticated/reports/index'
-import { Route as AuthenticatedMaintenanceIndexImport } from './routes/_authenticated/maintenance/index'
 import { Route as AuthenticatedLeasesIndexImport } from './routes/_authenticated/leases/index'
 import { Route as AuthenticatedDashboardIndexImport } from './routes/_authenticated/dashboard/index'
 import { Route as AuthenticatedCalendarIndexImport } from './routes/_authenticated/calendar/index'
 import { Route as AuthenticatedTenantsTenantIdImport } from './routes/_authenticated/tenants/$tenantId'
 import { Route as AuthenticatedSettingsRolesPermissionImport } from './routes/_authenticated/settings/roles-permission'
+import { Route as AuthenticatedMaintenanceWorkOrdersImport } from './routes/_authenticated/maintenance/work-orders'
+import { Route as AuthenticatedMaintenanceRequestsImport } from './routes/_authenticated/maintenance/requests'
 import { Route as AuthenticatedFinancesPaymentsImport } from './routes/_authenticated/finances/payments'
 import { Route as AuthenticatedFinancesExpensesImport } from './routes/_authenticated/finances/expenses'
 
@@ -86,13 +87,6 @@ const AuthenticatedReportsIndexRoute = AuthenticatedReportsIndexImport.update({
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 
-const AuthenticatedMaintenanceIndexRoute =
-  AuthenticatedMaintenanceIndexImport.update({
-    id: '/maintenance/',
-    path: '/maintenance/',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-
 const AuthenticatedLeasesIndexRoute = AuthenticatedLeasesIndexImport.update({
   id: '/leases/',
   path: '/leases/',
@@ -125,6 +119,20 @@ const AuthenticatedSettingsRolesPermissionRoute =
   AuthenticatedSettingsRolesPermissionImport.update({
     id: '/settings/roles-permission',
     path: '/settings/roles-permission',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+
+const AuthenticatedMaintenanceWorkOrdersRoute =
+  AuthenticatedMaintenanceWorkOrdersImport.update({
+    id: '/maintenance/work-orders',
+    path: '/maintenance/work-orders',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+
+const AuthenticatedMaintenanceRequestsRoute =
+  AuthenticatedMaintenanceRequestsImport.update({
+    id: '/maintenance/requests',
+    path: '/maintenance/requests',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 
@@ -195,6 +203,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFinancesPaymentsImport
       parentRoute: typeof AuthenticatedImport
     }
+    '/_authenticated/maintenance/requests': {
+      id: '/_authenticated/maintenance/requests'
+      path: '/maintenance/requests'
+      fullPath: '/maintenance/requests'
+      preLoaderRoute: typeof AuthenticatedMaintenanceRequestsImport
+      parentRoute: typeof AuthenticatedImport
+    }
+    '/_authenticated/maintenance/work-orders': {
+      id: '/_authenticated/maintenance/work-orders'
+      path: '/maintenance/work-orders'
+      fullPath: '/maintenance/work-orders'
+      preLoaderRoute: typeof AuthenticatedMaintenanceWorkOrdersImport
+      parentRoute: typeof AuthenticatedImport
+    }
     '/_authenticated/settings/roles-permission': {
       id: '/_authenticated/settings/roles-permission'
       path: '/settings/roles-permission'
@@ -228,13 +250,6 @@ declare module '@tanstack/react-router' {
       path: '/leases'
       fullPath: '/leases'
       preLoaderRoute: typeof AuthenticatedLeasesIndexImport
-      parentRoute: typeof AuthenticatedImport
-    }
-    '/_authenticated/maintenance/': {
-      id: '/_authenticated/maintenance/'
-      path: '/maintenance'
-      fullPath: '/maintenance'
-      preLoaderRoute: typeof AuthenticatedMaintenanceIndexImport
       parentRoute: typeof AuthenticatedImport
     }
     '/_authenticated/reports/': {
@@ -273,12 +288,13 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteChildren {
   AuthenticatedFinancesExpensesRoute: typeof AuthenticatedFinancesExpensesRoute
   AuthenticatedFinancesPaymentsRoute: typeof AuthenticatedFinancesPaymentsRoute
+  AuthenticatedMaintenanceRequestsRoute: typeof AuthenticatedMaintenanceRequestsRoute
+  AuthenticatedMaintenanceWorkOrdersRoute: typeof AuthenticatedMaintenanceWorkOrdersRoute
   AuthenticatedSettingsRolesPermissionRoute: typeof AuthenticatedSettingsRolesPermissionRoute
   AuthenticatedTenantsTenantIdRoute: typeof AuthenticatedTenantsTenantIdRoute
   AuthenticatedCalendarIndexRoute: typeof AuthenticatedCalendarIndexRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedLeasesIndexRoute: typeof AuthenticatedLeasesIndexRoute
-  AuthenticatedMaintenanceIndexRoute: typeof AuthenticatedMaintenanceIndexRoute
   AuthenticatedReportsIndexRoute: typeof AuthenticatedReportsIndexRoute
   AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
   AuthenticatedTenantsIndexRoute: typeof AuthenticatedTenantsIndexRoute
@@ -288,13 +304,15 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedFinancesExpensesRoute: AuthenticatedFinancesExpensesRoute,
   AuthenticatedFinancesPaymentsRoute: AuthenticatedFinancesPaymentsRoute,
+  AuthenticatedMaintenanceRequestsRoute: AuthenticatedMaintenanceRequestsRoute,
+  AuthenticatedMaintenanceWorkOrdersRoute:
+    AuthenticatedMaintenanceWorkOrdersRoute,
   AuthenticatedSettingsRolesPermissionRoute:
     AuthenticatedSettingsRolesPermissionRoute,
   AuthenticatedTenantsTenantIdRoute: AuthenticatedTenantsTenantIdRoute,
   AuthenticatedCalendarIndexRoute: AuthenticatedCalendarIndexRoute,
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
   AuthenticatedLeasesIndexRoute: AuthenticatedLeasesIndexRoute,
-  AuthenticatedMaintenanceIndexRoute: AuthenticatedMaintenanceIndexRoute,
   AuthenticatedReportsIndexRoute: AuthenticatedReportsIndexRoute,
   AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
   AuthenticatedTenantsIndexRoute: AuthenticatedTenantsIndexRoute,
@@ -313,12 +331,13 @@ export interface FileRoutesByFullPath {
   '/auth/register': typeof AuthRegisterRoute
   '/finances/expenses': typeof AuthenticatedFinancesExpensesRoute
   '/finances/payments': typeof AuthenticatedFinancesPaymentsRoute
+  '/maintenance/requests': typeof AuthenticatedMaintenanceRequestsRoute
+  '/maintenance/work-orders': typeof AuthenticatedMaintenanceWorkOrdersRoute
   '/settings/roles-permission': typeof AuthenticatedSettingsRolesPermissionRoute
   '/tenants/$tenantId': typeof AuthenticatedTenantsTenantIdRoute
   '/calendar': typeof AuthenticatedCalendarIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/leases': typeof AuthenticatedLeasesIndexRoute
-  '/maintenance': typeof AuthenticatedMaintenanceIndexRoute
   '/reports': typeof AuthenticatedReportsIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/tenants': typeof AuthenticatedTenantsIndexRoute
@@ -333,12 +352,13 @@ export interface FileRoutesByTo {
   '/auth/register': typeof AuthRegisterRoute
   '/finances/expenses': typeof AuthenticatedFinancesExpensesRoute
   '/finances/payments': typeof AuthenticatedFinancesPaymentsRoute
+  '/maintenance/requests': typeof AuthenticatedMaintenanceRequestsRoute
+  '/maintenance/work-orders': typeof AuthenticatedMaintenanceWorkOrdersRoute
   '/settings/roles-permission': typeof AuthenticatedSettingsRolesPermissionRoute
   '/tenants/$tenantId': typeof AuthenticatedTenantsTenantIdRoute
   '/calendar': typeof AuthenticatedCalendarIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/leases': typeof AuthenticatedLeasesIndexRoute
-  '/maintenance': typeof AuthenticatedMaintenanceIndexRoute
   '/reports': typeof AuthenticatedReportsIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/tenants': typeof AuthenticatedTenantsIndexRoute
@@ -354,12 +374,13 @@ export interface FileRoutesById {
   '/auth/register': typeof AuthRegisterRoute
   '/_authenticated/finances/expenses': typeof AuthenticatedFinancesExpensesRoute
   '/_authenticated/finances/payments': typeof AuthenticatedFinancesPaymentsRoute
+  '/_authenticated/maintenance/requests': typeof AuthenticatedMaintenanceRequestsRoute
+  '/_authenticated/maintenance/work-orders': typeof AuthenticatedMaintenanceWorkOrdersRoute
   '/_authenticated/settings/roles-permission': typeof AuthenticatedSettingsRolesPermissionRoute
   '/_authenticated/tenants/$tenantId': typeof AuthenticatedTenantsTenantIdRoute
   '/_authenticated/calendar/': typeof AuthenticatedCalendarIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/leases/': typeof AuthenticatedLeasesIndexRoute
-  '/_authenticated/maintenance/': typeof AuthenticatedMaintenanceIndexRoute
   '/_authenticated/reports/': typeof AuthenticatedReportsIndexRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/_authenticated/tenants/': typeof AuthenticatedTenantsIndexRoute
@@ -376,12 +397,13 @@ export interface FileRouteTypes {
     | '/auth/register'
     | '/finances/expenses'
     | '/finances/payments'
+    | '/maintenance/requests'
+    | '/maintenance/work-orders'
     | '/settings/roles-permission'
     | '/tenants/$tenantId'
     | '/calendar'
     | '/dashboard'
     | '/leases'
-    | '/maintenance'
     | '/reports'
     | '/settings'
     | '/tenants'
@@ -395,12 +417,13 @@ export interface FileRouteTypes {
     | '/auth/register'
     | '/finances/expenses'
     | '/finances/payments'
+    | '/maintenance/requests'
+    | '/maintenance/work-orders'
     | '/settings/roles-permission'
     | '/tenants/$tenantId'
     | '/calendar'
     | '/dashboard'
     | '/leases'
-    | '/maintenance'
     | '/reports'
     | '/settings'
     | '/tenants'
@@ -414,12 +437,13 @@ export interface FileRouteTypes {
     | '/auth/register'
     | '/_authenticated/finances/expenses'
     | '/_authenticated/finances/payments'
+    | '/_authenticated/maintenance/requests'
+    | '/_authenticated/maintenance/work-orders'
     | '/_authenticated/settings/roles-permission'
     | '/_authenticated/tenants/$tenantId'
     | '/_authenticated/calendar/'
     | '/_authenticated/dashboard/'
     | '/_authenticated/leases/'
-    | '/_authenticated/maintenance/'
     | '/_authenticated/reports/'
     | '/_authenticated/settings/'
     | '/_authenticated/tenants/'
@@ -468,12 +492,13 @@ export const routeTree = rootRoute
       "children": [
         "/_authenticated/finances/expenses",
         "/_authenticated/finances/payments",
+        "/_authenticated/maintenance/requests",
+        "/_authenticated/maintenance/work-orders",
         "/_authenticated/settings/roles-permission",
         "/_authenticated/tenants/$tenantId",
         "/_authenticated/calendar/",
         "/_authenticated/dashboard/",
         "/_authenticated/leases/",
-        "/_authenticated/maintenance/",
         "/_authenticated/reports/",
         "/_authenticated/settings/",
         "/_authenticated/tenants/",
@@ -497,6 +522,14 @@ export const routeTree = rootRoute
       "filePath": "_authenticated/finances/payments.tsx",
       "parent": "/_authenticated"
     },
+    "/_authenticated/maintenance/requests": {
+      "filePath": "_authenticated/maintenance/requests.tsx",
+      "parent": "/_authenticated"
+    },
+    "/_authenticated/maintenance/work-orders": {
+      "filePath": "_authenticated/maintenance/work-orders.tsx",
+      "parent": "/_authenticated"
+    },
     "/_authenticated/settings/roles-permission": {
       "filePath": "_authenticated/settings/roles-permission.tsx",
       "parent": "/_authenticated"
@@ -515,10 +548,6 @@ export const routeTree = rootRoute
     },
     "/_authenticated/leases/": {
       "filePath": "_authenticated/leases/index.tsx",
-      "parent": "/_authenticated"
-    },
-    "/_authenticated/maintenance/": {
-      "filePath": "_authenticated/maintenance/index.tsx",
       "parent": "/_authenticated"
     },
     "/_authenticated/reports/": {

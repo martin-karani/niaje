@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/providers/auth-provider";
 import { Link, useRouter } from "@tanstack/react-router";
 import {
+  Activity,
   BarChart,
   Building,
   CalendarDays,
@@ -67,6 +68,22 @@ export function MainSidebar({ open, onOpenChange, ...props }: SidebarProps) {
         roles: ["landlord", "caretaker", "agent"],
       },
       {
+        title: "Activities",
+        icon: Activity,
+        path: "/activities",
+        roles: ["landlord", "caretaker", "agent"],
+      },
+      {
+        title: "Maintenance",
+        icon: Wrench,
+        path: "/maintenance",
+        roles: ["landlord", "caretaker"],
+        subItems: [
+          { title: "Requests", path: "/maintenance/requests" },
+          { title: "Work Orders", path: "/maintenance/work-orders" },
+        ],
+      },
+      {
         title: "Units",
         icon: Building,
         path: "/units",
@@ -84,12 +101,7 @@ export function MainSidebar({ open, onOpenChange, ...props }: SidebarProps) {
         path: "/leases",
         roles: ["landlord", "agent"],
       },
-      {
-        title: "Maintenance",
-        icon: Wrench,
-        path: "/maintenance",
-        roles: ["landlord", "caretaker"],
-      },
+
       {
         title: "Finances",
         icon: CreditCard,
