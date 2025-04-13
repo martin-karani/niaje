@@ -20,12 +20,15 @@ import { Route as AuthenticatedUnitsIndexImport } from './routes/_authenticated/
 import { Route as AuthenticatedTenantsIndexImport } from './routes/_authenticated/tenants/index'
 import { Route as AuthenticatedSettingsIndexImport } from './routes/_authenticated/settings/index'
 import { Route as AuthenticatedReportsIndexImport } from './routes/_authenticated/reports/index'
+import { Route as AuthenticatedPropertiesIndexImport } from './routes/_authenticated/properties/index'
+import { Route as AuthenticatedMessagingIndexImport } from './routes/_authenticated/messaging/index'
 import { Route as AuthenticatedLeasesIndexImport } from './routes/_authenticated/leases/index'
 import { Route as AuthenticatedDashboardIndexImport } from './routes/_authenticated/dashboard/index'
 import { Route as AuthenticatedCalendarIndexImport } from './routes/_authenticated/calendar/index'
 import { Route as AuthenticatedActivitiesIndexImport } from './routes/_authenticated/activities/index'
 import { Route as AuthenticatedTenantsTenantIdImport } from './routes/_authenticated/tenants/$tenantId'
 import { Route as AuthenticatedSettingsRolesPermissionImport } from './routes/_authenticated/settings/roles-permission'
+import { Route as AuthenticatedPropertiesTableImport } from './routes/_authenticated/properties/table'
 import { Route as AuthenticatedMaintenanceWorkOrdersImport } from './routes/_authenticated/maintenance/work-orders'
 import { Route as AuthenticatedMaintenanceRequestsImport } from './routes/_authenticated/maintenance/requests'
 import { Route as AuthenticatedFinancesPaymentsImport } from './routes/_authenticated/finances/payments'
@@ -88,6 +91,20 @@ const AuthenticatedReportsIndexRoute = AuthenticatedReportsIndexImport.update({
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 
+const AuthenticatedPropertiesIndexRoute =
+  AuthenticatedPropertiesIndexImport.update({
+    id: '/properties/',
+    path: '/properties/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+
+const AuthenticatedMessagingIndexRoute =
+  AuthenticatedMessagingIndexImport.update({
+    id: '/messaging/',
+    path: '/messaging/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+
 const AuthenticatedLeasesIndexRoute = AuthenticatedLeasesIndexImport.update({
   id: '/leases/',
   path: '/leases/',
@@ -127,6 +144,13 @@ const AuthenticatedSettingsRolesPermissionRoute =
   AuthenticatedSettingsRolesPermissionImport.update({
     id: '/settings/roles-permission',
     path: '/settings/roles-permission',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+
+const AuthenticatedPropertiesTableRoute =
+  AuthenticatedPropertiesTableImport.update({
+    id: '/properties/table',
+    path: '/properties/table',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 
@@ -225,6 +249,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMaintenanceWorkOrdersImport
       parentRoute: typeof AuthenticatedImport
     }
+    '/_authenticated/properties/table': {
+      id: '/_authenticated/properties/table'
+      path: '/properties/table'
+      fullPath: '/properties/table'
+      preLoaderRoute: typeof AuthenticatedPropertiesTableImport
+      parentRoute: typeof AuthenticatedImport
+    }
     '/_authenticated/settings/roles-permission': {
       id: '/_authenticated/settings/roles-permission'
       path: '/settings/roles-permission'
@@ -267,6 +298,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLeasesIndexImport
       parentRoute: typeof AuthenticatedImport
     }
+    '/_authenticated/messaging/': {
+      id: '/_authenticated/messaging/'
+      path: '/messaging'
+      fullPath: '/messaging'
+      preLoaderRoute: typeof AuthenticatedMessagingIndexImport
+      parentRoute: typeof AuthenticatedImport
+    }
+    '/_authenticated/properties/': {
+      id: '/_authenticated/properties/'
+      path: '/properties'
+      fullPath: '/properties'
+      preLoaderRoute: typeof AuthenticatedPropertiesIndexImport
+      parentRoute: typeof AuthenticatedImport
+    }
     '/_authenticated/reports/': {
       id: '/_authenticated/reports/'
       path: '/reports'
@@ -305,12 +350,15 @@ interface AuthenticatedRouteChildren {
   AuthenticatedFinancesPaymentsRoute: typeof AuthenticatedFinancesPaymentsRoute
   AuthenticatedMaintenanceRequestsRoute: typeof AuthenticatedMaintenanceRequestsRoute
   AuthenticatedMaintenanceWorkOrdersRoute: typeof AuthenticatedMaintenanceWorkOrdersRoute
+  AuthenticatedPropertiesTableRoute: typeof AuthenticatedPropertiesTableRoute
   AuthenticatedSettingsRolesPermissionRoute: typeof AuthenticatedSettingsRolesPermissionRoute
   AuthenticatedTenantsTenantIdRoute: typeof AuthenticatedTenantsTenantIdRoute
   AuthenticatedActivitiesIndexRoute: typeof AuthenticatedActivitiesIndexRoute
   AuthenticatedCalendarIndexRoute: typeof AuthenticatedCalendarIndexRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedLeasesIndexRoute: typeof AuthenticatedLeasesIndexRoute
+  AuthenticatedMessagingIndexRoute: typeof AuthenticatedMessagingIndexRoute
+  AuthenticatedPropertiesIndexRoute: typeof AuthenticatedPropertiesIndexRoute
   AuthenticatedReportsIndexRoute: typeof AuthenticatedReportsIndexRoute
   AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
   AuthenticatedTenantsIndexRoute: typeof AuthenticatedTenantsIndexRoute
@@ -323,6 +371,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedMaintenanceRequestsRoute: AuthenticatedMaintenanceRequestsRoute,
   AuthenticatedMaintenanceWorkOrdersRoute:
     AuthenticatedMaintenanceWorkOrdersRoute,
+  AuthenticatedPropertiesTableRoute: AuthenticatedPropertiesTableRoute,
   AuthenticatedSettingsRolesPermissionRoute:
     AuthenticatedSettingsRolesPermissionRoute,
   AuthenticatedTenantsTenantIdRoute: AuthenticatedTenantsTenantIdRoute,
@@ -330,6 +379,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedCalendarIndexRoute: AuthenticatedCalendarIndexRoute,
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
   AuthenticatedLeasesIndexRoute: AuthenticatedLeasesIndexRoute,
+  AuthenticatedMessagingIndexRoute: AuthenticatedMessagingIndexRoute,
+  AuthenticatedPropertiesIndexRoute: AuthenticatedPropertiesIndexRoute,
   AuthenticatedReportsIndexRoute: AuthenticatedReportsIndexRoute,
   AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
   AuthenticatedTenantsIndexRoute: AuthenticatedTenantsIndexRoute,
@@ -350,12 +401,15 @@ export interface FileRoutesByFullPath {
   '/finances/payments': typeof AuthenticatedFinancesPaymentsRoute
   '/maintenance/requests': typeof AuthenticatedMaintenanceRequestsRoute
   '/maintenance/work-orders': typeof AuthenticatedMaintenanceWorkOrdersRoute
+  '/properties/table': typeof AuthenticatedPropertiesTableRoute
   '/settings/roles-permission': typeof AuthenticatedSettingsRolesPermissionRoute
   '/tenants/$tenantId': typeof AuthenticatedTenantsTenantIdRoute
   '/activities': typeof AuthenticatedActivitiesIndexRoute
   '/calendar': typeof AuthenticatedCalendarIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/leases': typeof AuthenticatedLeasesIndexRoute
+  '/messaging': typeof AuthenticatedMessagingIndexRoute
+  '/properties': typeof AuthenticatedPropertiesIndexRoute
   '/reports': typeof AuthenticatedReportsIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/tenants': typeof AuthenticatedTenantsIndexRoute
@@ -372,12 +426,15 @@ export interface FileRoutesByTo {
   '/finances/payments': typeof AuthenticatedFinancesPaymentsRoute
   '/maintenance/requests': typeof AuthenticatedMaintenanceRequestsRoute
   '/maintenance/work-orders': typeof AuthenticatedMaintenanceWorkOrdersRoute
+  '/properties/table': typeof AuthenticatedPropertiesTableRoute
   '/settings/roles-permission': typeof AuthenticatedSettingsRolesPermissionRoute
   '/tenants/$tenantId': typeof AuthenticatedTenantsTenantIdRoute
   '/activities': typeof AuthenticatedActivitiesIndexRoute
   '/calendar': typeof AuthenticatedCalendarIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/leases': typeof AuthenticatedLeasesIndexRoute
+  '/messaging': typeof AuthenticatedMessagingIndexRoute
+  '/properties': typeof AuthenticatedPropertiesIndexRoute
   '/reports': typeof AuthenticatedReportsIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/tenants': typeof AuthenticatedTenantsIndexRoute
@@ -395,12 +452,15 @@ export interface FileRoutesById {
   '/_authenticated/finances/payments': typeof AuthenticatedFinancesPaymentsRoute
   '/_authenticated/maintenance/requests': typeof AuthenticatedMaintenanceRequestsRoute
   '/_authenticated/maintenance/work-orders': typeof AuthenticatedMaintenanceWorkOrdersRoute
+  '/_authenticated/properties/table': typeof AuthenticatedPropertiesTableRoute
   '/_authenticated/settings/roles-permission': typeof AuthenticatedSettingsRolesPermissionRoute
   '/_authenticated/tenants/$tenantId': typeof AuthenticatedTenantsTenantIdRoute
   '/_authenticated/activities/': typeof AuthenticatedActivitiesIndexRoute
   '/_authenticated/calendar/': typeof AuthenticatedCalendarIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/leases/': typeof AuthenticatedLeasesIndexRoute
+  '/_authenticated/messaging/': typeof AuthenticatedMessagingIndexRoute
+  '/_authenticated/properties/': typeof AuthenticatedPropertiesIndexRoute
   '/_authenticated/reports/': typeof AuthenticatedReportsIndexRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/_authenticated/tenants/': typeof AuthenticatedTenantsIndexRoute
@@ -419,12 +479,15 @@ export interface FileRouteTypes {
     | '/finances/payments'
     | '/maintenance/requests'
     | '/maintenance/work-orders'
+    | '/properties/table'
     | '/settings/roles-permission'
     | '/tenants/$tenantId'
     | '/activities'
     | '/calendar'
     | '/dashboard'
     | '/leases'
+    | '/messaging'
+    | '/properties'
     | '/reports'
     | '/settings'
     | '/tenants'
@@ -440,12 +503,15 @@ export interface FileRouteTypes {
     | '/finances/payments'
     | '/maintenance/requests'
     | '/maintenance/work-orders'
+    | '/properties/table'
     | '/settings/roles-permission'
     | '/tenants/$tenantId'
     | '/activities'
     | '/calendar'
     | '/dashboard'
     | '/leases'
+    | '/messaging'
+    | '/properties'
     | '/reports'
     | '/settings'
     | '/tenants'
@@ -461,12 +527,15 @@ export interface FileRouteTypes {
     | '/_authenticated/finances/payments'
     | '/_authenticated/maintenance/requests'
     | '/_authenticated/maintenance/work-orders'
+    | '/_authenticated/properties/table'
     | '/_authenticated/settings/roles-permission'
     | '/_authenticated/tenants/$tenantId'
     | '/_authenticated/activities/'
     | '/_authenticated/calendar/'
     | '/_authenticated/dashboard/'
     | '/_authenticated/leases/'
+    | '/_authenticated/messaging/'
+    | '/_authenticated/properties/'
     | '/_authenticated/reports/'
     | '/_authenticated/settings/'
     | '/_authenticated/tenants/'
@@ -517,12 +586,15 @@ export const routeTree = rootRoute
         "/_authenticated/finances/payments",
         "/_authenticated/maintenance/requests",
         "/_authenticated/maintenance/work-orders",
+        "/_authenticated/properties/table",
         "/_authenticated/settings/roles-permission",
         "/_authenticated/tenants/$tenantId",
         "/_authenticated/activities/",
         "/_authenticated/calendar/",
         "/_authenticated/dashboard/",
         "/_authenticated/leases/",
+        "/_authenticated/messaging/",
+        "/_authenticated/properties/",
         "/_authenticated/reports/",
         "/_authenticated/settings/",
         "/_authenticated/tenants/",
@@ -554,6 +626,10 @@ export const routeTree = rootRoute
       "filePath": "_authenticated/maintenance/work-orders.tsx",
       "parent": "/_authenticated"
     },
+    "/_authenticated/properties/table": {
+      "filePath": "_authenticated/properties/table.tsx",
+      "parent": "/_authenticated"
+    },
     "/_authenticated/settings/roles-permission": {
       "filePath": "_authenticated/settings/roles-permission.tsx",
       "parent": "/_authenticated"
@@ -576,6 +652,14 @@ export const routeTree = rootRoute
     },
     "/_authenticated/leases/": {
       "filePath": "_authenticated/leases/index.tsx",
+      "parent": "/_authenticated"
+    },
+    "/_authenticated/messaging/": {
+      "filePath": "_authenticated/messaging/index.tsx",
+      "parent": "/_authenticated"
+    },
+    "/_authenticated/properties/": {
+      "filePath": "_authenticated/properties/index.tsx",
       "parent": "/_authenticated"
     },
     "/_authenticated/reports/": {

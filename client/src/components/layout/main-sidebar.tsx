@@ -124,9 +124,9 @@ export function MainSidebar({ open, onOpenChange, ...props }: SidebarProps) {
         roles: ["landlord"],
       },
       {
-        title: "Calendar",
+        title: "Messaging",
         icon: CalendarDays,
-        path: "/calendar",
+        path: "/messaging",
         roles: ["landlord", "caretaker", "agent"],
       },
       {

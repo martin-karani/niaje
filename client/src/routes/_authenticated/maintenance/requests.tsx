@@ -13,24 +13,32 @@ export const Route = createFileRoute("/_authenticated/maintenance/requests")({
 function MaintenanceRequests() {
   const { user, activeProperty } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
 
-  // Fetch maintenance requests using the hook
+  // Fetch maintenance requests using the enhanced hook
   const {
     getAll,
+    getById,
     create: createRequest,
     update: updateRequest,
+    pushToQueue,
   } = useMaintenance();
 
-  // Fetch requests
+  // Fetch requests with search filter
   const {
     data: maintenanceData,
     isLoading,
     error,
   } = getAll({
     propertyId: activeProperty?.id,
+    search: searchTerm || undefined,
   });
+
+  // Fetch details for the selected request
+  const { data: selectedRequestDetails, isLoading: isLoadingDetails } = getById(
+    selectedRequest || ""
+  );
 
   // Handle request creation
   const handleCreateRequest = async (requestData: any) => {
@@ -48,10 +56,10 @@ function MaintenanceRequests() {
   // Handle pushing a request to the queue (creating a work order)
   const handlePushToQueue = async () => {
     if (!selectedRequest) return;
+
     try {
-      await updateRequest.mutateAsync({
-        id: selectedRequest.id,
-        status: "processed",
+      await pushToQueue.mutateAsync({
+        requestId: selectedRequest,
       });
       setSelectedRequest(null);
     } catch (error) {
@@ -62,10 +70,11 @@ function MaintenanceRequests() {
   // Handle declining a request
   const handleDecline = async () => {
     if (!selectedRequest) return;
+
     try {
       await updateRequest.mutateAsync({
-        id: selectedRequest.id,
-        status: "declined",
+        id: selectedRequest,
+        status: "cancelled",
       });
       setSelectedRequest(null);
     } catch (error) {
@@ -125,6 +134,7 @@ function MaintenanceRequests() {
               variant="outline"
               size="icon"
               className="h-10 w-10 bg-primary text-white"
+              onClick={() => setShowNewRequestModal(true)}
             >
               <Plus className="h-5 w-5" />
             </Button>
@@ -144,8 +154,12 @@ function MaintenanceRequests() {
               <RequestItem
                 key={request.id}
                 request={request}
-                isSelected={selectedRequest?.id === request.id}
-                onClick={() => setSelectedRequest(request)}
+                isSelected={selectedRequest === request.id}
+                onClick={() =>
+                  setSelectedRequest(
+                    selectedRequest === request.id ? null : request.id
+                  )
+                }
               />
             ))
           ) : (
@@ -171,103 +185,165 @@ function MaintenanceRequests() {
 
       {/* Request Detail */}
       <div className="w-1/3 flex flex-col overflow-hidden bg-muted/10">
-        {selectedRequest ? (
-          <>
-            <div className="p-4 border-b flex items-center justify-between">
-              <div className="flex items-center">
-                <h2 className="text-xl font-semibold">Request</h2>
-                <div className="ml-2 px-3 py-1 rounded-md bg-green-500 text-white text-sm">
-                  New
+        {selectedRequest && selectedRequestDetails ? (
+          isLoadingDetails ? (
+            <div className="flex items-center justify-center h-full">
+              <LoadingSpinner size="md" />
+              <p className="ml-2">Loading details...</p>
+            </div>
+          ) : (
+            <>
+              <div className="p-4 border-b flex items-center justify-between">
+                <div className="flex items-center">
+                  <h2 className="text-xl font-semibold">Request</h2>
+                  <div className="ml-2 px-3 py-1 rounded-md bg-green-500 text-white text-sm">
+                    {selectedRequestDetails.status || "New"}
+                  </div>
                 </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground border rounded-md px-3"
+                  onClick={() => setSelectedRequest(null)}
+                >
+                  Close <X className="ml-1 h-4 w-4" />
+                </Button>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground border rounded-md px-3"
-                onClick={() => setSelectedRequest(null)}
-              >
-                Close <X className="ml-1 h-4 w-4" />
-              </Button>
-            </div>
-            <div className="p-4 border-b text-sm text-muted-foreground">
-              <p>January 22, 2023</p>
-              <p>10:00 AM</p>
-            </div>
-
-            <div className="p-4 border-b">
-              <div className="flex items-center mb-3">
-                <div className="w-8 h-8 rounded-full bg-muted/20 mr-2 overflow-hidden">
-                  {selectedRequest.tenant?.image ? (
-                    <img
-                      src={selectedRequest.tenant.image}
-                      alt={selectedRequest.tenant.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <User className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <p className="font-medium">
-                    {selectedRequest.tenant?.name || "Unknown Tenant"}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Unit {selectedRequest.unit?.name || "Unknown"}
-                  </p>
-                </div>
+              <div className="p-4 border-b text-sm text-muted-foreground">
+                <p>
+                  {new Date(
+                    selectedRequestDetails.reportedAt ||
+                      selectedRequestDetails.createdAt
+                  ).toLocaleDateString()}
+                </p>
+                <p>
+                  {new Date(
+                    selectedRequestDetails.reportedAt ||
+                      selectedRequestDetails.createdAt
+                  ).toLocaleTimeString(undefined, {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
               </div>
 
-              <p className="mb-4">{selectedRequest.description}</p>
-            </div>
-
-            {/* Evidence section with images */}
-            <div className="p-4 border-b">
-              <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                Evidence
-              </h3>
-              <div className="grid grid-cols-3 gap-2">
-                {selectedRequest.images && selectedRequest.images.length > 0
-                  ? selectedRequest.images.map((img: string, index: number) => (
-                      <div
-                        key={index}
-                        className="aspect-square bg-muted/20 rounded-md overflow-hidden"
-                      >
-                        <img
-                          src={img}
-                          alt={`Evidence ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
+              <div className="p-4 border-b">
+                <div className="flex items-center mb-3">
+                  <div className="w-8 h-8 rounded-full bg-muted/20 mr-2 overflow-hidden">
+                    {selectedRequestDetails.tenant?.image ? (
+                      <img
+                        src={selectedRequestDetails.tenant.image}
+                        alt={selectedRequestDetails.tenant.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <User className="h-5 w-5 text-muted-foreground" />
                       </div>
-                    ))
-                  : Array(3)
-                      .fill(0)
-                      .map((_, index) => (
-                        <div
-                          key={index}
-                          className="aspect-square bg-muted/20 rounded-md"
-                        />
-                      ))}
-              </div>
-            </div>
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-medium">
+                      {selectedRequestDetails.tenant?.name || "Unknown Tenant"}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Unit {selectedRequestDetails.unit?.name || "Unknown"}
+                    </p>
+                  </div>
+                </div>
 
-            <div className="mt-auto p-4 space-y-3">
-              <Button
-                className="w-full bg-black text-white hover:bg-gray-800"
-                onClick={handlePushToQueue}
-              >
-                Push to queue
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={handleDecline}
-              >
-                Decline
-              </Button>
-            </div>
-          </>
+                <p className="mb-4">{selectedRequestDetails.description}</p>
+                <p className="text-sm font-medium mb-2">
+                  Title: {selectedRequestDetails.title}
+                </p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Priority:{" "}
+                  <span className="font-medium">
+                    {selectedRequestDetails.priority || "Medium"}
+                  </span>
+                </p>
+              </div>
+
+              {/* Evidence section with images */}
+              <div className="p-4 border-b">
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">
+                  Evidence
+                </h3>
+                <div className="grid grid-cols-3 gap-2">
+                  {selectedRequestDetails.images &&
+                  selectedRequestDetails.images.length > 0
+                    ? selectedRequestDetails.images.map(
+                        (img: string, index: number) => (
+                          <div
+                            key={index}
+                            className="aspect-square bg-muted/20 rounded-md overflow-hidden"
+                          >
+                            <img
+                              src={img}
+                              alt={`Evidence ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        )
+                      )
+                    : Array(3)
+                        .fill(0)
+                        .map((_, index) => (
+                          <div
+                            key={index}
+                            className="aspect-square bg-muted/20 rounded-md"
+                          />
+                        ))}
+                </div>
+              </div>
+
+              {/* Comments section */}
+              {selectedRequestDetails.comments &&
+                selectedRequestDetails.comments.length > 0 && (
+                  <div className="p-4 border-b">
+                    <h3 className="text-sm font-medium text-muted-foreground mb-3">
+                      Comments
+                    </h3>
+                    <div className="space-y-3">
+                      {selectedRequestDetails.comments.map((comment) => (
+                        <div
+                          key={comment.id}
+                          className="p-3 bg-muted/10 rounded-md"
+                        >
+                          <div className="flex justify-between mb-1">
+                            <span className="text-sm font-medium">
+                              {comment.user?.name || "Unknown"}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(comment.createdAt).toLocaleString()}
+                            </span>
+                          </div>
+                          <p className="text-sm">{comment.content}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+              <div className="mt-auto p-4 space-y-3">
+                <Button
+                  className="w-full bg-black text-white hover:bg-gray-800"
+                  onClick={handlePushToQueue}
+                  disabled={pushToQueue.isPending}
+                >
+                  {pushToQueue.isPending ? "Processing..." : "Push to queue"}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleDecline}
+                  disabled={updateRequest.isPending}
+                >
+                  {updateRequest.isPending ? "Processing..." : "Decline"}
+                </Button>
+              </div>
+            </>
+          )
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-center p-6">
             <p className="text-muted-foreground">
@@ -282,6 +358,7 @@ function MaintenanceRequests() {
         <NewRequestModal
           onClose={() => setShowNewRequestModal(false)}
           onSubmit={handleCreateRequest}
+          isPending={createRequest.isPending}
         />
       )}
     </div>
@@ -291,7 +368,7 @@ function MaintenanceRequests() {
 // Request Item Component
 const RequestItem = ({ request, isSelected, onClick }: any) => {
   // Format date to match the design
-  const formatDate = (date: string) => {
+  const formatDate = (date: string | Date) => {
     const d = new Date(date);
     const monthNames = [
       "January",
@@ -323,22 +400,31 @@ const RequestItem = ({ request, isSelected, onClick }: any) => {
 
   // Get status badge style
   const getStatusBadge = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch (status?.toLowerCase()) {
+      case "open":
       case "new":
         return (
           <div className="px-3 py-1 bg-green-500 text-white rounded-md text-xs font-medium">
             New
           </div>
         );
+      case "in_progress":
       case "processed":
         return (
           <div className="px-3 py-1 bg-cyan-500 text-white rounded-md text-xs font-medium">
             Processed
           </div>
         );
-      case "declined":
+      case "completed":
         return (
           <div className="px-3 py-1 bg-gray-500 text-white rounded-md text-xs font-medium">
+            Completed
+          </div>
+        );
+      case "cancelled":
+      case "canceled":
+        return (
+          <div className="px-3 py-1 bg-red-500 text-white rounded-md text-xs font-medium">
             Declined
           </div>
         );
@@ -409,7 +495,7 @@ const RequestItem = ({ request, isSelected, onClick }: any) => {
 };
 
 // New Request Modal Component
-const NewRequestModal = ({ onClose, onSubmit }: any) => {
+const NewRequestModal = ({ onClose, onSubmit, isPending }: any) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("medium");
@@ -474,7 +560,7 @@ const NewRequestModal = ({ onClose, onSubmit }: any) => {
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
                 <option value="high">High</option>
-                <option value="urgent">Urgent</option>
+                <option value="emergency">Urgent</option>
               </select>
             </div>
 
@@ -499,7 +585,9 @@ const NewRequestModal = ({ onClose, onSubmit }: any) => {
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit">Create Request</Button>
+              <Button type="submit" disabled={isPending}>
+                {isPending ? "Creating..." : "Create Request"}
+              </Button>
             </div>
           </form>
         </div>
@@ -507,4 +595,5 @@ const NewRequestModal = ({ onClose, onSubmit }: any) => {
     </div>
   );
 };
+
 export default MaintenanceRequests;
