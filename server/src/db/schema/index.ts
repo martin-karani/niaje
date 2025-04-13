@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import { accounts, accountsRelations } from "./accounts";
+import { activitiesRelations } from "./activities";
 import { documents, documentsRelations } from "./documents";
 import {
   maintenanceCategoriesRelations,
@@ -74,6 +75,7 @@ const tenantsRelations = relations(tenants, ({ many }) => ({
 }));
 
 export * from "./accounts";
+export * from "./activities";
 export * from "./audit";
 export * from "./documents";
 export * from "./maintenance";
@@ -85,6 +87,7 @@ export * from "./verifications";
 
 export {
   accountsRelations,
+  activitiesRelations,
   documentsRelations,
   leasesRelations,
   maintenanceCategoriesRelations,
