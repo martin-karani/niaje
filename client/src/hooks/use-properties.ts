@@ -1,48 +1,62 @@
-import { queryClient, trpc } from "@/utils/trpc";
+import { useAuth } from "@/providers/auth-provider";
+import { trpc } from "@/utils/trpc";
 
-// Utility hook for property-related queries
-export const useProperties = () => {
-  // Get all properties
-  const getAll = () => {
-    return trpc.properties.getAll.useQuery(undefined, {
-      staleTime: 10 * 60 * 1000, // 10 minutes
-    });
+export function useProperties() {
+  const { properties, activeProperty, setActiveProperty } = useAuth();
+
+  // Fetch properties from the server
+  const { data, isLoading, error, refetch } =
+    trpc.properties.getAll.useQuery(undefined);
+
+  // Get property stats
+  const getPropertyStats = (propertyId: string) => {
+    return trpc.units.getStats.useQuery(
+      { propertyId },
+      {
+        enabled: !!propertyId,
+        staleTime: 1000 * 60 * 5, // 5 minutes
+      }
+    );
   };
 
-  // Get property by ID
-  const getById = (propertyId: string) => {
-    return trpc.properties.getById.useQuery({ id: propertyId });
+  // Get lease stats for a property
+  const getLeaseStats = (propertyId: string) => {
+    return trpc.leases.getStats.useQuery(
+      { propertyId },
+      {
+        enabled: !!propertyId,
+        staleTime: 1000 * 60 * 5, // 5 minutes
+      }
+    );
   };
 
-  // Create property mutation
-  const create = trpc.properties.create.useMutation({
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [["properties", "getAll"]] });
-    },
-  });
+  // Get maintenance stats for a property
+  const getMaintenanceStats = (propertyId: string) => {
+    return trpc.maintenance.getStats.useQuery(
+      { propertyId },
+      {
+        enabled: !!propertyId,
+        staleTime: 1000 * 60 * 5, // 5 minutes
+      }
+    );
+  };
 
-  // Update property mutation
-  const update = trpc.properties.update.useMutation({
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: [["properties", "getAll"]] });
-      queryClient.invalidateQueries({
-        queryKey: [["properties", "getById"], { id: data.id }],
-      });
-    },
-  });
-
-  // Delete property mutation
-  const deleteProperty = trpc.properties.delete.useMutation({
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [["properties", "getAll"]] });
-    },
-  });
+  // Set active property
+  const setActive = (property: any) => {
+    if (setActiveProperty) {
+      setActiveProperty(property);
+    }
+  };
 
   return {
-    getAll,
-    getById,
-    create,
-    update,
-    delete: deleteProperty,
+    properties: data,
+    activeProperty,
+    setActiveProperty: setActive,
+    isLoading,
+    error,
+    refetch,
+    getPropertyStats,
+    getLeaseStats,
+    getMaintenanceStats,
   };
-};
+}

@@ -15,7 +15,7 @@ export const useActivities = () => {
   });
 
   // Clear all activities
-  const clearAll = trpc.activities.clearAll.useMutation({
+  const clearAllActivities = trpc.activities.clearAll.useMutation({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [["activities", "getAll"]] });
     },
@@ -24,6 +24,6 @@ export const useActivities = () => {
   return {
     getAll,
     clearActivity,
-    clearAll,
+    clearAllActivities,
   };
 };
