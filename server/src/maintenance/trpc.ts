@@ -8,7 +8,6 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
   assignMaintenanceRequestDto,
-  createMaintenanceCategoryDto,
   createMaintenanceCommentDto,
   createMaintenanceRequestDto,
   generateMaintenanceReportDto,
@@ -16,6 +15,7 @@ import {
   maintenanceRequestIdDto,
   resolveMaintenanceRequestDto,
   updateMaintenanceRequestDto,
+  workOrderFilterDto,
 } from "./dto/maintenance.dto";
 import { maintenanceService } from "./services/maintenance.service";
 
@@ -37,6 +37,46 @@ export const maintenanceRouter = router({
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to fetch maintenance requests",
+        });
+      }
+    }),
+
+  // Get maintenance requests only
+  getRequests: maintenanceManageProcedure
+    .input(maintenanceRequestFilterDto)
+    .query(async ({ ctx, input }) => {
+      try {
+        return await maintenanceService.getMaintenanceRequests(
+          input,
+          ctx.user.id,
+          ctx.user.role
+        );
+      } catch (error: any) {
+        // Error handling...
+        console.error("Error fetching maintenance requests:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch maintenance requests",
+        });
+      }
+    }),
+
+  // Get work orders
+  getWorkOrders: maintenanceManageProcedure
+    .input(workOrderFilterDto)
+    .query(async ({ ctx, input }) => {
+      try {
+        return await maintenanceService.getWorkOrders(
+          input,
+          ctx.user.id,
+          ctx.user.role
+        );
+      } catch (error: any) {
+        // Error handling...
+        console.error("Error fetching work orders:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch work orders",
         });
       }
     }),
@@ -125,6 +165,44 @@ export const maintenanceRouter = router({
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to update maintenance request",
+        });
+      }
+    }),
+
+  // Push a request to the work order queue
+  pushToQueue: maintenanceManageProcedure
+    .input(
+      z.object({
+        requestId: z.string(),
+        workOrderData: z
+          .object({
+            title: z.string().optional(),
+            description: z.string().optional(),
+            priority: z.enum(["normal", "high", "urgent"]).optional(),
+            category: z.string().optional(),
+            notes: z.string().optional(),
+          })
+          .optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      try {
+        return await maintenanceService.pushToWorkOrderQueue(
+          input.requestId,
+          ctx.user.id,
+          input.workOrderData
+        );
+      } catch (error: any) {
+        if (error.name === "NotFoundError") {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: error.message,
+          });
+        }
+        console.error("Error pushing request to queue:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to push request to work order queue",
         });
       }
     }),
@@ -273,30 +351,55 @@ export const maintenanceRouter = router({
       }
     }),
 
-  // Create a new maintenance category
-  createCategory: maintenanceManageProcedure
-    .input(createMaintenanceCategoryDto)
+  // Get activities
+  getActivities: protectedProcedure.query(async ({ ctx }) => {
+    try {
+      return await maintenanceService.getActivities(ctx.user.id, ctx.user.role);
+    } catch (error: any) {
+      // Error handling...
+      console.error("Error fetching activities:", error);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to fetch activities",
+      });
+    }
+  }),
+
+  // Clear activity
+  clearActivity: protectedProcedure
+    .input(z.object({ activityId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       try {
-        return maintenanceService.createMaintenanceCategory(
-          input,
+        await maintenanceService.clearActivity(
+          input.activityId,
           ctx.user.id,
           ctx.user.role
         );
+        return { success: true };
       } catch (error: any) {
-        if (error.name === "PermissionError") {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: error.message,
-          });
-        }
-        console.error("Error creating maintenance category:", error);
+        // Error handling...
+        console.error("Error clearing activity:", error);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to create maintenance category",
+          message: "Failed to clear activity",
         });
       }
     }),
+
+  // Clear all activities
+  clearAllActivities: protectedProcedure.mutation(async ({ ctx }) => {
+    try {
+      await maintenanceService.clearAllActivities(ctx.user.id, ctx.user.role);
+      return { success: true };
+    } catch (error: any) {
+      // Error handling...
+      console.error("Error clearing all activities:", error);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to clear all activities",
+      });
+    }
+  }),
 
   // Get all maintenance categories
   getCategories: protectedProcedure.query(async ({ ctx }) => {
@@ -335,4 +438,54 @@ export const maintenanceRouter = router({
         });
       }
     }),
+});
+
+// Create a new activities router
+export const activitiesRouter = router({
+  getAll: protectedProcedure.query(async ({ ctx }) => {
+    try {
+      return await maintenanceService.getActivities(ctx.user.id, ctx.user.role);
+    } catch (error: any) {
+      // Error handling...
+      console.error("Error fetching activities:", error);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to fetch activities",
+      });
+    }
+  }),
+
+  clear: protectedProcedure
+    .input(z.object({ activityId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      try {
+        await maintenanceService.clearActivity(
+          input.activityId,
+          ctx.user.id,
+          ctx.user.role
+        );
+        return { success: true };
+      } catch (error: any) {
+        // Error handling...
+        console.error("Error clearing activity:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to clear activity",
+        });
+      }
+    }),
+
+  clearAll: protectedProcedure.mutation(async ({ ctx }) => {
+    try {
+      await maintenanceService.clearAllActivities(ctx.user.id, ctx.user.role);
+      return { success: true };
+    } catch (error: any) {
+      // Error handling...
+      console.error("Error clearing all activities:", error);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to clear all activities",
+      });
+    }
+  }),
 });

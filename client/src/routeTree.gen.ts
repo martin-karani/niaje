@@ -23,6 +23,7 @@ import { Route as AuthenticatedReportsIndexImport } from './routes/_authenticate
 import { Route as AuthenticatedLeasesIndexImport } from './routes/_authenticated/leases/index'
 import { Route as AuthenticatedDashboardIndexImport } from './routes/_authenticated/dashboard/index'
 import { Route as AuthenticatedCalendarIndexImport } from './routes/_authenticated/calendar/index'
+import { Route as AuthenticatedActivitiesIndexImport } from './routes/_authenticated/activities/index'
 import { Route as AuthenticatedTenantsTenantIdImport } from './routes/_authenticated/tenants/$tenantId'
 import { Route as AuthenticatedSettingsRolesPermissionImport } from './routes/_authenticated/settings/roles-permission'
 import { Route as AuthenticatedMaintenanceWorkOrdersImport } from './routes/_authenticated/maintenance/work-orders'
@@ -107,6 +108,13 @@ const AuthenticatedCalendarIndexRoute = AuthenticatedCalendarIndexImport.update(
     getParentRoute: () => AuthenticatedRoute,
   } as any,
 )
+
+const AuthenticatedActivitiesIndexRoute =
+  AuthenticatedActivitiesIndexImport.update({
+    id: '/activities/',
+    path: '/activities/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 const AuthenticatedTenantsTenantIdRoute =
   AuthenticatedTenantsTenantIdImport.update({
@@ -231,6 +239,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTenantsTenantIdImport
       parentRoute: typeof AuthenticatedImport
     }
+    '/_authenticated/activities/': {
+      id: '/_authenticated/activities/'
+      path: '/activities'
+      fullPath: '/activities'
+      preLoaderRoute: typeof AuthenticatedActivitiesIndexImport
+      parentRoute: typeof AuthenticatedImport
+    }
     '/_authenticated/calendar/': {
       id: '/_authenticated/calendar/'
       path: '/calendar'
@@ -292,6 +307,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedMaintenanceWorkOrdersRoute: typeof AuthenticatedMaintenanceWorkOrdersRoute
   AuthenticatedSettingsRolesPermissionRoute: typeof AuthenticatedSettingsRolesPermissionRoute
   AuthenticatedTenantsTenantIdRoute: typeof AuthenticatedTenantsTenantIdRoute
+  AuthenticatedActivitiesIndexRoute: typeof AuthenticatedActivitiesIndexRoute
   AuthenticatedCalendarIndexRoute: typeof AuthenticatedCalendarIndexRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedLeasesIndexRoute: typeof AuthenticatedLeasesIndexRoute
@@ -310,6 +326,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedSettingsRolesPermissionRoute:
     AuthenticatedSettingsRolesPermissionRoute,
   AuthenticatedTenantsTenantIdRoute: AuthenticatedTenantsTenantIdRoute,
+  AuthenticatedActivitiesIndexRoute: AuthenticatedActivitiesIndexRoute,
   AuthenticatedCalendarIndexRoute: AuthenticatedCalendarIndexRoute,
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
   AuthenticatedLeasesIndexRoute: AuthenticatedLeasesIndexRoute,
@@ -335,6 +352,7 @@ export interface FileRoutesByFullPath {
   '/maintenance/work-orders': typeof AuthenticatedMaintenanceWorkOrdersRoute
   '/settings/roles-permission': typeof AuthenticatedSettingsRolesPermissionRoute
   '/tenants/$tenantId': typeof AuthenticatedTenantsTenantIdRoute
+  '/activities': typeof AuthenticatedActivitiesIndexRoute
   '/calendar': typeof AuthenticatedCalendarIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/leases': typeof AuthenticatedLeasesIndexRoute
@@ -356,6 +374,7 @@ export interface FileRoutesByTo {
   '/maintenance/work-orders': typeof AuthenticatedMaintenanceWorkOrdersRoute
   '/settings/roles-permission': typeof AuthenticatedSettingsRolesPermissionRoute
   '/tenants/$tenantId': typeof AuthenticatedTenantsTenantIdRoute
+  '/activities': typeof AuthenticatedActivitiesIndexRoute
   '/calendar': typeof AuthenticatedCalendarIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/leases': typeof AuthenticatedLeasesIndexRoute
@@ -378,6 +397,7 @@ export interface FileRoutesById {
   '/_authenticated/maintenance/work-orders': typeof AuthenticatedMaintenanceWorkOrdersRoute
   '/_authenticated/settings/roles-permission': typeof AuthenticatedSettingsRolesPermissionRoute
   '/_authenticated/tenants/$tenantId': typeof AuthenticatedTenantsTenantIdRoute
+  '/_authenticated/activities/': typeof AuthenticatedActivitiesIndexRoute
   '/_authenticated/calendar/': typeof AuthenticatedCalendarIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/leases/': typeof AuthenticatedLeasesIndexRoute
@@ -401,6 +421,7 @@ export interface FileRouteTypes {
     | '/maintenance/work-orders'
     | '/settings/roles-permission'
     | '/tenants/$tenantId'
+    | '/activities'
     | '/calendar'
     | '/dashboard'
     | '/leases'
@@ -421,6 +442,7 @@ export interface FileRouteTypes {
     | '/maintenance/work-orders'
     | '/settings/roles-permission'
     | '/tenants/$tenantId'
+    | '/activities'
     | '/calendar'
     | '/dashboard'
     | '/leases'
@@ -441,6 +463,7 @@ export interface FileRouteTypes {
     | '/_authenticated/maintenance/work-orders'
     | '/_authenticated/settings/roles-permission'
     | '/_authenticated/tenants/$tenantId'
+    | '/_authenticated/activities/'
     | '/_authenticated/calendar/'
     | '/_authenticated/dashboard/'
     | '/_authenticated/leases/'
@@ -496,6 +519,7 @@ export const routeTree = rootRoute
         "/_authenticated/maintenance/work-orders",
         "/_authenticated/settings/roles-permission",
         "/_authenticated/tenants/$tenantId",
+        "/_authenticated/activities/",
         "/_authenticated/calendar/",
         "/_authenticated/dashboard/",
         "/_authenticated/leases/",
@@ -536,6 +560,10 @@ export const routeTree = rootRoute
     },
     "/_authenticated/tenants/$tenantId": {
       "filePath": "_authenticated/tenants/$tenantId.tsx",
+      "parent": "/_authenticated"
+    },
+    "/_authenticated/activities/": {
+      "filePath": "_authenticated/activities/index.tsx",
       "parent": "/_authenticated"
     },
     "/_authenticated/calendar/": {

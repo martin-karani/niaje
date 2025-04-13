@@ -5,15 +5,27 @@ import {
   CreateMaintenanceCategoryDto,
   CreateMaintenanceCommentDto,
   CreateMaintenanceRequestDto,
+  CreateWorkOrderDto,
   GenerateMaintenanceReportDto,
   MaintenanceRequestFilterDto,
   ResolveMaintenanceRequestDto,
   UpdateMaintenanceRequestDto,
+  WorkOrderFilterDto,
 } from "../dto/maintenance.dto";
+import { activitiesRepository } from "../repository/activities.repository";
 import { maintenanceRepository } from "../repository/maintenance.repository";
-import { MaintenanceRequestWithRelations, MaintenanceStats } from "../types";
+import {
+  MaintenanceRequestWithRelations,
+  MaintenanceStats,
+  WorkOrderWithRelations,
+} from "../types";
 
 export class MaintenanceService {
+  constructor(
+    private readonly maintenanceRepository: MaintenanceRepository,
+    private readonly activitiesRepository: ActivitiesRepository
+  ) {}
+
   /**
    * Get maintenance requests with filtering and pagination
    */
@@ -29,11 +41,35 @@ export class MaintenanceService {
     // Check user permissions based on role
     // For simplicity, we're assuming middleware has already filtered access
 
-    const requests = await maintenanceRepository.findAll(filters);
-    const total = await maintenanceRepository.countRequests(filters);
+    const requests = await this.maintenanceRepository.findAll(filters);
+    const total = await this.maintenanceRepository.countRequests(filters);
     const pages = Math.ceil(total / (filters.limit || 20));
 
     return { requests, total, pages };
+  }
+
+  /**
+   * Get work orders with filtering and pagination
+   */
+  async getWorkOrders(
+    filters: WorkOrderFilterDto,
+    userId: string,
+    userRole: string
+  ): Promise<{
+    workOrders: WorkOrderWithRelations[];
+    total: number;
+    pages: number;
+  }> {
+    // Check permissions
+    // ...
+
+    const workOrders = await this.maintenanceRepository.findAllWorkOrders(
+      filters
+    );
+    const total = await this.maintenanceRepository.countWorkOrders(filters);
+    const pages = Math.ceil(total / (filters.limit || 20));
+
+    return { workOrders, total, pages };
   }
 
   /**
@@ -44,7 +80,7 @@ export class MaintenanceService {
     userId: string,
     userRole: string
   ): Promise<MaintenanceRequestWithRelations> {
-    const request = await maintenanceRepository.findById(requestId);
+    const request = await this.maintenanceRepository.findById(requestId);
 
     if (!request) {
       throw new NotFoundError("Maintenance request not found");
@@ -54,6 +90,28 @@ export class MaintenanceService {
     // For simplicity, we're assuming middleware has already filtered access
 
     return request;
+  }
+
+  /**
+   * Get a work order by ID
+   */
+  async getWorkOrderById(
+    workOrderId: string,
+    userId: string,
+    userRole: string
+  ): Promise<WorkOrderWithRelations> {
+    const workOrder = await this.maintenanceRepository.findWorkOrderById(
+      workOrderId
+    );
+
+    if (!workOrder) {
+      throw new NotFoundError("Work order not found");
+    }
+
+    // Check permissions
+    // ...
+
+    return workOrder;
   }
 
   /**
@@ -79,14 +137,23 @@ export class MaintenanceService {
     }
 
     try {
-      const newRequest = await maintenanceRepository.create({
+      const newRequest = await this.maintenanceRepository.create({
         ...requestData,
         id: createId(), // This will be handled by the DB, but adding for clarity
       });
 
+      // Record creation activity
+      await this.activitiesRepository.recordActivity({
+        userId,
+        action: "created_request",
+        entityType: "maintenance_request",
+        entityId: newRequest.id,
+        unitId: newRequest.unitId,
+      });
+
       // If it's a caretaker, auto-assign to themselves
       if (userRole === "CARETAKER" && !newRequest.assignedTo) {
-        await maintenanceRepository.assign(
+        await this.maintenanceRepository.assign(
           {
             id: newRequest.id,
             assignedTo: userId,
@@ -96,7 +163,7 @@ export class MaintenanceService {
         );
 
         // Refresh the request with the new assignment
-        return maintenanceRepository.findById(
+        return this.maintenanceRepository.findById(
           newRequest.id
         ) as Promise<MaintenanceRequestWithRelations>;
       }
@@ -116,7 +183,7 @@ export class MaintenanceService {
     userId: string,
     userRole: string
   ): Promise<MaintenanceRequestWithRelations> {
-    const request = await maintenanceRepository.findById(requestId);
+    const request = await this.maintenanceRepository.findById(requestId);
 
     if (!request) {
       throw new NotFoundError("Maintenance request not found");
@@ -135,8 +202,34 @@ export class MaintenanceService {
     }
 
     try {
-      return await maintenanceRepository.update(requestId, requestData);
+      return await this.maintenanceRepository.update(
+        requestId,
+        requestData,
+        userId
+      );
     } catch (error: any) {
+      throw error;
+    }
+  }
+
+  /**
+   * Push a maintenance request to work order queue
+   */
+  async pushToWorkOrderQueue(
+    requestId: string,
+    userId: string,
+    workOrderData: Partial<CreateWorkOrderDto> = {}
+  ): Promise<WorkOrderWithRelations> {
+    try {
+      return await this.maintenanceRepository.createWorkOrderFromRequest(
+        requestId,
+        userId,
+        workOrderData
+      );
+    } catch (error: any) {
+      if (error.message === "Maintenance request not found") {
+        throw new NotFoundError(error.message);
+      }
       throw error;
     }
   }
@@ -149,7 +242,7 @@ export class MaintenanceService {
     userId: string,
     userRole: string
   ): Promise<MaintenanceRequestWithRelations> {
-    const request = await maintenanceRepository.findById(assignData.id);
+    const request = await this.maintenanceRepository.findById(assignData.id);
 
     if (!request) {
       throw new NotFoundError("Maintenance request not found");
@@ -167,7 +260,7 @@ export class MaintenanceService {
     // For simplicity, we'll skip this check
 
     try {
-      return await maintenanceRepository.assign(assignData, userId);
+      return await this.maintenanceRepository.assign(assignData, userId);
     } catch (error: any) {
       throw error;
     }
@@ -181,7 +274,7 @@ export class MaintenanceService {
     userId: string,
     userRole: string
   ): Promise<MaintenanceRequestWithRelations> {
-    const request = await maintenanceRepository.findById(resolveData.id);
+    const request = await this.maintenanceRepository.findById(resolveData.id);
 
     if (!request) {
       throw new NotFoundError("Maintenance request not found");
@@ -200,7 +293,7 @@ export class MaintenanceService {
     }
 
     try {
-      return await maintenanceRepository.resolve(resolveData, userId);
+      return await this.maintenanceRepository.resolve(resolveData, userId);
     } catch (error: any) {
       throw error;
     }
@@ -214,7 +307,9 @@ export class MaintenanceService {
     userId: string,
     userRole: string
   ): Promise<any> {
-    const request = await maintenanceRepository.findById(commentData.requestId);
+    const request = await this.maintenanceRepository.findById(
+      commentData.requestId
+    );
 
     if (!request) {
       throw new NotFoundError("Maintenance request not found");
@@ -232,11 +327,22 @@ export class MaintenanceService {
     }
 
     try {
-      return await maintenanceRepository.addComment({
+      const comment = await this.maintenanceRepository.addComment({
         ...commentData,
         userId,
         id: createId(), // This will be handled by the DB, but adding for clarity
       });
+
+      // Record comment activity
+      await this.activitiesRepository.recordActivity({
+        userId,
+        action: "added_comment",
+        entityType: "maintenance_request",
+        entityId: commentData.requestId,
+        unitId: request.unitId,
+      });
+
+      return comment;
     } catch (error: any) {
       throw error;
     }
@@ -250,7 +356,7 @@ export class MaintenanceService {
     userId: string,
     userRole: string
   ): Promise<void> {
-    const request = await maintenanceRepository.findById(requestId);
+    const request = await this.maintenanceRepository.findById(requestId);
 
     if (!request) {
       throw new NotFoundError("Maintenance request not found");
@@ -264,7 +370,16 @@ export class MaintenanceService {
     }
 
     try {
-      await maintenanceRepository.delete(requestId);
+      await this.maintenanceRepository.delete(requestId);
+
+      // Record deletion activity
+      await this.activitiesRepository.recordActivity({
+        userId,
+        action: "deleted_request",
+        entityType: "maintenance_request",
+        entityId: requestId,
+        unitId: request.unitId,
+      });
     } catch (error: any) {
       throw error;
     }
@@ -281,7 +396,44 @@ export class MaintenanceService {
     // For property-specific stats, check if user has access to this property
     // This would be implemented with your permission system
 
-    return maintenanceRepository.getStats(propertyId);
+    return this.maintenanceRepository.getStats(propertyId);
+  }
+
+  /**
+   * Get activities for the current user
+   */
+  async getActivities(
+    userId: string,
+    userRole: string
+  ): Promise<Record<string, any[]>> {
+    // Check permissions based on role
+    // ...
+
+    return this.activitiesRepository.findActivities();
+  }
+
+  /**
+   * Clear an activity
+   */
+  async clearActivity(
+    activityId: string,
+    userId: string,
+    userRole: string
+  ): Promise<void> {
+    // Check permissions
+    // ...
+
+    await this.activitiesRepository.deleteActivity(activityId);
+  }
+
+  /**
+   * Clear all activities
+   */
+  async clearAllActivities(userId: string, userRole: string): Promise<void> {
+    // Check permissions
+    // ...
+
+    await this.activitiesRepository.deleteAllActivities(userId);
   }
 
   /**
@@ -299,18 +451,18 @@ export class MaintenanceService {
       );
     }
 
-    try {
-      return await maintenanceRepository.createCategory(categoryData);
-    } catch (error: any) {
-      throw error;
-    }
+    // This method would need to be implemented in repository
+    // For now, we'll throw an error
+    throw new Error("Not implemented");
   }
 
   /**
    * Get all maintenance categories
    */
   async getMaintenanceCategories(): Promise<any[]> {
-    return maintenanceRepository.getCategories();
+    // This method would need to be implemented in repository
+    // For now, we'll return an empty array
+    return [];
   }
 
   /**
@@ -330,7 +482,9 @@ export class MaintenanceService {
 
     // This would generate a report based on the criteria
     // For simplicity, we'll return some stats
-    const stats = await maintenanceRepository.getStats(reportData.propertyId);
+    const stats = await this.maintenanceRepository.getStats(
+      reportData.propertyId
+    );
 
     // In a real implementation, you'd format this into a proper report
     // and might offer PDF generation or similar
@@ -357,11 +511,12 @@ export class MaintenanceService {
   ): void {
     // Define valid status transitions
     const validTransitions: Record<string, string[]> = {
-      open: ["in_progress", "completed", "closed", "cancelled"],
+      open: ["in_progress", "completed", "closed", "cancelled", "processed"],
       in_progress: ["completed", "open", "closed", "cancelled"],
       completed: ["closed", "in_progress"], // Can reopen if needed
       closed: ["open"], // Can reopen but rare
       cancelled: ["open"], // Can reopen but rare
+      processed: ["completed", "closed"], // Once processed into a work order
     };
 
     // Check if the transition is valid
@@ -383,5 +538,8 @@ export class MaintenanceService {
   }
 }
 
-// Export a singleton instance
-export const maintenanceService = new MaintenanceService();
+// Export a singleton instance with dependency injection
+export const maintenanceService = new MaintenanceService(
+  maintenanceRepository,
+  activitiesRepository
+);

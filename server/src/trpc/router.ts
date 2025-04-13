@@ -1,5 +1,5 @@
 import { leasesRouter } from "@/leases/trpc";
-import { maintenanceRouter } from "@/maintenance/trpc";
+import { activitiesRouter, maintenanceRouter } from "@/maintenance/trpc";
 import { notificationsRouter } from "@/notifications/trpc";
 import { paymentsRouter } from "@/payments/trpc";
 import { permissionsRouter } from "@/permissions/trpc";
@@ -22,6 +22,7 @@ export const appRouter = router({
   leases: leasesRouter,
   maintenance: maintenanceRouter,
   permissions: permissionsRouter,
+  activities: activitiesRouter,
 });
 
 export type AppRouter = typeof appRouter;

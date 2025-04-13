@@ -15,6 +15,20 @@ export const useMaintenance = () => {
     });
   };
 
+  // Get all maintenance requests (separate from work orders)
+  const getRequests = (
+    filters?: RouterInputs["maintenance"]["getRequests"]
+  ) => {
+    return trpc.maintenance.getRequests.useQuery(filters || {});
+  };
+
+  // Get all work orders
+  const getWorkOrders = (
+    filters?: RouterInputs["maintenance"]["getWorkOrders"]
+  ) => {
+    return trpc.maintenance.getWorkOrders.useQuery(filters || {});
+  };
+
   // Get maintenance request by ID
   const getById = (requestId?: string) => {
     return trpc.maintenance.getById.useQuery(
@@ -30,6 +44,9 @@ export const useMaintenance = () => {
   const create = trpc.maintenance.create.useMutation({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [["maintenance", "getAll"]] });
+      queryClient.invalidateQueries({
+        queryKey: [["maintenance", "getRequests"]],
+      });
       // Show success toast
       // toast.success("Maintenance request created successfully");
     },
@@ -40,8 +57,12 @@ export const useMaintenance = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [["maintenance", "getAll"]] });
       queryClient.invalidateQueries({
+        queryKey: [["maintenance", "getRequests"]],
+      });
+      queryClient.invalidateQueries({
         queryKey: [["maintenance", "getById"], { id: data.id }],
       });
+      queryClient.invalidateQueries({ queryKey: [["activities", "getAll"]] });
       // Show success toast
       // toast.success("Maintenance request updated successfully");
     },
@@ -52,10 +73,27 @@ export const useMaintenance = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [["maintenance", "getAll"]] });
       queryClient.invalidateQueries({
+        queryKey: [["maintenance", "getRequests"]],
+      });
+      queryClient.invalidateQueries({
         queryKey: [["maintenance", "getById"], { id: data.id }],
       });
+      queryClient.invalidateQueries({ queryKey: [["activities", "getAll"]] });
       // Show success toast
       // toast.success("Maintenance request assigned successfully");
+    },
+  });
+
+  // Push a request to the work order queue
+  const pushToQueue = trpc.maintenance.pushToQueue.useMutation({
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [["maintenance", "getRequests"]],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [["maintenance", "getWorkOrders"]],
+      });
+      queryClient.invalidateQueries({ queryKey: [["activities", "getAll"]] });
     },
   });
 
@@ -64,8 +102,15 @@ export const useMaintenance = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [["maintenance", "getAll"]] });
       queryClient.invalidateQueries({
+        queryKey: [["maintenance", "getRequests"]],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [["maintenance", "getWorkOrders"]],
+      });
+      queryClient.invalidateQueries({
         queryKey: [["maintenance", "getById"], { id: data.id }],
       });
+      queryClient.invalidateQueries({ queryKey: [["activities", "getAll"]] });
       // Show success toast
       // toast.success("Maintenance request resolved successfully");
     },
@@ -79,6 +124,10 @@ export const useMaintenance = () => {
       });
       // Optionally also invalidate the getAll query to reflect comment count changes
       queryClient.invalidateQueries({ queryKey: [["maintenance", "getAll"]] });
+      queryClient.invalidateQueries({
+        queryKey: [["maintenance", "getRequests"]],
+      });
+      queryClient.invalidateQueries({ queryKey: [["activities", "getAll"]] });
       // Show success toast
       // toast.success("Comment added successfully");
     },
@@ -104,7 +153,7 @@ export const useMaintenance = () => {
 
   // Get maintenance requests for a specific property
   const getByProperty = (propertyId?: string) => {
-    return trpc.maintenance.getAll.useQuery(
+    return trpc.maintenance.getRequests.useQuery(
       { propertyId },
       {
         enabled: !!propertyId,
@@ -115,7 +164,7 @@ export const useMaintenance = () => {
 
   // Get maintenance requests for a specific unit
   const getByUnit = (unitId?: string) => {
-    return trpc.maintenance.getAll.useQuery(
+    return trpc.maintenance.getRequests.useQuery(
       { unitId },
       {
         enabled: !!unitId,
@@ -126,7 +175,7 @@ export const useMaintenance = () => {
 
   // Get pending maintenance requests count (for notifications)
   const getPendingCount = (propertyId?: string) => {
-    return trpc.maintenance.getAll.useQuery(
+    return trpc.maintenance.getRequests.useQuery(
       {
         propertyId,
         status: "open",
@@ -144,11 +193,14 @@ export const useMaintenance = () => {
 
   return {
     getAll,
+    getRequests,
+    getWorkOrders,
     getById,
     create,
     update,
     assign,
     resolve,
+    pushToQueue,
     addComment,
     getStats,
     getCategories,

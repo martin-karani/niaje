@@ -1,15 +1,21 @@
 import { db } from "@/db";
-import { maintenanceRequests, units } from "@/db/schema";
 import {
-  maintenanceCategories,
+  activities,
   maintenanceComments,
+  maintenanceRequests,
   NewMaintenanceComment,
-} from "@/db/schema/maintenance";
-import { MaintenanceRequestFilterDto } from "@/maintenance/dto/maintenance.dto";
+  workOrders,
+} from "@/db/schema";
+import { units } from "@/db/schema/properties";
+import {
+  MaintenanceRequestFilterDto,
+  WorkOrderFilterDto,
+} from "@/maintenance/dto/maintenance.dto";
 import {
   MaintenanceComment,
   MaintenanceRequestWithRelations,
   MaintenanceStats,
+  WorkOrderWithRelations,
 } from "@/maintenance/types";
 import {
   and,
@@ -25,10 +31,11 @@ import {
 } from "drizzle-orm";
 import {
   AssignMaintenanceRequestDto,
-  CreateMaintenanceCategoryDto,
   CreateMaintenanceRequestDto,
+  CreateWorkOrderDto,
   ResolveMaintenanceRequestDto,
   UpdateMaintenanceRequestDto,
+  UpdateWorkOrderDto,
 } from "../dto/maintenance.dto";
 
 export class MaintenanceRepository {
@@ -142,6 +149,7 @@ export class MaintenanceRepository {
             phone: true,
           },
         },
+        workOrder: true, // Include the related work order
       },
       orderBy: [sql`reported_at desc`],
       limit,
@@ -160,6 +168,93 @@ export class MaintenanceRepository {
     );
 
     return requestsWithComments;
+  }
+
+  /**
+   * Find all work orders with filtering and pagination
+   */
+  async findAllWorkOrders(
+    filters?: WorkOrderFilterDto
+  ): Promise<WorkOrderWithRelations[]> {
+    // Build the conditions array for filtering
+    const conditions = [];
+
+    if (filters?.propertyId) {
+      conditions.push(
+        eq(
+          workOrders.unitId,
+          db
+            .select({ id: units.id })
+            .from(units)
+            .where(eq(units.propertyId, filters.propertyId))
+            .limit(1)
+        )
+      );
+    }
+
+    if (filters?.unitId) {
+      conditions.push(eq(workOrders.unitId, filters.unitId));
+    }
+
+    if (filters?.tenantId) {
+      conditions.push(eq(workOrders.tenantId, filters.tenantId));
+    }
+
+    if (filters?.status) {
+      conditions.push(eq(workOrders.status, filters.status));
+    }
+
+    if (filters?.priority) {
+      conditions.push(eq(workOrders.priority, filters.priority));
+    }
+
+    if (filters?.assignedTo) {
+      conditions.push(eq(workOrders.assignedTo, filters.assignedTo));
+    }
+
+    if (filters?.dateFrom) {
+      conditions.push(gte(workOrders.reportedAt, filters.dateFrom));
+    }
+
+    if (filters?.dateTo) {
+      conditions.push(lte(workOrders.reportedAt, filters.dateTo));
+    }
+
+    if (filters?.search) {
+      conditions.push(
+        or(
+          ilike(workOrders.title, `%${filters.search}%`),
+          ilike(workOrders.description, `%${filters.search}%`)
+        )
+      );
+    }
+
+    if (filters?.category) {
+      conditions.push(eq(workOrders.category, filters.category));
+    }
+
+    // Calculate pagination
+    const page = filters?.page || 1;
+    const limit = filters?.limit || 20;
+    const offset = (page - 1) * limit;
+
+    // Execute the query with all conditions and pagination
+    return db.query.workOrders.findMany({
+      where: conditions.length ? and(...conditions) : undefined,
+      with: {
+        maintenanceRequest: true,
+        unit: {
+          with: {
+            property: true,
+          },
+        },
+        tenant: true,
+        assignee: true,
+      },
+      orderBy: [sql`reported_at desc`],
+      limit,
+      offset,
+    });
   }
 
   /**
@@ -230,6 +325,76 @@ export class MaintenanceRepository {
   }
 
   /**
+   * Count work orders with filters (for pagination)
+   */
+  async countWorkOrders(
+    filters?: Omit<WorkOrderFilterDto, "page" | "limit">
+  ): Promise<number> {
+    const conditions = [];
+
+    if (filters?.propertyId) {
+      conditions.push(
+        eq(
+          workOrders.unitId,
+          db
+            .select({ id: units.id })
+            .from(units)
+            .where(eq(units.propertyId, filters.propertyId))
+            .limit(1)
+        )
+      );
+    }
+
+    if (filters?.unitId) {
+      conditions.push(eq(workOrders.unitId, filters.unitId));
+    }
+
+    if (filters?.tenantId) {
+      conditions.push(eq(workOrders.tenantId, filters.tenantId));
+    }
+
+    if (filters?.status) {
+      conditions.push(eq(workOrders.status, filters.status));
+    }
+
+    if (filters?.priority) {
+      conditions.push(eq(workOrders.priority, filters.priority));
+    }
+
+    if (filters?.assignedTo) {
+      conditions.push(eq(workOrders.assignedTo, filters.assignedTo));
+    }
+
+    if (filters?.dateFrom) {
+      conditions.push(gte(workOrders.reportedAt, filters.dateFrom));
+    }
+
+    if (filters?.dateTo) {
+      conditions.push(lte(workOrders.reportedAt, filters.dateTo));
+    }
+
+    if (filters?.search) {
+      conditions.push(
+        or(
+          ilike(workOrders.title, `%${filters.search}%`),
+          ilike(workOrders.description, `%${filters.search}%`)
+        )
+      );
+    }
+
+    if (filters?.category) {
+      conditions.push(eq(workOrders.category, filters.category));
+    }
+
+    const [result] = await db
+      .select({ count: count() })
+      .from(workOrders)
+      .where(conditions.length ? and(...conditions) : undefined);
+
+    return result.count;
+  }
+
+  /**
    * Find a maintenance request by ID with related data
    */
   async findById(id: string): Promise<MaintenanceRequestWithRelations | null> {
@@ -267,6 +432,7 @@ export class MaintenanceRepository {
             phone: true,
           },
         },
+        workOrder: true, // Include the related work order
       },
     });
 
@@ -279,6 +445,25 @@ export class MaintenanceRepository {
       ...request,
       comments,
     };
+  }
+
+  /**
+   * Find a work order by ID with related data
+   */
+  async findWorkOrderById(id: string): Promise<WorkOrderWithRelations | null> {
+    return db.query.workOrders.findFirst({
+      where: eq(workOrders.id, id),
+      with: {
+        maintenanceRequest: true,
+        unit: {
+          with: {
+            property: true,
+          },
+        },
+        tenant: true,
+        assignee: true,
+      },
+    });
   }
 
   /**
@@ -328,22 +513,187 @@ export class MaintenanceRepository {
    */
   async update(
     id: string,
-    requestData: Partial<UpdateMaintenanceRequestDto>
+    requestData: Partial<UpdateMaintenanceRequestDto>,
+    userId: string
   ): Promise<MaintenanceRequestWithRelations> {
+    // Get the current state of the request
+    const existingRequest = await this.findById(id);
+
+    if (!existingRequest) {
+      throw new Error("Maintenance request not found");
+    }
+
     // Remove id from the update data if present
     const { id: _, ...updateData } = requestData;
 
-    // Update the request
-    await db
-      .update(maintenanceRequests)
-      .set({
-        ...updateData,
-        updatedAt: new Date(),
-      })
-      .where(eq(maintenanceRequests.id, id));
+    // Begin a transaction
+    return db.transaction(async (tx) => {
+      // Update the request
+      const [updatedRequest] = await tx
+        .update(maintenanceRequests)
+        .set({
+          ...updateData,
+          updatedAt: new Date(),
+        })
+        .where(eq(maintenanceRequests.id, id))
+        .returning();
 
-    // Return the updated request with relations
-    return this.findById(id) as Promise<MaintenanceRequestWithRelations>;
+      // If status changed, record an activity
+      if (requestData.status && requestData.status !== existingRequest.status) {
+        await tx.insert(activities).values({
+          userId,
+          action: "changed_status",
+          entityType: "maintenance_request",
+          entityId: id,
+          unitId: existingRequest.unitId,
+          previousStatus: existingRequest.status,
+          newStatus: requestData.status,
+        });
+      }
+
+      return this.findById(id) as Promise<MaintenanceRequestWithRelations>;
+    });
+  }
+
+  /**
+   * Create a work order from a maintenance request
+   */
+  async createWorkOrderFromRequest(
+    requestId: string,
+    userId: string,
+    workOrderData: Partial<CreateWorkOrderDto> = {}
+  ): Promise<WorkOrderWithRelations> {
+    // First get the request
+    const request = await this.findById(requestId);
+
+    if (!request) {
+      throw new Error("Maintenance request not found");
+    }
+
+    // Begin a transaction
+    return db.transaction(async (tx) => {
+      // Create work order
+      const [workOrder] = await tx
+        .insert(workOrders)
+        .values({
+          requestId: request.id,
+          title: workOrderData.title || request.title,
+          description: workOrderData.description || request.description,
+          priority:
+            workOrderData.priority || this.mapPriority(request.priority),
+          status: "pending", // Default to pending
+          unitId: request.unitId,
+          tenantId: request.tenantId,
+          assignedTo: workOrderData.assignedTo,
+          assignedToName: workOrderData.assignedToName,
+          assignedToPhone: workOrderData.assignedToPhone,
+          assignedToEmail: workOrderData.assignedToEmail,
+          reportedAt: request.reportedAt,
+          category: workOrderData.category,
+          images: request.images,
+          notes: workOrderData.notes || request.notes,
+        })
+        .returning();
+
+      // Update the request with the work order ID
+      await tx
+        .update(maintenanceRequests)
+        .set({
+          workOrderId: workOrder.id,
+          status: "processed", // Mark request as processed
+          updatedAt: new Date(),
+        })
+        .where(eq(maintenanceRequests.id, requestId));
+
+      // Create activity record for the request status change
+      await tx.insert(activities).values({
+        userId,
+        action: "changed_status",
+        entityType: "maintenance_request",
+        entityId: request.id,
+        unitId: request.unitId,
+        previousStatus: request.status,
+        newStatus: "processed",
+      });
+
+      // Create activity record for the work order creation
+      await tx.insert(activities).values({
+        userId,
+        action: "created_work_order",
+        entityType: "work_order",
+        entityId: workOrder.id,
+        unitId: workOrder.unitId,
+      });
+
+      // Return the complete work order with relations
+      return this.findWorkOrderById(
+        workOrder.id
+      ) as Promise<WorkOrderWithRelations>;
+    });
+  }
+
+  /**
+   * Map request priority to work order priority
+   */
+  private mapPriority(requestPriority: string): string {
+    switch (requestPriority) {
+      case "low":
+        return "normal";
+      case "medium":
+        return "normal";
+      case "high":
+        return "high";
+      case "emergency":
+        return "urgent";
+      default:
+        return "normal";
+    }
+  }
+
+  /**
+   * Update a work order
+   */
+  async updateWorkOrder(
+    id: string,
+    workOrderData: Partial<UpdateWorkOrderDto>,
+    userId: string
+  ): Promise<WorkOrderWithRelations> {
+    const existingWorkOrder = await this.findWorkOrderById(id);
+
+    if (!existingWorkOrder) {
+      throw new Error("Work order not found");
+    }
+
+    // Begin a transaction
+    return db.transaction(async (tx) => {
+      // Update the work order
+      const [updatedWorkOrder] = await tx
+        .update(workOrders)
+        .set({
+          ...workOrderData,
+          updatedAt: new Date(),
+        })
+        .where(eq(workOrders.id, id))
+        .returning();
+
+      // If status changed, record an activity
+      if (
+        workOrderData.status &&
+        workOrderData.status !== existingWorkOrder.status
+      ) {
+        await tx.insert(activities).values({
+          userId,
+          action: "changed_status",
+          entityType: "work_order",
+          entityId: id,
+          unitId: existingWorkOrder.unitId,
+          previousStatus: existingWorkOrder.status,
+          newStatus: workOrderData.status,
+        });
+      }
+
+      return this.findWorkOrderById(id) as Promise<WorkOrderWithRelations>;
+    });
   }
 
   /**
@@ -353,28 +703,60 @@ export class MaintenanceRepository {
     data: AssignMaintenanceRequestDto,
     currentUserId: string
   ): Promise<MaintenanceRequestWithRelations> {
-    // Update the request
-    await db
-      .update(maintenanceRequests)
-      .set({
-        assignedTo: data.assignedTo,
-        status: "in_progress",
-        updatedAt: new Date(),
-      })
-      .where(eq(maintenanceRequests.id, data.id));
+    // Get the current state of the request
+    const existingRequest = await this.findById(data.id);
 
-    // Add a comment if notes are provided
-    if (data.notes) {
-      await this.addComment({
-        requestId: data.id,
-        userId: currentUserId,
-        content: `Assigned to ${data.assignedTo}. ${data.notes}`,
-        isPrivate: false,
-      });
+    if (!existingRequest) {
+      throw new Error("Maintenance request not found");
     }
 
-    // Return the updated request with relations
-    return this.findById(data.id) as Promise<MaintenanceRequestWithRelations>;
+    // Begin a transaction
+    return db.transaction(async (tx) => {
+      // Update the request
+      const [updatedRequest] = await tx
+        .update(maintenanceRequests)
+        .set({
+          assignedTo: data.assignedTo,
+          status: "in_progress",
+          updatedAt: new Date(),
+        })
+        .where(eq(maintenanceRequests.id, data.id))
+        .returning();
+
+      // Record status change activity
+      await tx.insert(activities).values({
+        userId: currentUserId,
+        action: "changed_status",
+        entityType: "maintenance_request",
+        entityId: data.id,
+        unitId: existingRequest.unitId,
+        previousStatus: existingRequest.status,
+        newStatus: "in_progress",
+      });
+
+      // Record assignment activity
+      await tx.insert(activities).values({
+        userId: currentUserId,
+        action: "assigned_request",
+        entityType: "maintenance_request",
+        entityId: data.id,
+        unitId: existingRequest.unitId,
+        metadata: { assignedTo: data.assignedTo },
+      });
+
+      // Add a comment if notes are provided
+      if (data.notes) {
+        await this.addComment({
+          requestId: data.id,
+          userId: currentUserId,
+          content: `Assigned to ${data.assignedTo}. ${data.notes}`,
+          isPrivate: false,
+        });
+      }
+
+      // Return the updated request with relations
+      return this.findById(data.id) as Promise<MaintenanceRequestWithRelations>;
+    });
   }
 
   /**
@@ -384,29 +766,75 @@ export class MaintenanceRepository {
     data: ResolveMaintenanceRequestDto,
     currentUserId: string
   ): Promise<MaintenanceRequestWithRelations> {
-    // Update the request
-    await db
-      .update(maintenanceRequests)
-      .set({
-        status: "completed",
-        resolvedAt: new Date(),
-        cost: data.cost,
-        updatedAt: new Date(),
-      })
-      .where(eq(maintenanceRequests.id, data.id));
+    // Get the current state of the request
+    const existingRequest = await this.findById(data.id);
 
-    // Add a resolution comment
-    await this.addComment({
-      requestId: data.id,
-      userId: currentUserId,
-      content: `Resolution: ${data.resolution}${
-        data.notes ? `\n\nNotes: ${data.notes}` : ""
-      }${data.cost ? `\n\nCost: $${data.cost}` : ""}`,
-      isPrivate: false,
+    if (!existingRequest) {
+      throw new Error("Maintenance request not found");
+    }
+
+    // Begin a transaction
+    return db.transaction(async (tx) => {
+      // Update the request
+      const [updatedRequest] = await tx
+        .update(maintenanceRequests)
+        .set({
+          status: "completed",
+          resolvedAt: new Date(),
+          cost: data.cost,
+          updatedAt: new Date(),
+        })
+        .where(eq(maintenanceRequests.id, data.id))
+        .returning();
+
+      // Record status change activity
+      await tx.insert(activities).values({
+        userId: currentUserId,
+        action: "changed_status",
+        entityType: "maintenance_request",
+        entityId: data.id,
+        unitId: existingRequest.unitId,
+        previousStatus: existingRequest.status,
+        newStatus: "completed",
+      });
+
+      // Add a resolution comment
+      await this.addComment({
+        requestId: data.id,
+        userId: currentUserId,
+        content: `Resolution: ${data.resolution}${
+          data.notes ? `\n\nNotes: ${data.notes}` : ""
+        }${data.cost ? `\n\nCost: $${data.cost}` : ""}`,
+        isPrivate: false,
+      });
+
+      // If this request has a work order, update that too
+      if (existingRequest.workOrderId) {
+        await tx
+          .update(workOrders)
+          .set({
+            status: "completed",
+            resolvedAt: new Date(),
+            cost: data.cost,
+            updatedAt: new Date(),
+          })
+          .where(eq(workOrders.id, existingRequest.workOrderId));
+
+        // Record activity for work order
+        await tx.insert(activities).values({
+          userId: currentUserId,
+          action: "changed_status",
+          entityType: "work_order",
+          entityId: existingRequest.workOrderId,
+          unitId: existingRequest.unitId,
+          previousStatus: "pending", // Assuming it was pending
+          newStatus: "completed",
+        });
+      }
+
+      // Return the updated request with relations
+      return this.findById(data.id) as Promise<MaintenanceRequestWithRelations>;
     });
-
-    // Return the updated request with relations
-    return this.findById(data.id) as Promise<MaintenanceRequestWithRelations>;
   }
 
   /**
@@ -430,6 +858,13 @@ export class MaintenanceRepository {
    * Delete a maintenance request (use with caution)
    */
   async delete(id: string): Promise<void> {
+    // Check if request has a work order
+    const request = await this.findById(id);
+    if (request?.workOrderId) {
+      // First delete the work order
+      await db.delete(workOrders).where(eq(workOrders.id, request.workOrderId));
+    }
+
     // Delete the request (this will cascade to comments due to FK constraint)
     await db.delete(maintenanceRequests).where(eq(maintenanceRequests.id, id));
   }
@@ -438,6 +873,7 @@ export class MaintenanceRepository {
    * Get maintenance request statistics
    */
   async getStats(propertyId?: string): Promise<MaintenanceStats> {
+    // Existing implementation...
     let queryConditions = [];
 
     // If property ID is provided, limit stats to that property
@@ -564,32 +1000,6 @@ export class MaintenanceRepository {
       avgResolutionTime: avgDays,
       totalMaintenanceCost: Number(totalCostResult.totalCost) || 0,
     };
-  }
-
-  /**
-   * Create a new maintenance category
-   */
-  async createCategory(
-    categoryData: CreateMaintenanceCategoryDto
-  ): Promise<any> {
-    const [category] = await db
-      .insert(maintenanceCategories)
-      .values({
-        ...categoryData,
-        updatedAt: new Date(),
-      })
-      .returning();
-
-    return category;
-  }
-
-  /**
-   * Get all maintenance categories
-   */
-  async getCategories(): Promise<any[]> {
-    return db.query.maintenanceCategories.findMany({
-      orderBy: [sql`name asc`],
-    });
   }
 }
 

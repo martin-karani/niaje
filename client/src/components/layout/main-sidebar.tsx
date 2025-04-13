@@ -22,7 +22,7 @@ import { Link, useRouter } from "@tanstack/react-router";
 import {
   Activity,
   BarChart,
-  Building,
+  Building2,
   CalendarDays,
   ChevronDown,
   CreditCard,
@@ -84,22 +84,33 @@ export function MainSidebar({ open, onOpenChange, ...props }: SidebarProps) {
         ],
       },
       {
-        title: "Units",
-        icon: Building,
-        path: "/units",
-        roles: ["landlord", "caretaker", "agent"],
+        title: "Leasing",
+        icon: FileText,
+        path: "/leases",
+        roles: ["landlord", "agent"],
+      },
+
+      {
+        title: "Properties",
+        icon: Building2,
+        path: "/properties",
+        subItems: [
+          {
+            title: "All Properties",
+            path: "/properties",
+          },
+          {
+            title: "Units",
+            path: "/units",
+          },
+        ],
+        roles: ["landlord", "agent"],
       },
       {
         title: "Tenants",
         icon: Users,
         path: "/tenants",
         roles: ["landlord", "caretaker", "agent"],
-      },
-      {
-        title: "Leasing",
-        icon: FileText,
-        path: "/leases",
-        roles: ["landlord", "agent"],
       },
 
       {

@@ -8,6 +8,17 @@ const statusEnum = z.enum([
   "completed",
   "closed",
   "cancelled",
+  "processed", // New status for when a request is converted to work order
+]);
+
+// Work order specific enums
+const workOrderPriorityEnum = z.enum(["normal", "high", "urgent"]);
+const workOrderStatusEnum = z.enum([
+  "pending",
+  "assigned",
+  "in_progress",
+  "completed",
+  "canceled",
 ]);
 
 // Base schema for creating and updating maintenance requests
@@ -20,6 +31,24 @@ const maintenanceRequestBaseSchema = {
   cost: z.number().nullish(),
   images: z.any().optional().nullish(), // This should be refined based on your file handling approach
   notes: z.string().optional().nullish(),
+};
+
+// Base schema for creating and updating work orders
+const workOrderBaseSchema = {
+  requestId: z.string().optional(), // Optional because you might create work orders directly
+  unitId: z.string().min(1, "Unit ID is required"),
+  tenantId: z.string().nullish(),
+  title: z.string().min(3, "Title must be at least 3 characters"),
+  description: z.string().min(10, "Description must be at least 10 characters"),
+  priority: workOrderPriorityEnum.default("normal"),
+  category: z.string().optional(),
+  cost: z.number().nullish(),
+  images: z.any().optional().nullish(),
+  notes: z.string().optional().nullish(),
+  assignedTo: z.string().nullish(),
+  assignedToName: z.string().nullish(),
+  assignedToPhone: z.string().nullish(),
+  assignedToEmail: z.string().nullish(),
 };
 
 // DTO for creating a new maintenance request
@@ -46,11 +75,42 @@ export const updateMaintenanceRequestDto = z.object({
     .date()
     .or(z.string().transform((str) => new Date(str)))
     .nullish(),
+  workOrderId: z.string().optional(),
+});
+
+// DTO for creating a new work order
+export const createWorkOrderDto = z.object({
+  ...workOrderBaseSchema,
+});
+
+// DTO for updating an existing work order
+export const updateWorkOrderDto = z.object({
+  id: z.string(),
+  ...Object.entries(workOrderBaseSchema).reduce(
+    (acc, [key, validator]) => ({
+      ...acc,
+      [key]:
+        validator instanceof z.ZodBoolean
+          ? validator.optional()
+          : validator.optional(),
+    }),
+    {}
+  ),
+  status: workOrderStatusEnum.optional(),
+  resolvedAt: z
+    .date()
+    .or(z.string().transform((str) => new Date(str)))
+    .nullish(),
 });
 
 // DTO for maintenance request ID parameter
 export const maintenanceRequestIdDto = z.object({
   id: z.string().min(1, "Maintenance request ID is required"),
+});
+
+// DTO for work order ID parameter
+export const workOrderIdDto = z.object({
+  id: z.string().min(1, "Work order ID is required"),
 });
 
 // DTO for assigning a maintenance request
@@ -96,6 +156,28 @@ export const maintenanceRequestFilterDto = z.object({
   limit: z.number().optional().default(20),
 });
 
+// DTO for filtering work orders
+export const workOrderFilterDto = z.object({
+  propertyId: z.string().optional(),
+  unitId: z.string().optional(),
+  tenantId: z.string().optional(),
+  status: workOrderStatusEnum.optional(),
+  priority: workOrderPriorityEnum.optional(),
+  assignedTo: z.string().optional(),
+  category: z.string().optional(),
+  search: z.string().optional(),
+  dateFrom: z
+    .date()
+    .or(z.string().transform((str) => new Date(str)))
+    .optional(),
+  dateTo: z
+    .date()
+    .or(z.string().transform((str) => new Date(str)))
+    .optional(),
+  page: z.number().optional().default(1),
+  limit: z.number().optional().default(20),
+});
+
 // DTO for maintenance categories
 export const createMaintenanceCategoryDto = z.object({
   name: z.string().min(1, "Category name is required"),
@@ -121,7 +203,10 @@ export type CreateMaintenanceRequestDto = z.infer<
 export type UpdateMaintenanceRequestDto = z.infer<
   typeof updateMaintenanceRequestDto
 >;
+export type CreateWorkOrderDto = z.infer<typeof createWorkOrderDto>;
+export type UpdateWorkOrderDto = z.infer<typeof updateWorkOrderDto>;
 export type MaintenanceRequestIdDto = z.infer<typeof maintenanceRequestIdDto>;
+export type WorkOrderIdDto = z.infer<typeof workOrderIdDto>;
 export type AssignMaintenanceRequestDto = z.infer<
   typeof assignMaintenanceRequestDto
 >;
@@ -134,6 +219,7 @@ export type CreateMaintenanceCommentDto = z.infer<
 export type MaintenanceRequestFilterDto = z.infer<
   typeof maintenanceRequestFilterDto
 >;
+export type WorkOrderFilterDto = z.infer<typeof workOrderFilterDto>;
 export type CreateMaintenanceCategoryDto = z.infer<
   typeof createMaintenanceCategoryDto
 >;
