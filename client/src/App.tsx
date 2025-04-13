@@ -4,7 +4,7 @@ import { RouterProvider } from "@tanstack/react-router";
 import { Toaster } from "./components/ui/sonner";
 import "./globals.css";
 import { router } from "./router";
-import { queryClient, trpc, trpcConfig } from "./utils/trpc";
+import { queryClient, trpc, trpcClient } from "./utils/trpc";
 
 function InnerApp() {
   const auth = useAuth();
@@ -12,7 +12,6 @@ function InnerApp() {
 }
 
 function App() {
-  const trpcClient = trpc.createClient<AppRouter>(trpcConfig);
   return (
     <trpc.Provider queryClient={queryClient} client={trpcClient}>
       <QueryClientProvider client={queryClient}>

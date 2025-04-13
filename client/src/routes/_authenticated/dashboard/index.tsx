@@ -10,12 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  useLeases,
-  useMaintenance,
-  useProperties,
-  useTenants,
-} from "@/hooks/use-trpc";
+import { useLeases, useMaintenance, useTenants } from "@/hooks/use-trpc";
 import { useAuth } from "@/providers/auth-provider";
 import { createFileRoute } from "@tanstack/react-router";
 import {
@@ -64,52 +59,43 @@ const OCCUPANCY_COLORS = ["#4f46e5", "#e4e4e7"];
 const MAINTENANCE_COLORS = ["#f59e0b", "#3b82f6", "#10b981"];
 
 function Dashboard() {
-  const { user } = useAuth();
+  const { user, activeProperty } = useAuth();
 
-  // Use the tRPC hooks to fetch real data
-  const { getAll: getProperties, isLoading: propertiesLoading } =
-    useProperties();
-  const propertiesData = getProperties().data || [];
+  const { getStats: getLeaseStats } = useLeases();
+  const { data: leaseStats, status: leaseStatsStatus } = getLeaseStats(
+    activeProperty?.id || ""
+  );
 
-  const { getStats: getLeaseStats, isLoading: leaseStatsLoading } = useLeases();
-  const leaseStats = getLeaseStats().data || {
-    totalMonthlyRent: 0,
-    activeLeases: 0,
-    expiringNext30Days: 0,
-  };
-
-  const { getAll: getRecentTransactions, isLoading: transactionsLoading } =
-    useLeases();
-  const recentTransactionsData =
+  const { getAll: getRecentTransactions } = useLeases();
+  const { data: recentTransactionsData, status: transactionsStatus } =
     getRecentTransactions({
       limit: 10,
       page: 1,
-    }).data?.leases || [];
+      propertyId: activeProperty?.id,
+    });
 
-  const { getStats: getMaintenanceStats, isLoading: maintenanceLoading } =
-    useMaintenance();
-  const maintenanceStats = getMaintenanceStats().data || {
-    openRequests: 0,
-    inProgressRequests: 0,
-    completedRequests: 0,
-    totalMaintenanceCost: 0,
-  };
+  const { getStats: getMaintenanceStats } = useMaintenance();
+  const { data: maintenanceStats, status: maintenanceStatsStatus } =
+    getMaintenanceStats({ propertyId: activeProperty?.id });
 
-  const { getExpiringLeases, isLoading: expiringLeasesLoading } = useLeases();
-  const upcomingEvents = getExpiringLeases(7).data || [];
+  console.log(maintenanceStats);
 
-  const { getStats: getTenantStats, isLoading: tenantStatsLoading } =
-    useTenants();
-  const tenantStats = getTenantStats().data || { totalTenants: 0 };
+  const { getExpiringLeases } = useLeases();
+  const { data: upcomingEvents, status: expiringLeasesStatus } =
+    getExpiringLeases(7).data || [];
+
+  const { getStats: getTenantStats } = useTenants();
+  const { data: tenantStats, status: tenantStatsStatus } = getTenantStats(
+    activeProperty?.id || ""
+  );
 
   // Show loading state if any data is still loading
   const isLoading =
-    propertiesLoading ||
-    leaseStatsLoading ||
-    transactionsLoading ||
-    maintenanceLoading ||
-    expiringLeasesLoading ||
-    tenantStatsLoading;
+    leaseStatsStatus == "pending" ||
+    transactionsStatus == "pending" ||
+    maintenanceStatsStatus == "pending" ||
+    tenantStatsStatus == "pending" ||
+    expiringLeasesStatus == "pending";
 
   if (isLoading) {
     return (
@@ -161,7 +147,7 @@ function Dashboard() {
 
   // Create maintenance data from real stats
   const maintenanceData = [
-    { name: "Pending", value: maintenanceStats.openRequests || 0 },
+    { name: "Pending", value: maintenanceStats?.openRequests || 0 },
     { name: "In Progress", value: maintenanceStats.inProgressRequests || 0 },
     { name: "Completed", value: maintenanceStats.completedRequests || 0 },
   ];
@@ -420,9 +406,9 @@ function Dashboard() {
             <div>
               <CardTitle>Property Valuation</CardTitle>
               <span className="text-sm text-muted-foreground">
-                {propertiesData && propertiesData.length > 0
+                {/* {propertiesData && propertiesData.length > 0
                   ? propertiesData[0].name
-                  : "N/A"}
+                  : "N/A"} */}
               </span>
             </div>
             <ChevronDown className="h-4 w-4" />

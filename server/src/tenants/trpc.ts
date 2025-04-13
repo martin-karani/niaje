@@ -1,5 +1,5 @@
 import { router } from "@/trpc/core";
-import { tenantsManageProcedure } from "@/trpc/middleware";
+import { adminProcedure, tenantsManageProcedure } from "@/trpc/middleware";
 import { TRPCError } from "@trpc/server";
 import {
   createTenantDto,
@@ -149,7 +149,7 @@ export const tenantsRouter = router({
     }),
 
   // Get tenant statistics
-  getStats: tenantsManageProcedure.query(async ({ ctx }) => {
+  getStats: adminProcedure.query(async ({ ctx }) => {
     try {
       return tenantsService.getTenantStats(ctx.user.id, ctx.user.role);
     } catch (error: any) {

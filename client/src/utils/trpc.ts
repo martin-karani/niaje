@@ -6,8 +6,9 @@ import {
 } from "@trpc/react-query";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 
-import type { AppRouter } from "../../../server/src/trpc/index";
+import type { AppRouter } from "../../../server/src/trpc/router";
 
+// Create a new QueryClient instance
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -18,10 +19,12 @@ export const queryClient = new QueryClient({
   },
 });
 
+// Helper function to get the base URL
 export function getBaseUrl() {
   return `http://localhost:3001`;
 }
 
+// Configure tRPC client options
 export const trpcConfig = {
   links: [
     loggerLink({
@@ -41,11 +44,14 @@ export const trpcConfig = {
     }),
   ],
 };
+
+// Create the tRPC react client
 export const trpc = createTRPCReact<AppRouter>();
 
-export const trpcClient = trpc.createClient<AppRouter>(trpcConfig);
+// Initialize the tRPC client
+export const trpcClient = trpc.createClient(trpcConfig);
 
-// infer the types for your router
+// Export type definitions for use throughout the application
 export type ReactQueryOptions = inferReactQueryProcedureOptions<AppRouter>;
 export type RouterInputs = inferRouterInputs<AppRouter>;
 export type RouterOutputs = inferRouterOutputs<AppRouter>;

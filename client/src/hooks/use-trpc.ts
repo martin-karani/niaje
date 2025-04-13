@@ -1,15 +1,18 @@
-import { queryClient, trpc } from "@/utils/trpc";
+import { queryClient, trpc, type RouterInputs } from "@/utils/trpc";
 
 // Utility hook for property-related queries
 export const useProperties = () => {
   // Get all properties
-  const getAll = trpc.properties.getAll.useQuery(undefined, {
-    staleTime: 10 * 60 * 1000, // 10 minutes
-  });
+  const getAll = () => {
+    return trpc.properties.getAll.useQuery(undefined, {
+      staleTime: 10 * 60 * 1000, // 10 minutes
+    });
+  };
 
   // Get property by ID
-  const getById = (propertyId: string) =>
-    trpc.properties.getById.useQuery({ id: propertyId });
+  const getById = (propertyId: string) => {
+    return trpc.properties.getById.useQuery({ id: propertyId });
+  };
 
   // Create property mutation
   const create = trpc.properties.create.useMutation({
@@ -20,7 +23,7 @@ export const useProperties = () => {
 
   // Update property mutation
   const update = trpc.properties.update.useMutation({
-    onSuccess: (data: { id: any }) => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [["properties", "getAll"]] });
       queryClient.invalidateQueries({
         queryKey: [["properties", "getById"], { id: data.id }],
@@ -47,15 +50,14 @@ export const useProperties = () => {
 // Utility hook for tenant-related queries
 export const useTenants = () => {
   // Get all tenants with optional filters
-  const getAll = (filters?: {
-    propertyId?: string;
-    status?: "active" | "past" | "blacklisted";
-    search?: string;
-  }) => trpc.tenants.getAll.useQuery(filters || {});
+  const getAll = (filters?: RouterInputs["tenants"][""]) => {
+    return trpc.tenants.getAll.useQuery(filters || {});
+  };
 
   // Get tenant by ID
-  const getById = (tenantId: string) =>
-    trpc.tenants.getById.useQuery({ id: tenantId });
+  const getById = (tenantId: RouterInputs["tenants"]["getById"]) => {
+    return trpc.tenants.getById.useQuery({ id: tenantId });
+  };
 
   // Create tenant mutation
   const create = trpc.tenants.create.useMutation({
@@ -66,7 +68,7 @@ export const useTenants = () => {
 
   // Update tenant mutation
   const update = trpc.tenants.update.useMutation({
-    onSuccess: (data: { id: any }) => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [["tenants", "getAll"]] });
       queryClient.invalidateQueries({
         queryKey: [["tenants", "getById"], { id: data.id }],
@@ -82,9 +84,9 @@ export const useTenants = () => {
   });
 
   // Get tenant statistics
-  const getStats = trpc.tenants.getStats.useQuery(undefined, {
-    staleTime: 30 * 60 * 1000, // 30 minutes
-  });
+  const getStats = (propertyId: string) => {
+    return trpc.tenants.getStats.useQuery({ propertyId });
+  };
 
   return {
     getAll,
@@ -99,19 +101,14 @@ export const useTenants = () => {
 // Utility hook for lease-related queries
 export const useLeases = () => {
   // Get all leases with optional filters
-  const getAll = (filters?: {
-    propertyId?: string;
-    unitId?: string;
-    tenantId?: string;
-    status?: string;
-    search?: string;
-    page?: number;
-    limit?: number;
-  }) => trpc.leases.getAll.useQuery(filters || {});
+  const getAll = (filters?: RouterInputs["leases"]["getAll"]) => {
+    return trpc.leases.getAll.useQuery(filters || {});
+  };
 
   // Get lease by ID
-  const getById = (leaseId: string, withTransactions = false) =>
-    trpc.leases.getById.useQuery({ id: leaseId, withTransactions });
+  const getById = (leaseId: string, withTransactions = false) => {
+    return trpc.leases.getById.useQuery({ id: leaseId, withTransactions });
+  };
 
   // Create lease mutation
   const create = trpc.leases.create.useMutation({
@@ -122,7 +119,7 @@ export const useLeases = () => {
 
   // Update lease mutation
   const update = trpc.leases.update.useMutation({
-    onSuccess: (data: { id: any }) => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [["leases", "getAll"]] });
       queryClient.invalidateQueries({
         queryKey: [["leases", "getById"], { id: data.id }],
@@ -132,7 +129,7 @@ export const useLeases = () => {
 
   // Terminate lease mutation
   const terminate = trpc.leases.terminate.useMutation({
-    onSuccess: (data: { id: any }) => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [["leases", "getAll"]] });
       queryClient.invalidateQueries({
         queryKey: [["leases", "getById"], { id: data.id }],
@@ -148,12 +145,16 @@ export const useLeases = () => {
   });
 
   // Get lease statistics
-  const getStats = (propertyId?: string) =>
-    trpc.leases.getStats.useQuery({ propertyId });
+  const getStats = (propertyId: string) => {
+    return trpc.leases.getStats.useQuery({ propertyId });
+  };
 
   // Get expiring leases
-  const getExpiringLeases = (daysAhead = 30) =>
-    trpc.leases.getExpiringLeases.useQuery({ daysAhead });
+  const getExpiringLeases = (
+    filters?: RouterInputs["leases"]["getExpiringLeases"]
+  ) => {
+    return trpc.leases.getExpiringLeases.useQuery(filters);
+  };
 
   return {
     getAll,
@@ -170,21 +171,14 @@ export const useLeases = () => {
 // Utility hook for maintenance-related queries
 export const useMaintenance = () => {
   // Get all maintenance requests with optional filters
-  const getAll = (filters?: {
-    propertyId?: string;
-    unitId?: string;
-    tenantId?: string;
-    status?: string;
-    priority?: string;
-    assignedTo?: string;
-    search?: string;
-    page?: number;
-    limit?: number;
-  }) => trpc.maintenance.getAll.useQuery(filters || {});
+  const getAll = (filters?: RouterInputs["maintenance"]["getAll"]) => {
+    return trpc.maintenance.getAll.useQuery(filters || {});
+  };
 
   // Get maintenance request by ID
-  const getById = (requestId: string) =>
-    trpc.maintenance.getById.useQuery({ id: requestId });
+  const getById = (requestId: string) => {
+    return trpc.maintenance.getById.useQuery({ id: requestId });
+  };
 
   // Create maintenance request mutation
   const create = trpc.maintenance.create.useMutation({
@@ -195,7 +189,7 @@ export const useMaintenance = () => {
 
   // Update maintenance request mutation
   const update = trpc.maintenance.update.useMutation({
-    onSuccess: (data: { id: any }) => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [["maintenance", "getAll"]] });
       queryClient.invalidateQueries({
         queryKey: [["maintenance", "getById"], { id: data.id }],
@@ -205,7 +199,7 @@ export const useMaintenance = () => {
 
   // Assign maintenance request mutation
   const assign = trpc.maintenance.assign.useMutation({
-    onSuccess: (data: { id: any }) => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [["maintenance", "getAll"]] });
       queryClient.invalidateQueries({
         queryKey: [["maintenance", "getById"], { id: data.id }],
@@ -215,7 +209,7 @@ export const useMaintenance = () => {
 
   // Resolve maintenance request mutation
   const resolve = trpc.maintenance.resolve.useMutation({
-    onSuccess: (data: { id: any }) => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [["maintenance", "getAll"]] });
       queryClient.invalidateQueries({
         queryKey: [["maintenance", "getById"], { id: data.id }],
@@ -225,7 +219,7 @@ export const useMaintenance = () => {
 
   // Add comment to maintenance request mutation
   const addComment = trpc.maintenance.addComment.useMutation({
-    onSuccess: (_: any, variables: { requestId: any }) => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: [["maintenance", "getById"], { id: variables.requestId }],
       });
@@ -233,8 +227,9 @@ export const useMaintenance = () => {
   });
 
   // Get maintenance statistics
-  const getStats = (propertyId?: string) =>
-    trpc.maintenance.getStats.useQuery({ propertyId });
+  const getStats = (filters?: RouterInputs["maintenance"]["getStats"]) => {
+    return trpc.maintenance.getStats.useQuery(filters || {});
+  };
 
   // Get maintenance categories
   const getCategories = trpc.maintenance.getCategories.useQuery();
@@ -277,17 +272,14 @@ export const useUsers = () => {
 // Utility hook for admin user management (for administrators only)
 export const useUserManagement = () => {
   // Get all users with optional filters
-  const getAll = (filters?: {
-    role?: string;
-    search?: string;
-    isActive?: boolean;
-    page?: number;
-    limit?: number;
-  }) => trpc.users.getAll.useQuery(filters || {});
+  const getAll = (filters?: RouterInputs["users"]["getAll"]) => {
+    return trpc.users.getAll.useQuery(filters || {});
+  };
 
   // Get user by ID
-  const getById = (userId: string) =>
-    trpc.users.getById.useQuery({ id: userId });
+  const getById = (userId: string) => {
+    return trpc.users.getById.useQuery({ id: userId });
+  };
 
   // Create user mutation
   const create = trpc.users.create.useMutation({
@@ -298,7 +290,7 @@ export const useUserManagement = () => {
 
   // Update user mutation
   const update = trpc.users.update.useMutation({
-    onSuccess: (data: { id: any }) => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [["users", "getAll"]] });
       queryClient.invalidateQueries({
         queryKey: [["users", "getById"], { id: data.id }],
@@ -308,7 +300,7 @@ export const useUserManagement = () => {
 
   // Set user active status mutation
   const setActiveStatus = trpc.users.setActiveStatus.useMutation({
-    onSuccess: (data: { id: any }) => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [["users", "getAll"]] });
       queryClient.invalidateQueries({
         queryKey: [["users", "getById"], { id: data.id }],

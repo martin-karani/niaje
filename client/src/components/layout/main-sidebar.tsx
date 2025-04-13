@@ -38,9 +38,7 @@ import { PropertySwitcher } from "../common/property-switcher";
 
 interface SidebarProps {
   collapsible?: "icon" | "none" | "offcanvas";
-
   open?: boolean;
-
   onOpenChange?: (open: boolean) => void;
 }
 type NavItem = {
@@ -126,20 +124,7 @@ export function MainSidebar({ open, onOpenChange, ...props }: SidebarProps) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <PropertySwitcher
-          properties={[
-            {
-              name: "Property 1",
-              logo: Building,
-              plan: "Basic",
-            },
-            {
-              name: "Property 2",
-              logo: Building,
-              plan: "Premium",
-            },
-          ]}
-        />
+        <PropertySwitcher />
       </SidebarHeader>
 
       <SidebarContent>

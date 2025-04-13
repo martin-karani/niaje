@@ -1,5 +1,6 @@
 import { signIn, signOut, signUp, useSession } from "@/auth/auth-client";
 import { trpc } from "@/utils/trpc";
+import { Building } from "lucide-react";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
 export type UserRole = "landlord" | "caretaker" | "agent" | "admin";
@@ -11,6 +12,21 @@ export interface User {
   role: UserRole;
   isActive: boolean;
   image?: string | null;
+}
+
+// Define a Property interface
+export interface Property {
+  id: string;
+  name: string;
+  logo?: React.ElementType;
+  plan?: string;
+  address?: string;
+  units?: any[]; // This could be more specific in a real app
+  stats?: {
+    totalResidents?: number;
+    occupancyRate?: number;
+    upcomingPercentage?: number;
+  };
 }
 
 export interface AuthContext {
@@ -26,6 +42,11 @@ export interface AuthContext {
   ) => Promise<void>;
   logout: () => Promise<void>;
   hasPermission: (permission: string) => boolean;
+
+  // New property management features
+  properties: Property[] | null;
+  activeProperty: Property | null;
+  setActiveProperty: (property: Property) => void;
 }
 
 const AuthContext = createContext<AuthContext | undefined>(undefined);
@@ -35,6 +56,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // New state for properties
+  const [properties, setProperties] = useState<Property[] | null>(null);
+  const [activeProperty, setActiveProperty] = useState<Property | null>(null);
 
   // Fetch user profile if there's a session
   const { data: userProfile, isLoading: isProfileLoading } =
@@ -56,6 +81,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   );
 
+  // Fetch properties for the authenticated user
+  const { data: propertiesData, isLoading: isPropertiesLoading } =
+    trpc.properties.getAll.useQuery(undefined, {
+      enabled: !!session?.user,
+      retry: 1,
+    });
+
+  // Set user when data is loaded
   useEffect(() => {
     if (isSessionLoading || isProfileLoading) {
       setIsLoading(true);
@@ -86,6 +119,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     setIsLoading(false);
   }, [session, isSessionLoading, userProfile, isProfileLoading]);
+
+  // Set properties and active property when properties data is loaded
+  useEffect(() => {
+    if (propertiesData) {
+      // Format properties and add defaults
+      const formattedProperties = propertiesData.map((property) => ({
+        ...property,
+        logo: property.logo || Building, // Default to Building icon
+        plan: property.plan || "Standard", // Default plan
+      }));
+
+      setProperties(formattedProperties);
+
+      // Set first property as active if none is selected and there are properties
+      if (formattedProperties.length > 0 && !activeProperty) {
+        setActiveProperty(formattedProperties[0]);
+      }
+    }
+  }, [propertiesData, activeProperty]);
 
   const login = async (email: string, password: string) => {
     try {
@@ -129,6 +181,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       await signOut();
       setUser(null);
+      // Clear property state on logout
+      setProperties(null);
+      setActiveProperty(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to logout");
       throw err;
@@ -154,16 +209,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return false;
   };
 
+  // Handle property change
+  const handleSetActiveProperty = (property: Property) => {
+    setActiveProperty(property);
+  };
+
   return (
     <AuthContext.Provider
       value={{
         user,
-        isLoading: isLoading || isSessionLoading || isProfileLoading,
+        isLoading:
+          isLoading ||
+          isSessionLoading ||
+          isProfileLoading ||
+          isPropertiesLoading,
         error,
         login,
         register,
         logout,
         hasPermission,
+        properties,
+        activeProperty,
+        setActiveProperty: handleSetActiveProperty,
       }}
     >
       {children}

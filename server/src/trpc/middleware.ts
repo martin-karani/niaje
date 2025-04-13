@@ -1,7 +1,7 @@
 // src/trpc/middleware.ts
 import { Permission } from "@/permissions/models";
 import { TRPCError } from "@trpc/server";
-import { t } from "./init";
+import { t } from "./core";
 
 /**
  * Middleware that requires authentication

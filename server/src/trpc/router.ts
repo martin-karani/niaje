@@ -4,12 +4,12 @@ import { permissionsRouter } from "@/permissions/trpc";
 import { propertiesRouter } from "@/properties/trpc";
 import { tenantsRouter } from "@/tenants/trpc";
 import { usersRouter } from "@/users/trpc";
-import { t } from "./init";
+import { router } from "./core";
 
 /**
  * Create the main application router
  */
-export const appRouter = t.router({
+export const appRouter = router({
   properties: propertiesRouter,
   users: usersRouter,
   tenants: tenantsRouter,
