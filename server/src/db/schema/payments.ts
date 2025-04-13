@@ -1,3 +1,4 @@
+import { relations } from "drizzle-orm";
 import {
   boolean,
   numeric,
@@ -50,3 +51,26 @@ export const transactions = pgTable("transactions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+export const utilityBillsRelations = relations(utilityBills, ({ one }) => ({
+  lease: one(leases, {
+    fields: [utilityBills.leaseId],
+    references: [leases.id],
+  }),
+}));
+
+export const transactionsRelations = relations(transactions, ({ one }) => ({
+  lease: one(leases, {
+    fields: [transactions.leaseId],
+    references: [leases.id],
+  }),
+  utilityBill: one(utilityBills, {
+    fields: [transactions.utilityBillId],
+    references: [utilityBills.id],
+  }),
+  recorder: one(users, {
+    fields: [transactions.recordedBy],
+    references: [users.id],
+    relationName: "transactionRecorder",
+  }),
+}));

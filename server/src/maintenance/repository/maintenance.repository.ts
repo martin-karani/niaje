@@ -11,7 +11,18 @@ import {
   MaintenanceRequestWithRelations,
   MaintenanceStats,
 } from "@/maintenance/types";
-import { and, count, eq, gte, ilike, lte, or, sql, sum } from "drizzle-orm";
+import {
+  and,
+  count,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  lte,
+  or,
+  sql,
+  sum,
+} from "drizzle-orm";
 import {
   AssignMaintenanceRequestDto,
   CreateMaintenanceCategoryDto,
@@ -433,15 +444,12 @@ export class MaintenanceRepository {
     if (propertyId) {
       const propertyUnits = await db.query.units.findMany({
         where: eq(units.propertyId, propertyId),
-        columns: {
-          id: true,
-        },
+        columns: { id: true },
       });
-
       const unitIds = propertyUnits.map((unit) => unit.id);
-
       if (unitIds.length > 0) {
-        queryConditions.push(eq(maintenanceRequests.unitId, unitIds));
+        // Use inArray instead of eq for checking membership
+        queryConditions.push(inArray(maintenanceRequests.unitId, unitIds));
       } else {
         // No units found for this property, return empty stats
         return {
@@ -520,13 +528,14 @@ export class MaintenanceRepository {
     // Calculate average resolution time for completed requests
     // This is more complex as we need to calculate the difference between reported_at and resolved_at
     // This SQL is PostgreSQL specific
-    const [avgResolutionResult] = await db.execute(sql`
+    const avgResolutionResult = await db.execute<{ avg_days: number }>(sql`
       SELECT AVG(EXTRACT(EPOCH FROM (resolved_at - reported_at)) / 86400) as avg_days
       FROM maintenance_requests
       WHERE status = 'completed'
       ${queryConditions.length ? sql`AND ${and(...queryConditions)}` : sql``}
       AND resolved_at IS NOT NULL
     `);
+    const avgDays = avgResolutionResult.rows[0]?.avg_days || 0;
 
     // Get total maintenance cost
     const [totalCostResult] = await db
@@ -534,8 +543,11 @@ export class MaintenanceRepository {
         totalCost: sum(maintenanceRequests.cost),
       })
       .from(maintenanceRequests)
-      .where(and(...queryConditions, sql`cost IS NOT NULL`));
-
+      .where(
+        queryConditions.length
+          ? and(...queryConditions, sql`cost IS NOT NULL`)
+          : sql`cost IS NOT NULL`
+      );
     return {
       totalRequests: totalResult.count,
       openRequests: openResult.count,
@@ -549,8 +561,8 @@ export class MaintenanceRepository {
         status: r.status,
         count: Number(r.count),
       })),
-      avgResolutionTime: avgResolutionResult?.avg_days || 0,
-      totalMaintenanceCost: totalCostResult.totalCost || 0,
+      avgResolutionTime: avgDays,
+      totalMaintenanceCost: Number(totalCostResult.totalCost) || 0,
     };
   }
 

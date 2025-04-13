@@ -72,7 +72,32 @@ export const maintenanceCommentsRelations = relations(
 );
 
 // Add relation to maintenanceRequests if needed
+export const maintenanceRequestsRelations = relations(
+  maintenanceRequests,
+  ({ one, many }) => ({
+    unit: one(units, {
+      fields: [maintenanceRequests.unitId],
+      references: [units.id],
+    }),
+    tenant: one(tenants, {
+      fields: [maintenanceRequests.tenantId],
+      references: [tenants.id],
+    }),
+    assignee: one(users, {
+      fields: [maintenanceRequests.assignedTo],
+      references: [users.id],
+      relationName: "maintenanceAssignee",
+    }),
+    comments: many(maintenanceComments),
+  })
+);
 
+export const maintenanceCategoriesRelations = relations(
+  maintenanceCategories,
+  ({ many }) => ({
+    requests: many(maintenanceRequests),
+  })
+);
 // Types
 export type MaintenanceRequest = typeof maintenanceRequests.$inferSelect;
 export type NewMaintenanceRequest = typeof maintenanceRequests.$inferInsert;

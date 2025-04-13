@@ -9,6 +9,7 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 import { createId } from "../utils";
+import { transactions, utilityBills } from "./payments";
 import { tenants, users } from "./users";
 
 // Define properties table
@@ -115,6 +116,33 @@ export const propertiesRelations = relations(properties, ({ one }) => ({
     references: [users.id],
     relationName: "propertyAgent",
   }),
+}));
+
+export const unitsRelations = relations(units, ({ one, many }) => ({
+  property: one(properties, {
+    fields: [units.propertyId],
+    references: [properties.id],
+  }),
+  leases: many(leases),
+}));
+
+// Define relations for leases
+export const leasesRelations = relations(leases, ({ one, many }) => ({
+  unit: one(units, {
+    fields: [leases.unitId],
+    references: [units.id],
+  }),
+  tenant: one(tenants, {
+    fields: [leases.tenantId],
+    references: [tenants.id],
+  }),
+  creator: one(users, {
+    fields: [leases.createdBy],
+    references: [users.id],
+    relationName: "leaseCreator",
+  }),
+  transactions: many(transactions),
+  utilityBills: many(utilityBills),
 }));
 
 // Types

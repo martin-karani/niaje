@@ -150,10 +150,8 @@ export const useLeases = () => {
   };
 
   // Get expiring leases
-  const getExpiringLeases = (
-    filters?: RouterInputs["leases"]["getExpiringLeases"]
-  ) => {
-    return trpc.leases.getExpiringLeases.useQuery(filters);
+  const getExpiringLeases = (daysAhead: number) => {
+    return trpc.leases.getExpiringLeases.useQuery({ daysAhead });
   };
 
   return {
@@ -227,8 +225,8 @@ export const useMaintenance = () => {
   });
 
   // Get maintenance statistics
-  const getStats = (filters?: RouterInputs["maintenance"]["getStats"]) => {
-    return trpc.maintenance.getStats.useQuery(filters || {});
+  const getStats = (propertyId: string) => {
+    return trpc.maintenance.getStats.useQuery({ propertyId });
   };
 
   // Get maintenance categories

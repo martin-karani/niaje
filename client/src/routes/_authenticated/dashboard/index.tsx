@@ -76,13 +76,13 @@ function Dashboard() {
 
   const { getStats: getMaintenanceStats } = useMaintenance();
   const { data: maintenanceStats, status: maintenanceStatsStatus } =
-    getMaintenanceStats({ propertyId: activeProperty?.id });
+    getMaintenanceStats(activeProperty?.id || "");
 
   console.log(maintenanceStats);
 
   const { getExpiringLeases } = useLeases();
   const { data: upcomingEvents, status: expiringLeasesStatus } =
-    getExpiringLeases(7).data || [];
+    getExpiringLeases(7);
 
   const { getStats: getTenantStats } = useTenants();
   const { data: tenantStats, status: tenantStatsStatus } = getTenantStats(
