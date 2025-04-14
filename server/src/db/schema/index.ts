@@ -8,7 +8,13 @@ import {
   maintenanceCommentsRelations,
   maintenanceRequests,
   maintenanceRequestsRelations,
+  workOrdersRelations,
 } from "./maintenance";
+import {
+  messageRecipientsRelations,
+  messagesRelations,
+  messageTemplatesRelations,
+} from "./messages";
 import {
   transactions,
   transactionsRelations,
@@ -79,6 +85,7 @@ export * from "./activities";
 export * from "./audit";
 export * from "./documents";
 export * from "./maintenance";
+export * from "./messages";
 export * from "./payments";
 export * from "./properties";
 export * from "./sessions";
@@ -93,6 +100,9 @@ export {
   maintenanceCategoriesRelations,
   maintenanceCommentsRelations,
   maintenanceRequestsRelations,
+  messageRecipientsRelations,
+  messagesRelations,
+  messageTemplatesRelations,
   notificationsRelations,
   propertiesRelations,
   sessionsRelations,
@@ -103,4 +113,5 @@ export {
   usersRelations,
   utilityBillsRelations,
   verificationsRelations,
+  workOrdersRelations,
 };

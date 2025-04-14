@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 import { eq } from "drizzle-orm";
 import { db } from "../src/db";
 // Import all schema definitions to make sure we get all tables
+import * as bcryptjs from "bcryptjs";
 import * as schema from "../src/db/schema";
 import { createId } from "../src/db/utils";
 
@@ -20,7 +21,27 @@ function addMonths(date: Date, months: number): Date {
   return result;
 }
 
-const { users, accounts, leases, maintenanceCategories } = schema;
+const {
+  users,
+  accounts,
+  leases,
+  maintenanceRequests,
+  maintenanceCategories,
+  maintenanceComments,
+  workOrders,
+  properties,
+  units,
+  tenants,
+  transactions,
+  utilityBills,
+  documents,
+  userPermissions,
+  activities,
+  notifications,
+  messages,
+  messageRecipients,
+  messageTemplates,
+} = schema;
 
 // Helper for creating users
 async function createUserWithAccount(userData: {
@@ -33,93 +54,98 @@ async function createUserWithAccount(userData: {
   address?: string;
   city?: string;
   country?: string;
-}) {
-  const existingUser = await db.query.users.findFirst({
-    where: (users, { eq }) => eq(users.email, userData.email),
-  });
-
-  let user;
-
-  if (existingUser) {
-    // Update existing user
-    const [updatedUser] = await db
-      .update(schema.users)
-      .set({
-        name: userData.name,
-        role: userData.role,
-        phone: userData.phone,
-        address: userData.address,
-        city: userData.city,
-        country: userData.country,
-        emailVerified: userData.emailVerified ?? false,
-        updatedAt: new Date(),
-      })
-      .where(eq(schema.users.email, userData.email))
-      .returning();
-
-    user = updatedUser;
-    console.log(`Updated existing user: ${user.email}`);
-  } else {
-    // Create new user
-    const [newUser] = await db
-      .insert(schema.users)
-      .values({
-        id: createId(),
-        email: userData.email,
-        name: userData.name,
-        role: userData.role,
-        emailVerified: userData.emailVerified ?? false,
-        phone: userData.phone,
-        address: userData.address,
-        city: userData.city,
-        country: userData.country,
-        updatedAt: new Date(),
-      })
-      .returning();
-
-    user = newUser;
-    console.log(`Created new user: ${user.email}`);
-  }
-
-  // Hash the password for the Account model
-  // In a real system, you'd properly hash the password
-  const hashedPassword = userData.passwordPlainText;
-
-  // Find existing account
-  const existingAccount = await db.query.accounts.findFirst({
-    where: (accounts, { and, eq }) =>
-      and(
-        eq(accounts.providerId, "emailpassword"),
-        eq(accounts.userId, user.id)
-      ),
-  });
-
-  if (existingAccount) {
-    // Update existing account
-    await db
-      .update(schema.accounts)
-      .set({
-        password: hashedPassword,
-        updatedAt: new Date(),
-      })
-      .where(eq(accounts.id, existingAccount.id));
-
-    console.log(`Updated existing account for: ${user.email}`);
-  } else {
-    // Create new account
-    await db.insert(accounts).values({
-      id: createId(),
-      userId: user.id,
-      providerId: "emailpassword",
-      accountId: user.id,
-      password: hashedPassword,
-      updatedAt: new Date(),
+}): Promise<any> {
+  try {
+    const existingUser = await db.query.users.findFirst({
+      where: (users, { eq }) => eq(users.email, userData.email),
     });
 
-    console.log(`Created new account for: ${user.email}`);
-  }
+    let user;
 
-  return user;
+    if (existingUser) {
+      // Update existing user
+      const [updatedUser] = await db
+        .update(schema.users)
+        .set({
+          name: userData.name,
+          role: userData.role,
+          phone: userData.phone,
+          address: userData.address,
+          city: userData.city,
+          country: userData.country,
+          emailVerified: userData.emailVerified ?? false,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.users.email, userData.email))
+        .returning();
+
+      user = updatedUser;
+      console.log(`Updated existing user: ${user.email}`);
+    } else {
+      // Create new user
+      const [newUser] = await db
+        .insert(schema.users)
+        .values({
+          id: createId(),
+          email: userData.email,
+          name: userData.name,
+          role: userData.role,
+          emailVerified: userData.emailVerified ?? false,
+          phone: userData.phone,
+          address: userData.address,
+          city: userData.city,
+          country: userData.country,
+          isActive: true,
+          updatedAt: new Date(),
+        })
+        .returning();
+
+      user = newUser;
+      console.log(`Created new user: ${user.email}`);
+    }
+
+    // Hash the password for the Account model
+    const hashedPassword = await bcryptjs.hash(userData.passwordPlainText, 10);
+
+    // Find existing account
+    const existingAccount = await db.query.accounts.findFirst({
+      where: (accounts, { and, eq }) =>
+        and(
+          eq(accounts.providerId, "emailpassword"),
+          eq(accounts.userId, user.id)
+        ),
+    });
+
+    if (existingAccount) {
+      // Update existing account
+      await db
+        .update(schema.accounts)
+        .set({
+          password: hashedPassword,
+          updatedAt: new Date(),
+        })
+        .where(eq(accounts.id, existingAccount.id));
+
+      console.log(`Updated existing account for: ${user.email}`);
+    } else {
+      // Create new account
+      await db.insert(accounts).values({
+        id: createId(),
+        userId: user.id,
+        providerId: "emailpassword",
+        accountId: user.id,
+        password: hashedPassword,
+        updatedAt: new Date(),
+      });
+
+      console.log(`Created new account for: ${user.email}`);
+    }
+
+    return user;
+  } catch (error) {
+    console.error(`Error creating/updating user ${userData.email}:`, error);
+    throw error;
+  }
 }
 
 // Function to create a property with units
@@ -142,7 +168,7 @@ async function createPropertyWithUnits(propertyData: {
     status: string;
     features?: any;
   }[];
-}) {
+}): Promise<any> {
   try {
     // Check if property exists
     const existingProperty = await db.query.properties.findFirst({
@@ -261,56 +287,61 @@ async function createTenant(tenantData: {
   dateOfBirth?: Date;
   status?: string;
   documents?: any;
-}) {
-  // Check if tenant exists
-  const existingTenant = await db.query.tenants.findFirst({
-    where: (tenants, { eq }) => eq(tenants.email, tenantData.email),
-  });
+}): Promise<any> {
+  try {
+    // Check if tenant exists
+    const existingTenant = await db.query.tenants.findFirst({
+      where: (tenants, { eq }) => eq(tenants.email, tenantData.email),
+    });
 
-  let tenant;
+    let tenant;
 
-  if (existingTenant) {
-    // Update existing tenant
-    const [updatedTenant] = await db
-      .update(schema.tenants)
-      .set({
-        name: tenantData.name,
-        phone: tenantData.phone || null,
-        emergencyContactName: tenantData.emergencyContactName || null,
-        emergencyContactPhone: tenantData.emergencyContactPhone || null,
-        dateOfBirth: tenantData.dateOfBirth || null,
-        status: tenantData.status || "active",
-        documents: tenantData.documents || null,
-        updatedAt: new Date(),
-      })
-      .where(eq(schema.tenants.id, existingTenant.id))
-      .returning();
+    if (existingTenant) {
+      // Update existing tenant
+      const [updatedTenant] = await db
+        .update(schema.tenants)
+        .set({
+          name: tenantData.name,
+          phone: tenantData.phone || null,
+          emergencyContactName: tenantData.emergencyContactName || null,
+          emergencyContactPhone: tenantData.emergencyContactPhone || null,
+          dateOfBirth: tenantData.dateOfBirth || null,
+          status: tenantData.status || "active",
+          documents: tenantData.documents || null,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.tenants.id, existingTenant.id))
+        .returning();
 
-    tenant = updatedTenant;
-    console.log(`Updated tenant: ${tenant.name}`);
-  } else {
-    // Create new tenant
-    const [newTenant] = await db
-      .insert(schema.tenants)
-      .values({
-        id: createId(),
-        name: tenantData.name,
-        email: tenantData.email,
-        phone: tenantData.phone || null,
-        emergencyContactName: tenantData.emergencyContactName || null,
-        emergencyContactPhone: tenantData.emergencyContactPhone || null,
-        dateOfBirth: tenantData.dateOfBirth || null,
-        status: tenantData.status || "active",
-        documents: tenantData.documents || null,
-        updatedAt: new Date(),
-      })
-      .returning();
+      tenant = updatedTenant;
+      console.log(`Updated tenant: ${tenant.name}`);
+    } else {
+      // Create new tenant
+      const [newTenant] = await db
+        .insert(schema.tenants)
+        .values({
+          id: createId(),
+          name: tenantData.name,
+          email: tenantData.email,
+          phone: tenantData.phone || null,
+          emergencyContactName: tenantData.emergencyContactName || null,
+          emergencyContactPhone: tenantData.emergencyContactPhone || null,
+          dateOfBirth: tenantData.dateOfBirth || null,
+          status: tenantData.status || "active",
+          documents: tenantData.documents || null,
+          updatedAt: new Date(),
+        })
+        .returning();
 
-    tenant = newTenant;
-    console.log(`Created tenant: ${tenant.name}`);
+      tenant = newTenant;
+      console.log(`Created tenant: ${tenant.name}`);
+    }
+
+    return tenant;
+  } catch (error) {
+    console.error(`Error creating/updating tenant ${tenantData.email}:`, error);
+    throw error;
   }
-
-  return tenant;
 }
 
 // Function to create a lease
@@ -330,7 +361,7 @@ async function createLease(leaseData: {
   includesInternet?: boolean;
   createdBy?: string;
   notes?: string;
-}) {
+}): Promise<any> {
   try {
     // First check if unit is available
     const unit = await db.query.units.findFirst({
@@ -429,15 +460,8 @@ async function createMaintenanceRequest(requestData: {
   cost?: number;
   images?: any;
   notes?: string;
-}) {
+}): Promise<any> {
   try {
-    if (!schema.maintenanceRequests) {
-      console.log(
-        "Maintenance requests table not found in schema, skipping creation"
-      );
-      return null;
-    }
-
     // Create the maintenance request
     const [request] = await db
       .insert(schema.maintenanceRequests)
@@ -476,15 +500,8 @@ async function createMaintenanceComment(commentData: {
   userId: string;
   content: string;
   isPrivate?: boolean;
-}) {
+}): Promise<any> {
   try {
-    if (!schema.maintenanceComments) {
-      console.log(
-        "Maintenance comments table not found in schema, skipping creation"
-      );
-      return null;
-    }
-
     const [comment] = await db
       .insert(schema.maintenanceComments)
       .values({
@@ -510,9 +527,119 @@ async function createMaintenanceComment(commentData: {
   }
 }
 
+// Function to create an activity
+async function createActivity(activityData: {
+  userId: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  unitId?: string;
+  previousStatus?: string;
+  newStatus?: string;
+  metadata?: any;
+}): Promise<any> {
+  try {
+    const [activity] = await db
+      .insert(schema.activities)
+      .values({
+        id: createId(),
+        userId: activityData.userId,
+        action: activityData.action,
+        entityType: activityData.entityType,
+        entityId: activityData.entityId,
+        unitId: activityData.unitId || null,
+        previousStatus: activityData.previousStatus || null,
+        newStatus: activityData.newStatus || null,
+        metadata: activityData.metadata || null,
+        createdAt: new Date(),
+      })
+      .returning();
+
+    console.log(
+      `Created activity record for ${activityData.action} on ${activityData.entityType}`
+    );
+    return activity;
+  } catch (error) {
+    console.error("Error creating activity record:", error);
+    return null;
+  }
+}
+
+// Function to create a work order
+async function createWorkOrder(workOrderData: {
+  requestId?: string;
+  title: string;
+  description: string;
+  priority?: string;
+  status?: string;
+  unitId: string;
+  tenantId?: string;
+  assignedTo?: string;
+  assignedToName?: string;
+  assignedToPhone?: string;
+  assignedToEmail?: string;
+  reportedAt?: Date;
+  resolvedAt?: Date;
+  category?: string;
+  cost?: number;
+  images?: any;
+  notes?: string;
+}): Promise<any> {
+  try {
+    const [workOrder] = await db
+      .insert(schema.workOrders)
+      .values({
+        id: createId(),
+        requestId: workOrderData.requestId || null,
+        title: workOrderData.title,
+        description: workOrderData.description,
+        priority: workOrderData.priority || "normal",
+        status: workOrderData.status || "pending",
+        unitId: workOrderData.unitId,
+        tenantId: workOrderData.tenantId || null,
+        assignedTo: workOrderData.assignedTo || null,
+        assignedToName: workOrderData.assignedToName || null,
+        assignedToPhone: workOrderData.assignedToPhone || null,
+        assignedToEmail: workOrderData.assignedToEmail || null,
+        reportedAt: workOrderData.reportedAt || new Date(),
+        resolvedAt: workOrderData.resolvedAt || null,
+        category: workOrderData.category || null,
+        cost: workOrderData.cost || null,
+        images: workOrderData.images || null,
+        notes: workOrderData.notes || null,
+        updatedAt: new Date(),
+      })
+      .returning();
+
+    console.log(`Created work order: ${workOrder.title}`);
+
+    // If this work order is linked to a maintenance request, update the request
+    if (workOrderData.requestId) {
+      await db
+        .update(schema.maintenanceRequests)
+        .set({
+          workOrderId: workOrder.id,
+          status: "processed", // Mark as processed since it's now a work order
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.maintenanceRequests.id, workOrderData.requestId));
+
+      console.log(
+        `Updated maintenance request ${workOrderData.requestId} with work order ID`
+      );
+    }
+
+    return workOrder;
+  } catch (error) {
+    console.error(`Error creating work order "${workOrderData.title}":`, error);
+    return null;
+  }
+}
+
 // Function to create transaction
 async function createTransaction(transactionData: {
   leaseId: string;
+  utilityBillId?: string;
   amount: number;
   type: string;
   category?: string;
@@ -522,7 +649,7 @@ async function createTransaction(transactionData: {
   dueDate?: Date;
   recordedBy?: string;
   notes?: string;
-}) {
+}): Promise<any> {
   try {
     // Let's be defensive and log what we're trying to insert
     console.log("Creating transaction with data:", {
@@ -537,6 +664,7 @@ async function createTransaction(transactionData: {
       .values({
         id: createId(),
         leaseId: transactionData.leaseId,
+        utilityBillId: transactionData.utilityBillId || null,
         amount: transactionData.amount,
         type: transactionData.type,
         category: transactionData.category || null,
@@ -575,7 +703,7 @@ async function createUtilityBill(billData: {
   isPaid?: boolean;
   paidDate?: Date;
   notes?: string;
-}) {
+}): Promise<any> {
   try {
     const [bill] = await db
       .insert(schema.utilityBills)
@@ -613,13 +741,8 @@ async function createDocument(documentData: {
   relatedId?: string;
   relatedType?: string;
   uploadedBy?: string;
-}) {
+}): Promise<any> {
   try {
-    if (!schema.documents) {
-      console.log("Documents table not found in schema, skipping creation");
-      return null;
-    }
-
     const [document] = await db
       .insert(schema.documents)
       .values({
@@ -654,15 +777,8 @@ async function createUserPermission(permissionData: {
   canManageMaintenance?: boolean;
   canManageProperties?: boolean;
   grantedBy: string;
-}) {
+}): Promise<any> {
   try {
-    if (!schema.userPermissions) {
-      console.log(
-        "User permissions table not found in schema, skipping creation"
-      );
-      return null;
-    }
-
     // Check if permission already exists
     const existingPermission = await db.query.userPermissions.findFirst({
       where: (userPermissions, { and, eq }) =>
@@ -732,52 +848,192 @@ async function createMaintenanceCategory(categoryData: {
   name: string;
   description?: string;
   isCommon?: boolean;
-}) {
-  // Check if category exists
-  const existingCategory = await db.query.maintenanceCategories.findFirst({
-    where: (categories, { eq }) => eq(categories.name, categoryData.name),
-  });
+}): Promise<any> {
+  try {
+    // Check if category exists
+    const existingCategory = await db.query.maintenanceCategories.findFirst({
+      where: (categories, { eq }) => eq(categories.name, categoryData.name),
+    });
 
-  if (existingCategory) {
-    // Update category
-    const [updatedCategory] = await db
-      .update(maintenanceCategories)
-      .set({
-        description: categoryData.description || null,
-        isCommon:
-          categoryData.isCommon !== undefined ? categoryData.isCommon : true,
-        updatedAt: new Date(),
-      })
-      .where(eq(maintenanceCategories.id, existingCategory.id))
-      .returning();
+    if (existingCategory) {
+      // Update category
+      const [updatedCategory] = await db
+        .update(maintenanceCategories)
+        .set({
+          description: categoryData.description || null,
+          isCommon:
+            categoryData.isCommon !== undefined ? categoryData.isCommon : true,
+          updatedAt: new Date(),
+        })
+        .where(eq(maintenanceCategories.id, existingCategory.id))
+        .returning();
 
-    console.log(`Updated maintenance category: ${updatedCategory.name}`);
-    return updatedCategory;
-  } else {
-    // Create new category
-    const [newCategory] = await db
-      .insert(maintenanceCategories)
+      console.log(`Updated maintenance category: ${updatedCategory.name}`);
+      return updatedCategory;
+    } else {
+      // Create new category
+      const [newCategory] = await db
+        .insert(maintenanceCategories)
+        .values({
+          id: createId(),
+          name: categoryData.name,
+          description: categoryData.description || null,
+          isCommon:
+            categoryData.isCommon !== undefined ? categoryData.isCommon : true,
+          updatedAt: new Date(),
+        })
+        .returning();
+
+      console.log(`Created maintenance category: ${newCategory.name}`);
+      return newCategory;
+    }
+  } catch (error) {
+    console.error(
+      `Error creating/updating maintenance category ${categoryData.name}:`,
+      error
+    );
+    return null;
+  }
+}
+
+// Function to create a notification
+async function createNotification(notificationData: {
+  userId: string;
+  title: string;
+  message: string;
+  type: string;
+  relatedId?: string;
+  relatedType?: string;
+  isRead?: boolean;
+}): Promise<any> {
+  try {
+    const [notification] = await db
+      .insert(schema.notifications)
       .values({
         id: createId(),
-        name: categoryData.name,
-        description: categoryData.description || null,
-        isCommon:
-          categoryData.isCommon !== undefined ? categoryData.isCommon : true,
+        userId: notificationData.userId,
+        title: notificationData.title,
+        message: notificationData.message,
+        type: notificationData.type,
+        relatedId: notificationData.relatedId || null,
+        relatedType: notificationData.relatedType || null,
+        isRead: notificationData.isRead || false,
+        createdAt: new Date(),
+      })
+      .returning();
+
+    console.log(
+      `Created notification: ${notification.title} for user ${notificationData.userId}`
+    );
+    return notification;
+  } catch (error) {
+    console.error(
+      `Error creating notification "${notificationData.title}":`,
+      error
+    );
+    return null;
+  }
+}
+
+// Function to create a message
+async function createMessage(messageData: {
+  propertyId?: string;
+  senderId: string;
+  type: "sms" | "email";
+  subject?: string;
+  content: string;
+  status: "sent" | "failed" | "pending";
+  recipientIds: string[];
+}): Promise<any> {
+  try {
+    // Create the message record
+    const [message] = await db
+      .insert(schema.messages)
+      .values({
+        id: createId(),
+        propertyId: messageData.propertyId || null,
+        senderId: messageData.senderId,
+        type: messageData.type,
+        subject: messageData.subject || null,
+        content: messageData.content,
+        status: messageData.status,
+        recipientCount: messageData.recipientIds.length.toString(),
+        metadata: null, // Optional metadata
+        createdAt: new Date(),
         updatedAt: new Date(),
       })
       .returning();
 
-    console.log(`Created maintenance category: ${newCategory.name}`);
-    return newCategory;
+    // Create message recipients
+    if (messageData.recipientIds.length > 0) {
+      for (const tenantId of messageData.recipientIds) {
+        await db.insert(schema.messageRecipients).values({
+          id: createId(),
+          messageId: message.id,
+          tenantId: tenantId,
+          deliveryStatus:
+            messageData.status === "sent" ? "delivered" : messageData.status,
+          errorMessage:
+            messageData.status === "failed"
+              ? "Simulated failure for testing"
+              : null,
+          deliveredAt: messageData.status === "sent" ? new Date() : null,
+          createdAt: new Date(),
+        });
+      }
+    }
+
+    console.log(
+      `Created ${messageData.type} message with ${messageData.recipientIds.length} recipients`
+    );
+    return message;
+  } catch (error) {
+    console.error(`Error creating message:`, error);
+    return null;
+  }
+}
+
+// Function to create a message template
+async function createMessageTemplate(templateData: {
+  name: string;
+  type: "sms" | "email";
+  subject?: string;
+  content: string;
+  createdBy: string;
+  isGlobal?: boolean;
+  propertyId?: string;
+}): Promise<any> {
+  try {
+    const [template] = await db
+      .insert(schema.messageTemplates)
+      .values({
+        id: createId(),
+        name: templateData.name,
+        type: templateData.type,
+        subject: templateData.subject || null,
+        content: templateData.content,
+        createdBy: templateData.createdBy,
+        isGlobal: templateData.isGlobal ? "true" : "false",
+        propertyId: templateData.propertyId || null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+
+    console.log(`Created message template: ${template.name}`);
+    return template;
+  } catch (error) {
+    console.error(
+      `Error creating message template "${templateData.name}":`,
+      error
+    );
+    return null;
   }
 }
 
 // Main seeding function
 async function seedDatabase() {
-  console.log("Starting enhanced seeding...");
-
-  // Reset any existing data (optional - comment this out if you want to keep existing data)
-  // await resetDatabase();
+  console.log("Starting database seeding...");
 
   try {
     // Create users of different roles
@@ -1131,87 +1387,6 @@ async function seedDatabase() {
       ],
     });
 
-    // Property 4: Golden Gate Condos
-    const property4 = await createPropertyWithUnits({
-      name: "Golden Gate Condos",
-      address: "101 View St, San Francisco, CA",
-      type: "Condo",
-      description: "Luxury condos with bay views",
-      ownerId: landlord1.id,
-      caretakerId: caretaker1.id,
-      agentId: agent1.id,
-      units: [
-        {
-          name: "Unit 301",
-          type: "2BR Condo",
-          bedrooms: 2,
-          bathrooms: 2,
-          size: 1100,
-          rent: 3500,
-          depositAmount: 3500,
-          status: "vacant",
-          features: { parking: true, view: true, pets_allowed: false },
-        },
-        {
-          name: "Unit 302",
-          type: "3BR Condo",
-          bedrooms: 3,
-          bathrooms: 2,
-          size: 1400,
-          rent: 4200,
-          depositAmount: 4200,
-          status: "vacant",
-          features: { parking: true, view: true, pets_allowed: false },
-        },
-      ],
-    });
-
-    // Property 5: Commercial Plaza
-    const property5 = await createPropertyWithUnits({
-      name: "Commercial Plaza",
-      address: "500 Business Blvd, Los Angeles, CA",
-      type: "Commercial",
-      description: "Modern office spaces for businesses",
-      ownerId: landlord2.id,
-      caretakerId: caretaker2.id,
-      agentId: agent2.id,
-      units: [
-        {
-          name: "Office 101",
-          type: "Small Office",
-          bedrooms: 0,
-          bathrooms: 1,
-          size: 800,
-          rent: 2000,
-          depositAmount: 4000,
-          status: "vacant",
-          features: { reception: true, meeting_room: false, kitchenette: true },
-        },
-        {
-          name: "Office 102",
-          type: "Medium Office",
-          bedrooms: 0,
-          bathrooms: 1,
-          size: 1200,
-          rent: 3000,
-          depositAmount: 6000,
-          status: "vacant",
-          features: { reception: true, meeting_room: true, kitchenette: true },
-        },
-        {
-          name: "Office 201",
-          type: "Large Office",
-          bedrooms: 0,
-          bathrooms: 2,
-          size: 2000,
-          rent: 5000,
-          depositAmount: 10000,
-          status: "vacant",
-          features: { reception: true, meeting_room: true, kitchenette: true },
-        },
-      ],
-    });
-
     console.log("Properties and units created successfully");
 
     // Create tenants
@@ -1277,27 +1452,6 @@ async function seedDatabase() {
       status: "active",
     });
 
-    const tenant7 = await createTenant({
-      name: "George Reynolds",
-      email: "george@example.com",
-      phone: "+18889990000",
-      emergencyContactName: "Tina Reynolds",
-      emergencyContactPhone: "+18889991111",
-      dateOfBirth: new Date("1982-09-12"),
-      status: "active",
-    });
-
-    const tenant8 = await createTenant({
-      name: "Helen White",
-      email: "helen@example.com",
-      phone: "+19990001111",
-      emergencyContactName: "Keith White",
-      emergencyContactPhone: "+19990002222",
-      dateOfBirth: new Date("1993-01-05"),
-      status: "blacklisted",
-      documents: { reason: "Consistently late payments and property damage" },
-    });
-
     console.log("Tenants created successfully");
 
     // Create leases
@@ -1306,9 +1460,17 @@ async function seedDatabase() {
     // Active leases
     const today = new Date();
 
-    // Property 1 leases
+    // Get units for the properties
     const property1Units = await db.query.units.findMany({
       where: (units, { eq }) => eq(units.propertyId, property1.id),
+    });
+
+    const property2Units = await db.query.units.findMany({
+      where: (units, { eq }) => eq(units.propertyId, property2.id),
+    });
+
+    const property3Units = await db.query.units.findMany({
+      where: (units, { eq }) => eq(units.propertyId, property3.id),
     });
 
     // Unit 101 - Alice Johnson
@@ -1339,11 +1501,6 @@ async function seedDatabase() {
       createdBy: agent1.id,
     });
 
-    // Property 2 leases
-    const property2Units = await db.query.units.findMany({
-      where: (units, { eq }) => eq(units.propertyId, property2.id),
-    });
-
     // House A - Charlie Brown
     const lease3 = await createLease({
       unitId: property2Units[0].id, // House A
@@ -1358,12 +1515,7 @@ async function seedDatabase() {
       createdBy: agent2.id,
     });
 
-    // Property 3 leases
-    const property3Units = await db.query.units.findMany({
-      where: (units, { eq }) => eq(units.propertyId, property3.id),
-    });
-
-    // Loft 1A - past lease for Diana Miller
+    // Previous lease - Loft 1A - Diana Miller
     const lease4 = await createLease({
       unitId: property3Units[0].id, // Loft 1A
       tenantId: tenant4.id,
@@ -1376,12 +1528,12 @@ async function seedDatabase() {
       createdBy: agent3.id,
     });
 
-    // Loft 1A - Edward Davis (current tenant took over after Diana)
+    // Current lease - Loft 1A - Edward Davis (replaced Diana)
     const lease5 = await createLease({
       unitId: property3Units[0].id, // Loft 1A
       tenantId: tenant5.id,
       startDate: addDays(today, -25), // 25 days ago
-      endDate: addDays(today, 340), // 11 months from now
+      endDate: addDays(today, 340), // 340 days from now
       rentAmount: property3Units[0].rent,
       depositAmount: property3Units[0].depositAmount,
       status: "active",
@@ -1393,48 +1545,15 @@ async function seedDatabase() {
     const lease6 = await createLease({
       unitId: property3Units[1].id, // Loft 1B
       tenantId: tenant6.id,
-      startDate: addDays(today, -150), // 5 months ago
-      endDate: addDays(today, 215), // 7 months from now
+      startDate: addDays(today, -45), // 45 days ago
+      endDate: addDays(today, 320), // 320 days from now
       rentAmount: property3Units[1].rent,
       depositAmount: property3Units[1].depositAmount,
       status: "active",
-      paymentDay: 5,
+      paymentDay: 1,
       includesInternet: true,
       includesWater: true,
       createdBy: agent3.id,
-    });
-
-    // Property 5 lease (commercial)
-    const property5Units = await db.query.units.findMany({
-      where: (units, { eq }) => eq(units.propertyId, property5.id),
-    });
-
-    // Office 102 - George Reynolds
-    const lease7 = await createLease({
-      unitId: property5Units[1].id, // Office 102
-      tenantId: tenant7.id,
-      startDate: addDays(today, -270), // 9 months ago
-      endDate: addDays(today, 95), // 3 months from now (approaching renewal)
-      rentAmount: property5Units[1].rent,
-      depositAmount: property5Units[1].depositAmount,
-      status: "active",
-      paymentDay: 1,
-      createdBy: agent2.id,
-      notes: "Business lease, requires maintenance access after hours",
-    });
-
-    // Terminated lease for blacklisted tenant
-    const lease8 = await createLease({
-      unitId: property2Units[1].id, // House B
-      tenantId: tenant8.id,
-      startDate: addDays(today, -400), // Over 1 year ago
-      endDate: addDays(today, -40), // Would have ended later, but terminated early
-      rentAmount: property2Units[1].rent,
-      depositAmount: property2Units[1].depositAmount,
-      status: "terminated",
-      paymentDay: 1,
-      createdBy: agent2.id,
-      notes: "Lease terminated early due to property damage and payment issues",
     });
 
     console.log("Leases created successfully");
@@ -1442,67 +1561,63 @@ async function seedDatabase() {
     // Create transactions
     console.log("Creating transactions...");
 
-    // Calculate transaction dates
+    // Helper to create payment dates
     const getPastPaymentDates = (
       startDate: Date,
       numMonths: number
     ): Date[] => {
       const dates = [];
       for (let i = 0; i < numMonths; i++) {
-        dates.push(addDays(addMonths(startDate, i), 0)); // Payment on the lease start date of each month
+        dates.push(addDays(addMonths(startDate, i), 0));
       }
       return dates;
     };
 
-    // Check if transactions table exists before creating transactions
-    console.log("Checking for transactions table in schema...");
+    // Lease 1 transactions (Alice)
+    if (lease1) {
+      try {
+        const lease1PaymentDates = getPastPaymentDates(lease1.startDate, 3);
 
-    if (!schema.transactions) {
-      console.log(
-        "WARNING: Could not find transactions table in schema. Skipping transaction creation."
-      );
-    } else {
-      console.log(
-        "Transactions table found in schema. Creating transactions..."
-      );
+        // Security deposit
+        await createTransaction({
+          leaseId: lease1.id,
+          amount: lease1.depositAmount,
+          type: "deposit",
+          paymentDate: addDays(lease1.startDate, -5), // 5 days before move-in
+          paymentMethod: "bank_transfer",
+          recordedBy: agent1.id,
+          notes: "Security deposit for unit 101",
+        });
 
-      // Lease 1 transactions (Alice)
-      if (lease1) {
-        try {
-          const lease1PaymentDates = getPastPaymentDates(lease1.startDate, 3); // 3 months of payments
-
-          // Security deposit
+        // Monthly rent payments
+        for (const date of lease1PaymentDates) {
           await createTransaction({
             leaseId: lease1.id,
-            amount: lease1.depositAmount,
-            type: "deposit",
-            paymentDate: addDays(lease1.startDate, -5), // 5 days before move-in
+            amount: lease1.rentAmount,
+            type: "rent",
+            paymentDate: date,
             paymentMethod: "bank_transfer",
-            recordedBy: agent1.id,
-            notes: "Security deposit for unit 101",
+            recordedBy: caretaker1.id,
           });
-
-          // Monthly rent payments
-          for (const date of lease1PaymentDates) {
-            await createTransaction({
-              leaseId: lease1.id,
-              amount: lease1.rentAmount,
-              type: "rent",
-              paymentDate: date,
-              paymentMethod: "bank_transfer",
-              recordedBy: caretaker1.id,
-            });
-          }
-        } catch (error) {
-          console.error("Error creating transactions for lease 1:", error);
-          console.log("Continuing with seeding process...");
         }
+
+        // Create activity record for payment
+        await createActivity({
+          userId: caretaker1.id,
+          action: "collected_payment",
+          entityType: "lease",
+          entityId: lease1.id,
+          unitId: property1Units[0].id,
+          metadata: { amount: lease1.rentAmount, type: "rent" },
+        });
+      } catch (error) {
+        console.error("Error creating transactions for lease 1:", error);
       }
     }
 
     // Lease 2 transactions (Bob)
     if (lease2) {
-      const lease2PaymentDates = getPastPaymentDates(lease2.startDate, 2); // 2 months of payments
+      const lease2PaymentDates = getPastPaymentDates(lease2.startDate, 2);
 
       // Security deposit
       await createTransaction({
@@ -1527,22 +1642,21 @@ async function seedDatabase() {
         });
       }
 
-      // Internet bill (included in lease)
+      // Pending payment for upcoming rent
       await createTransaction({
         leaseId: lease2.id,
-        amount: 80,
-        type: "utility",
-        category: "internet",
-        paymentDate: addDays(lease2.startDate, 10),
-        paymentMethod: "bank_transfer",
-        recordedBy: landlord1.id,
-        notes: "Internet payment (covered by landlord)",
+        amount: lease2.rentAmount,
+        type: "rent",
+        status: "pending",
+        paymentDate: addMonths(lease2.startDate, 2), // Next month
+        dueDate: addMonths(lease2.startDate, 2),
+        recordedBy: agent1.id,
       });
     }
 
     // Lease 3 transactions (Charlie)
     if (lease3) {
-      const lease3PaymentDates = getPastPaymentDates(lease3.startDate, 6); // 6 months of payments
+      const lease3PaymentDates = getPastPaymentDates(lease3.startDate, 6);
 
       // Security deposit
       await createTransaction({
@@ -1566,178 +1680,6 @@ async function seedDatabase() {
           recordedBy: caretaker2.id,
         });
       }
-
-      // Water bill (covered by landlord)
-      for (let i = 0; i < 6; i++) {
-        await createTransaction({
-          leaseId: lease3.id,
-          amount: 50 + Math.floor(Math.random() * 30), // Random amount between 50-80
-          type: "utility",
-          category: "water",
-          paymentDate: addMonths(lease3.startDate, i),
-          paymentMethod: "bank_transfer",
-          recordedBy: landlord2.id,
-          notes: "Water payment (covered by landlord)",
-        });
-      }
-    }
-
-    // Create some pending payments for upcoming rents
-    if (lease1) {
-      await createTransaction({
-        leaseId: lease1.id,
-        amount: lease1.rentAmount,
-        type: "rent",
-        status: "pending",
-        paymentDate: addMonths(lease1.startDate, 3), // Next month
-        dueDate: addMonths(lease1.startDate, 3),
-        recordedBy: agent1.id,
-      });
-    }
-
-    if (lease2) {
-      await createTransaction({
-        leaseId: lease2.id,
-        amount: lease2.rentAmount,
-        type: "rent",
-        status: "pending",
-        paymentDate: addMonths(lease2.startDate, 2), // Next month
-        dueDate: addMonths(lease2.startDate, 2),
-        recordedBy: agent1.id,
-      });
-    }
-
-    // Late payment example
-    if (lease7) {
-      const lease7PaymentDates = getPastPaymentDates(lease7.startDate, 9); // 9 months of payments
-
-      // Security deposit
-      await createTransaction({
-        leaseId: lease7.id,
-        amount: lease7.depositAmount,
-        type: "deposit",
-        paymentDate: addDays(lease7.startDate, -10), // 10 days before move-in
-        paymentMethod: "bank_transfer",
-        recordedBy: agent2.id,
-        notes: "Security deposit for Office 102",
-      });
-
-      // Monthly rent payments (including one late payment)
-      for (let i = 0; i < lease7PaymentDates.length; i++) {
-        const date = lease7PaymentDates[i];
-        let actualPaymentDate = date;
-        let notes = undefined;
-
-        // Make the 5th payment late
-        if (i === 4) {
-          actualPaymentDate = addDays(date, 7); // 7 days late
-          notes = "Payment made 7 days late";
-
-          // Add late fee transaction
-          await createTransaction({
-            leaseId: lease7.id,
-            amount: 100, // Late fee
-            type: "fee",
-            category: "late_fee",
-            paymentDate: actualPaymentDate,
-            paymentMethod: "bank_transfer",
-            recordedBy: caretaker2.id,
-            notes:
-              "Late fee for rent payment due on " +
-              date.toISOString().split("T")[0],
-          });
-        }
-
-        await createTransaction({
-          leaseId: lease7.id,
-          amount: lease7.rentAmount,
-          type: "rent",
-          paymentDate: actualPaymentDate,
-          paymentMethod: "bank_transfer",
-          recordedBy: caretaker2.id,
-          notes,
-        });
-      }
-    }
-
-    // Terminated lease transactions
-    if (lease8) {
-      const lease8PaymentDates = getPastPaymentDates(lease8.startDate, 10); // 10 months before termination
-
-      // Security deposit
-      await createTransaction({
-        leaseId: lease8.id,
-        amount: lease8.depositAmount,
-        type: "deposit",
-        paymentDate: addDays(lease8.startDate, -5), // 5 days before move-in
-        paymentMethod: "bank_transfer",
-        recordedBy: agent2.id,
-        notes: "Security deposit for House B",
-      });
-
-      // Monthly rent payments (some late, some missed)
-      for (let i = 0; i < lease8PaymentDates.length; i++) {
-        const date = lease8PaymentDates[i];
-
-        // Skip payments 7 and 9 to simulate missed payments
-        if (i === 6 || i === 8) continue;
-
-        let actualPaymentDate = date;
-        let notes = undefined;
-
-        // Make some payments late
-        if (i === 3 || i === 5) {
-          actualPaymentDate = addDays(date, 10); // 10 days late
-          notes = "Payment made 10 days late";
-
-          // Add late fee transaction
-          await createTransaction({
-            leaseId: lease8.id,
-            amount: 100, // Late fee
-            type: "fee",
-            category: "late_fee",
-            paymentDate: actualPaymentDate,
-            paymentMethod: "bank_transfer",
-            recordedBy: caretaker2.id,
-            notes:
-              "Late fee for rent payment due on " +
-              date.toISOString().split("T")[0],
-          });
-        }
-
-        await createTransaction({
-          leaseId: lease8.id,
-          amount: lease8.rentAmount,
-          type: "rent",
-          paymentDate: actualPaymentDate,
-          paymentMethod: "bank_transfer",
-          recordedBy: caretaker2.id,
-          notes,
-        });
-      }
-
-      // Damage fee transaction
-      await createTransaction({
-        leaseId: lease8.id,
-        amount: 850,
-        type: "fee",
-        category: "damage_fee",
-        paymentDate: addDays(lease8.endDate, -10), // Around termination time
-        paymentMethod: "bank_transfer",
-        recordedBy: caretaker2.id,
-        notes: "Fee for damage to walls and flooring",
-      });
-
-      // Partial deposit refund (after deducting damages)
-      await createTransaction({
-        leaseId: lease8.id,
-        amount: lease8.depositAmount - 850, // Refund after deducting damage fee
-        type: "refund",
-        paymentDate: addDays(lease8.endDate, 5), // 5 days after termination
-        paymentMethod: "bank_transfer",
-        recordedBy: landlord2.id,
-        notes: "Partial security deposit refund after deducting damage fees",
-      });
     }
 
     console.log("Transactions created successfully");
@@ -1745,73 +1687,56 @@ async function seedDatabase() {
     // Create utility bills
     console.log("Creating utility bills...");
 
-    // Check if utilityBills table exists before creating utility bills
-    if (!schema.utilityBills) {
-      console.log(
-        "WARNING: Could not find utilityBills table in schema. Skipping utility bill creation."
-      );
-    } else {
-      console.log(
-        "Utility bills table found in schema. Creating utility bills..."
-      );
+    if (lease1) {
+      // Electricity bill (tenant pays)
+      await createUtilityBill({
+        leaseId: lease1.id,
+        utilityType: "electricity",
+        billDate: addDays(lease1.startDate, 15),
+        dueDate: addDays(lease1.startDate, 30),
+        amount: 85.75,
+        tenantAmount: 85.75,
+        isPaid: true,
+        paidDate: addDays(lease1.startDate, 28),
+      });
 
-      // Lease 5 utility bills (Edward Davis)
-      if (lease5) {
-        try {
-          // Electricity bill (tenant pays)
-          await createUtilityBill({
-            leaseId: lease5.id,
-            utilityType: "electricity",
-            billDate: addDays(lease5.startDate, 10),
-            dueDate: addDays(lease5.startDate, 25),
-            amount: 85.75,
-            tenantAmount: 85.75,
-            isPaid: true,
-            paidDate: addDays(lease5.startDate, 20),
-          });
+      // Water bill (tenant pays)
+      await createUtilityBill({
+        leaseId: lease1.id,
+        utilityType: "water",
+        billDate: addDays(lease1.startDate, 20),
+        dueDate: addDays(lease1.startDate, 35),
+        amount: 45.3,
+        tenantAmount: 45.3,
+        isPaid: true,
+        paidDate: addDays(lease1.startDate, 33),
+      });
 
-          // Water bill (tenant pays)
-          await createUtilityBill({
-            leaseId: lease5.id,
-            utilityType: "water",
-            billDate: addDays(lease5.startDate, 15),
-            dueDate: addDays(lease5.startDate, 30),
-            amount: 45.3,
-            tenantAmount: 45.3,
-            isPaid: true,
-            paidDate: addDays(lease5.startDate, 28),
-          });
+      // Gas bill (tenant pays)
+      await createUtilityBill({
+        leaseId: lease1.id,
+        utilityType: "gas",
+        billDate: addDays(lease1.startDate, 25),
+        dueDate: addDays(lease1.startDate, 40),
+        amount: 35.25,
+        tenantAmount: 35.25,
+        isPaid: true,
+        paidDate: addDays(lease1.startDate, 38),
+      });
 
-          // Gas bill (tenant pays)
-          await createUtilityBill({
-            leaseId: lease5.id,
-            utilityType: "gas",
-            billDate: addDays(lease5.startDate, 12),
-            dueDate: addDays(lease5.startDate, 27),
-            amount: 35.25,
-            tenantAmount: 35.25,
-            isPaid: true,
-            paidDate: addDays(lease5.startDate, 25),
-          });
-
-          // Upcoming electricity bill (not yet paid)
-          await createUtilityBill({
-            leaseId: lease5.id,
-            utilityType: "electricity",
-            billDate: addDays(today, -5),
-            dueDate: addDays(today, 10),
-            amount: 92.4,
-            tenantAmount: 92.4,
-            isPaid: false,
-          });
-        } catch (error) {
-          console.error("Error creating utility bills for lease 5:", error);
-          console.log("Continuing with seeding process...");
-        }
-      }
+      // Upcoming electricity bill (not yet paid)
+      await createUtilityBill({
+        leaseId: lease1.id,
+        utilityType: "electricity",
+        billDate: addDays(today, -5),
+        dueDate: addDays(today, 10),
+        amount: 92.4,
+        tenantAmount: 92.4,
+        isPaid: false,
+      });
     }
 
-    // Lease 6 utility bills (Fiona Clark - has some bills included)
+    // Lease 6 utility bills (Fiona - has some bills included)
     if (lease6) {
       // Electricity bill (tenant pays)
       await createUtilityBill({
@@ -1854,33 +1779,6 @@ async function seedDatabase() {
         paidDate: addDays(lease6.startDate, 25),
         notes: "Covered by landlord per lease agreement",
       });
-
-      // Next month electricity bill
-      await createUtilityBill({
-        leaseId: lease6.id,
-        utilityType: "electricity",
-        billDate: addMonths(lease6.startDate, 1),
-        dueDate: addDays(addMonths(lease6.startDate, 1), 15),
-        amount: 81.25,
-        tenantAmount: 81.25,
-        isPaid: true,
-        paidDate: addDays(addMonths(lease6.startDate, 1), 10),
-      });
-
-      // Next month water bill (landlord pays)
-      await createUtilityBill({
-        leaseId: lease6.id,
-        utilityType: "water",
-        billDate: addMonths(lease6.startDate, 1),
-        dueDate: addDays(addMonths(lease6.startDate, 1), 15),
-        amount: 49.95,
-        tenantResponsibilityPercent: 0,
-        tenantAmount: 0,
-        landlordAmount: 49.95,
-        isPaid: true,
-        paidDate: addDays(addMonths(lease6.startDate, 1), 12),
-        notes: "Covered by landlord per lease agreement",
-      });
     }
 
     console.log("Utility bills created successfully");
@@ -1902,29 +1800,67 @@ async function seedDatabase() {
         assignedTo: caretaker1.id,
       });
 
-      // Add comments to the maintenance request
-      await createMaintenanceComment({
-        requestId: maintenanceReq1.id,
-        userId: caretaker1.id,
-        content:
-          "I'll take a look at this tomorrow morning. Please make sure the area under the sink is accessible.",
-        isPrivate: false,
-      });
+      if (maintenanceReq1) {
+        // Create activity for maintenance request creation
+        await createActivity({
+          userId: tenant1.id,
+          action: "created_request",
+          entityType: "maintenance_request",
+          entityId: maintenanceReq1.id,
+          unitId: lease1.unitId,
+        });
 
-      await createMaintenanceComment({
-        requestId: maintenanceReq1.id,
-        userId: tenant1.id,
-        content: "Thank you, I've cleared the area under the sink for access.",
-        isPrivate: false,
-      });
+        // Create activity for status change
+        await createActivity({
+          userId: caretaker1.id,
+          action: "changed_status",
+          entityType: "maintenance_request",
+          entityId: maintenanceReq1.id,
+          unitId: lease1.unitId,
+          previousStatus: "open",
+          newStatus: "in_progress",
+        });
 
-      await createMaintenanceComment({
-        requestId: maintenanceReq1.id,
-        userId: caretaker1.id,
-        content:
-          "Checked the issue. Need to order a replacement part. Should be fixed within 2 days.",
-        isPrivate: false,
-      });
+        // Add comments to the maintenance request
+        await createMaintenanceComment({
+          requestId: maintenanceReq1.id,
+          userId: caretaker1.id,
+          content:
+            "I'll take a look at this tomorrow morning. Please make sure the area under the sink is accessible.",
+          isPrivate: false,
+        });
+
+        await createMaintenanceComment({
+          requestId: maintenanceReq1.id,
+          userId: tenant1.id,
+          content:
+            "Thank you, I've cleared the area under the sink for access.",
+          isPrivate: false,
+        });
+
+        await createMaintenanceComment({
+          requestId: maintenanceReq1.id,
+          userId: caretaker1.id,
+          content:
+            "Checked the issue. Need to order a replacement part. Should be fixed within 2 days.",
+          isPrivate: false,
+        });
+
+        // Create a work order from this maintenance request
+        await createWorkOrder({
+          requestId: maintenanceReq1.id,
+          title: "Repair leaking bathroom faucet",
+          description:
+            "Replace faucet gaskets and potentially the entire faucet if necessary.",
+          priority: "normal",
+          status: "in_progress",
+          unitId: lease1.unitId,
+          tenantId: lease1.tenantId,
+          assignedTo: caretaker1.id,
+          reportedAt: maintenanceReq1.reportedAt,
+          category: "Plumbing",
+        });
+      }
     }
 
     // Property 1, Unit 103 - Another tenant maintenance request
@@ -1940,21 +1876,32 @@ async function seedDatabase() {
         reportedAt: addDays(today, -1),
       });
 
-      await createMaintenanceComment({
-        requestId: maintenanceReq2.id,
-        userId: agent1.id,
-        content:
-          "I've notified the caretaker about this issue. Someone will be assigned to look at it soon.",
-        isPrivate: false,
-      });
+      if (maintenanceReq2) {
+        // Create activity for maintenance request creation
+        await createActivity({
+          userId: tenant2.id,
+          action: "created_request",
+          entityType: "maintenance_request",
+          entityId: maintenanceReq2.id,
+          unitId: lease2.unitId,
+        });
 
-      await createMaintenanceComment({
-        requestId: maintenanceReq2.id,
-        userId: landlord1.id,
-        content:
-          "We should prioritize this since temperatures are dropping this week.",
-        isPrivate: true, // Only visible to staff
-      });
+        await createMaintenanceComment({
+          requestId: maintenanceReq2.id,
+          userId: agent1.id,
+          content:
+            "I've notified the caretaker about this issue. Someone will be assigned to look at it soon.",
+          isPrivate: false,
+        });
+
+        await createMaintenanceComment({
+          requestId: maintenanceReq2.id,
+          userId: landlord1.id,
+          content:
+            "We should prioritize this since temperatures are dropping this week.",
+          isPrivate: true, // Only visible to staff
+        });
+      }
     }
 
     // Property 2, House A - Completed maintenance request
@@ -1973,34 +1920,71 @@ async function seedDatabase() {
         cost: 85.5,
       });
 
-      await createMaintenanceComment({
-        requestId: maintenanceReq3.id,
-        userId: caretaker2.id,
-        content: "I'll check this out tomorrow.",
-        isPrivate: false,
-      });
+      if (maintenanceReq3) {
+        // Create activity records
+        await createActivity({
+          userId: tenant3.id,
+          action: "created_request",
+          entityType: "maintenance_request",
+          entityId: maintenanceReq3.id,
+          unitId: lease3.unitId,
+        });
 
-      await createMaintenanceComment({
-        requestId: maintenanceReq3.id,
-        userId: caretaker2.id,
-        content: "Replacing the motor unit. The old one has burnt out.",
-        isPrivate: false,
-      });
+        await createActivity({
+          userId: caretaker2.id,
+          action: "changed_status",
+          entityType: "maintenance_request",
+          entityId: maintenanceReq3.id,
+          unitId: lease3.unitId,
+          previousStatus: "open",
+          newStatus: "completed",
+        });
 
-      await createMaintenanceComment({
-        requestId: maintenanceReq3.id,
-        userId: caretaker2.id,
-        content:
-          "Repair completed. New opener installed and tested. Works fine now.",
-        isPrivate: false,
-      });
+        await createMaintenanceComment({
+          requestId: maintenanceReq3.id,
+          userId: caretaker2.id,
+          content: "I'll check this out tomorrow.",
+          isPrivate: false,
+        });
 
-      await createMaintenanceComment({
-        requestId: maintenanceReq3.id,
-        userId: tenant3.id,
-        content: "Thank you! It's working perfectly now.",
-        isPrivate: false,
-      });
+        await createMaintenanceComment({
+          requestId: maintenanceReq3.id,
+          userId: caretaker2.id,
+          content: "Replacing the motor unit. The old one has burnt out.",
+          isPrivate: false,
+        });
+
+        await createMaintenanceComment({
+          requestId: maintenanceReq3.id,
+          userId: caretaker2.id,
+          content:
+            "Repair completed. New opener installed and tested. Works fine now.",
+          isPrivate: false,
+        });
+
+        await createMaintenanceComment({
+          requestId: maintenanceReq3.id,
+          userId: tenant3.id,
+          content: "Thank you! It's working perfectly now.",
+          isPrivate: false,
+        });
+
+        // Create a completed work order for this request
+        await createWorkOrder({
+          requestId: maintenanceReq3.id,
+          title: "Replace garage door opener",
+          description: "Replace failed garage door opener motor unit",
+          priority: "normal",
+          status: "completed",
+          unitId: lease3.unitId,
+          tenantId: lease3.tenantId,
+          assignedTo: caretaker2.id,
+          reportedAt: maintenanceReq3.reportedAt,
+          resolvedAt: maintenanceReq3.resolvedAt,
+          category: "Electrical",
+          cost: 85.5,
+        });
+      }
     }
 
     // Property 3, Loft 1A - Emergency request (current tenant)
@@ -2017,193 +2001,66 @@ async function seedDatabase() {
         assignedTo: caretaker3.id,
       });
 
-      await createMaintenanceComment({
-        requestId: maintenanceReq4.id,
-        userId: caretaker3.id,
-        content: "This is urgent. I'm on my way to check it now.",
-        isPrivate: false,
-      });
+      if (maintenanceReq4) {
+        // Create activity records
+        await createActivity({
+          userId: tenant5.id,
+          action: "created_request",
+          entityType: "maintenance_request",
+          entityId: maintenanceReq4.id,
+          unitId: lease5.unitId,
+        });
 
-      await createMaintenanceComment({
-        requestId: maintenanceReq4.id,
-        userId: caretaker3.id,
-        content:
-          "I've shut off the water to the unit above. The leak has stopped. Will need to open the ceiling to assess the damage and make repairs.",
-        isPrivate: false,
-      });
+        await createActivity({
+          userId: caretaker3.id,
+          action: "changed_status",
+          entityType: "maintenance_request",
+          entityId: maintenanceReq4.id,
+          unitId: lease5.unitId,
+          previousStatus: "open",
+          newStatus: "in_progress",
+        });
 
-      await createMaintenanceComment({
-        requestId: maintenanceReq4.id,
-        userId: landlord3.id,
-        content: "Approved emergency repairs. Get a plumber in right away.",
-        isPrivate: true,
-      });
+        await createMaintenanceComment({
+          requestId: maintenanceReq4.id,
+          userId: caretaker3.id,
+          content: "This is urgent. I'm on my way to check it now.",
+          isPrivate: false,
+        });
+
+        await createMaintenanceComment({
+          requestId: maintenanceReq4.id,
+          userId: caretaker3.id,
+          content:
+            "I've shut off the water to the unit above. The leak has stopped. Will need to open the ceiling to assess the damage and make repairs.",
+          isPrivate: false,
+        });
+
+        await createMaintenanceComment({
+          requestId: maintenanceReq4.id,
+          userId: landlord3.id,
+          content: "Approved emergency repairs. Get a plumber in right away.",
+          isPrivate: true,
+        });
+
+        // Create work order for this emergency
+        await createWorkOrder({
+          requestId: maintenanceReq4.id,
+          title: "Emergency water leak repair",
+          description:
+            "Repair water pipe leak from ceiling in bathroom. Check for damage and repair drywall.",
+          priority: "urgent",
+          status: "in_progress",
+          unitId: lease5.unitId,
+          tenantId: lease5.tenantId,
+          assignedTo: caretaker3.id,
+          reportedAt: maintenanceReq4.reportedAt,
+          category: "Plumbing",
+        });
+      }
     }
 
-    // Property 3, Loft 1B - Regular maintenance request
-    if (lease6) {
-      const maintenanceReq5 = await createMaintenanceRequest({
-        unitId: lease6.unitId,
-        tenantId: lease6.tenantId,
-        title: "Light fixture replacement",
-        description:
-          "The light fixture in the dining area has stopped working. I've tried changing the bulbs but it still doesn't work.",
-        priority: "low",
-        status: "completed",
-        reportedAt: addDays(today, -20),
-        assignedTo: caretaker3.id,
-        resolvedAt: addDays(today, -18),
-        cost: 45.0,
-      });
-
-      await createMaintenanceComment({
-        requestId: maintenanceReq5.id,
-        userId: caretaker3.id,
-        content: "I'll bring a replacement fixture tomorrow.",
-        isPrivate: false,
-      });
-
-      await createMaintenanceComment({
-        requestId: maintenanceReq5.id,
-        userId: caretaker3.id,
-        content: "New fixture installed. Everything working now.",
-        isPrivate: false,
-      });
-
-      await createMaintenanceComment({
-        requestId: maintenanceReq5.id,
-        userId: tenant6.id,
-        content: "Thank you, it looks great!",
-        isPrivate: false,
-      });
-    }
-
-    // Property 5, Office 102 - Business property maintenance
-    if (lease7) {
-      const maintenanceReq6 = await createMaintenanceRequest({
-        unitId: lease7.unitId,
-        tenantId: lease7.tenantId,
-        title: "Air conditioning not cooling properly",
-        description:
-          "The office air conditioning system isn't cooling effectively. Office temperature reaches 80°F during the afternoon despite setting it to 72°F.",
-        priority: "high",
-        status: "completed",
-        reportedAt: addDays(today, -30),
-        assignedTo: caretaker2.id,
-        resolvedAt: addDays(today, -28),
-        cost: 320.0,
-      });
-
-      await createMaintenanceComment({
-        requestId: maintenanceReq6.id,
-        userId: caretaker2.id,
-        content:
-          "I'll schedule an HVAC technician to inspect the system tomorrow.",
-        isPrivate: false,
-      });
-
-      await createMaintenanceComment({
-        requestId: maintenanceReq6.id,
-        userId: caretaker2.id,
-        content:
-          "HVAC tech found a refrigerant leak. Repaired and refilled the system. Should be working properly now.",
-        isPrivate: false,
-      });
-
-      await createMaintenanceComment({
-        requestId: maintenanceReq6.id,
-        userId: tenant7.id,
-        content: "Temperature is much better now. Thank you for the quick fix.",
-        isPrivate: false,
-      });
-    }
-
-    // Property 5, Office 201 - Vacant unit maintenance
-    const property5Unit3 = await db.query.units.findFirst({
-      where: (units, { and, eq }) =>
-        and(eq(units.propertyId, property5.id), eq(units.name, "Office 201")),
-    });
-
-    if (property5Unit3) {
-      const maintenanceReq7 = await createMaintenanceRequest({
-        unitId: property5Unit3.id,
-        title: "Prepare unit for new tenant",
-        description:
-          "Need to repaint walls, clean carpets, and check all fixtures before new tenant moves in next month.",
-        priority: "medium",
-        status: "in_progress",
-        reportedAt: addDays(today, -10),
-        assignedTo: caretaker2.id,
-      });
-
-      await createMaintenanceComment({
-        requestId: maintenanceReq7.id,
-        userId: agent2.id,
-        content:
-          "We have a potential tenant interested in this office. Please make sure it's ready by the end of the month.",
-        isPrivate: true,
-      });
-
-      await createMaintenanceComment({
-        requestId: maintenanceReq7.id,
-        userId: caretaker2.id,
-        content:
-          "Painting is complete. Carpet cleaning scheduled for tomorrow.",
-        isPrivate: true,
-      });
-
-      await createMaintenanceComment({
-        requestId: maintenanceReq7.id,
-        userId: landlord2.id,
-        content:
-          "Also make sure all power outlets are working properly. The last tenant mentioned some issues.",
-        isPrivate: true,
-      });
-    }
-
-    // Property 1, Unit 202 - Maintenance unit preparation
-    const property1Unit5 = await db.query.units.findFirst({
-      where: (units, { and, eq }) =>
-        and(eq(units.propertyId, property1.id), eq(units.name, "202")),
-    });
-
-    if (property1Unit5) {
-      const maintenanceReq8 = await createMaintenanceRequest({
-        unitId: property1Unit5.id,
-        title: "Water damage repair",
-        description:
-          "Repair water damage from roof leak. Replace drywall in bedroom ceiling and repaint.",
-        priority: "high",
-        status: "in_progress",
-        reportedAt: addDays(today, -20),
-        assignedTo: caretaker1.id,
-      });
-
-      await createMaintenanceComment({
-        requestId: maintenanceReq8.id,
-        userId: caretaker1.id,
-        content: "Roof leak has been fixed. Now working on the ceiling repair.",
-        isPrivate: true,
-      });
-
-      await createMaintenanceComment({
-        requestId: maintenanceReq8.id,
-        userId: landlord1.id,
-        content:
-          "Make sure to check for any mold before closing up the ceiling.",
-        isPrivate: true,
-      });
-
-      await createMaintenanceComment({
-        requestId: maintenanceReq8.id,
-        userId: caretaker1.id,
-        content:
-          "No mold found. Drywall replaced. Will paint tomorrow once it's dry.",
-        isPrivate: true,
-      });
-    }
-
-    console.log("Maintenance requests created successfully");
+    console.log("Maintenance requests and work orders created successfully");
 
     // Create documents
     console.log("Creating documents...");
@@ -2363,10 +2220,10 @@ async function seedDatabase() {
       });
     }
 
-    if (property5) {
+    if (property2) {
       await createUserPermission({
         userId: agent2.id,
-        propertyId: property5.id,
+        propertyId: property2.id,
         role: "agent",
         canManageTenants: true,
         canManageLeases: true,
@@ -2391,6 +2248,7 @@ async function seedDatabase() {
     });
 
     console.log("User permissions created successfully");
+
     // Create notifications
     console.log("Creating notifications...");
 
@@ -2418,6 +2276,30 @@ async function seedDatabase() {
         }`,
         type: "lease",
         relatedId: lease1.id,
+        relatedType: "lease",
+        isRead: false,
+      });
+    }
+
+    // Notifications for tenant2
+    if (lease2) {
+      await createNotification({
+        userId: tenant2.id,
+        title: "Rent Payment Confirmation",
+        message: `Your rent payment of $${lease2.rentAmount} for Unit 103 has been processed successfully`,
+        type: "payment_received",
+        relatedId: lease2.id,
+        relatedType: "lease",
+        isRead: true,
+      });
+
+      // Rent due reminder
+      await createNotification({
+        userId: tenant2.id,
+        title: "Rent Payment Due Soon",
+        message: `Your monthly rent of $${lease2.rentAmount} for Unit 103 is due in 5 days`,
+        type: "payment_due",
+        relatedId: lease2.id,
         relatedType: "lease",
         isRead: false,
       });
@@ -2453,30 +2335,6 @@ async function seedDatabase() {
         type: "maintenance",
         relatedId: maintenanceReq1.id,
         relatedType: "maintenance",
-        isRead: false,
-      });
-    }
-
-    // Notifications for tenant2
-    if (lease2) {
-      await createNotification({
-        userId: tenant2.id,
-        title: "Rent Payment Confirmation",
-        message: `Your rent payment of $${lease2.rentAmount} for Unit 103 has been processed successfully`,
-        type: "payment_received",
-        relatedId: lease2.id,
-        relatedType: "lease",
-        isRead: true,
-      });
-
-      // Rent due reminder
-      await createNotification({
-        userId: tenant2.id,
-        title: "Rent Payment Due Soon",
-        message: `Your monthly rent of $${lease2.rentAmount} for Unit 103 is due in 5 days`,
-        type: "payment_due",
-        relatedId: lease2.id,
-        relatedType: "lease",
         isRead: false,
       });
     }
@@ -2550,79 +2408,173 @@ async function seedDatabase() {
         isRead: false,
       });
     }
-    // Function to create a notification
-    async function createNotification(notificationData: {
-      userId: string;
-      title: string;
-      message: string;
-      type: string;
-      relatedId?: string;
-      relatedType?: string;
-      isRead?: boolean;
-    }) {
-      try {
-        if (!schema.notifications) {
-          console.log(
-            "Notifications table not found in schema, skipping creation"
-          );
-          return null;
-        }
-
-        const [notification] = await db
-          .insert(schema.notifications)
-          .values({
-            id: createId(),
-            userId: notificationData.userId,
-            title: notificationData.title,
-            message: notificationData.message,
-            type: notificationData.type,
-            relatedId: notificationData.relatedId || null,
-            relatedType: notificationData.relatedType || null,
-            isRead: notificationData.isRead || false,
-            createdAt: new Date(),
-          })
-          .returning();
-
-        console.log(
-          `Created notification: ${notification.title} for user ${notificationData.userId}`
-        );
-        return notification;
-      } catch (error) {
-        console.error(
-          `Error creating notification "${notificationData.title}":`,
-          error
-        );
-        return null;
-      }
-    }
-    // Lease renewal notification for agent
-    if (lease7) {
-      await createNotification({
-        userId: agent2.id,
-        title: "Lease Renewal Opportunity",
-        message: `The lease for ${tenant7.name} in Office 102 expires in 3 months. Contact tenant about renewal.`,
-        type: "lease",
-        relatedId: lease7.id,
-        relatedType: "lease",
-        isRead: false,
-      });
-
-      // Also notify landlord
-      await createNotification({
-        userId: landlord2.id,
-        title: "Upcoming Lease Expiration",
-        message: `The commercial lease for Office 102 will expire in 3 months on ${
-          lease7.endDate.toISOString().split("T")[0]
-        }`,
-        type: "lease",
-        relatedId: lease7.id,
-        relatedType: "lease",
-        isRead: false,
-      });
-    }
 
     console.log("Notifications created successfully");
-    console.log("Enhanced seeding completed successfully!");
+
+    // Create message templates
+    console.log("Creating message templates...");
+
+    // Common email templates
+    await createMessageTemplate({
+      name: "Welcome Email",
+      type: "email",
+      subject: "Welcome to your new home!",
+      content: `Dear {{tenant_name}},
+
+Welcome to {{property_name}}! We're excited to have you as our tenant.
+
+Here are a few important details to help you get settled:
+- Your rent payment is due on the {{payment_day}} of each month
+- For maintenance requests, please use our online portal or call {{caretaker_phone}}
+- Office hours are Monday-Friday, 9:00 AM - 5:00 PM
+
+If you have any questions, feel free to reach out.
+
+Best regards,
+{{property_management}}`,
+      createdBy: admin1.id,
+      isGlobal: true,
+    });
+
+    await createMessageTemplate({
+      name: "Rent Reminder",
+      type: "email",
+      subject: "Rent Payment Reminder",
+      content: `Dear {{tenant_name}},
+
+This is a friendly reminder that your rent payment of is due on {{due_date}}.
+
+To avoid late fees, please ensure your payment is made on time.
+
+Thank you,
+{{property_management}}`,
+      createdBy: admin1.id,
+      isGlobal: true,
+    });
+
+    // Property-specific templates
+    await createMessageTemplate({
+      name: "Maintenance Scheduled",
+      type: "email",
+      subject: "Maintenance Visit Scheduled",
+      content: `Dear {{tenant_name}},
+
+We have scheduled a maintenance visit for your reported issue:
+"{{maintenance_title}}"
+
+The maintenance team will visit on {{scheduled_date}} between {{start_time}} and {{end_time}}.
+
+Please ensure someone is available to provide access or make arrangements with the building caretaker.
+
+Best regards,
+{{property_management}}`,
+      createdBy: landlord1.id,
+      isGlobal: false,
+      propertyId: property1.id,
+    });
+
+    // SMS templates
+    await createMessageTemplate({
+      name: "Rent Due SMS",
+      type: "sms",
+      content:
+        "{{property_name}} reminder: Your rent of ${{rent_amount}} is due on {{due_date}}. Thank you.",
+      createdBy: admin1.id,
+      isGlobal: true,
+    });
+
+    await createMessageTemplate({
+      name: "Maintenance SMS",
+      type: "sms",
+      content:
+        "{{property_name}}: Maintenance scheduled for {{scheduled_date}} between {{start_time}}-{{end_time}}. Reply Y to confirm or call to reschedule.",
+      createdBy: admin1.id,
+      isGlobal: true,
+    });
+
+    console.log("Message templates created successfully");
+
+    // Create messages
+    console.log("Creating messages...");
+
+    // Email to Alice about maintenance
+    if (tenant1 && maintenanceReq1 && property1) {
+      await createMessage({
+        propertyId: property1.id,
+        senderId: caretaker1.id,
+        type: "email",
+        subject: "Scheduled Maintenance for Leaking Faucet",
+        content: `Dear Alice,
+
+I've scheduled a time to fix your leaking bathroom faucet tomorrow between 10:00 AM and 12:00 PM.
+
+Please let me know if this time works for you.
+
+Best regards,
+Mary Johnson
+Caretaker, Luxury Apartment Complex`,
+        status: "sent",
+        recipientIds: [tenant1.id],
+      });
+    }
+
+    // Rent reminder to Bob
+    if (tenant2 && property1) {
+      await createMessage({
+        propertyId: property1.id,
+        senderId: landlord1.id,
+        type: "email",
+        subject: "Rent Payment Reminder",
+        content: `Dear Bob,
+
+This is a friendly reminder that your rent payment of $2,000 is due on the 5th of this month.
+
+Please ensure your payment is made on time to avoid late fees.
+
+Thank you,
+John Smith
+Landlord, Luxury Apartment Complex`,
+        status: "sent",
+        recipientIds: [tenant2.id],
+      });
+    }
+
+    // SMS to Charlie about utilities
+    if (tenant3 && property2) {
+      await createMessage({
+        propertyId: property2.id,
+        senderId: agent2.id,
+        type: "sms",
+        content:
+          "Riverside Homes: Water service will be temporarily suspended on June 15th from 9AM-12PM for essential maintenance. Sorry for any inconvenience.",
+        status: "sent",
+        recipientIds: [tenant3.id],
+      });
+    }
+
+    // Bulk email to all current tenants
+    if (tenant1 && tenant2 && tenant3 && tenant5) {
+      await createMessage({
+        senderId: admin1.id,
+        type: "email",
+        subject: "Important: System Maintenance Notice",
+        content: `Dear Tenant,
+
+Our property management portal will be undergoing scheduled maintenance this weekend.
+
+The system will be unavailable from Saturday 10:00 PM until Sunday 2:00 AM.
+
+We apologize for any inconvenience this may cause.
+
+Best regards,
+Property Management Team`,
+        status: "sent",
+        recipientIds: [tenant1.id, tenant2.id, tenant3.id, tenant5.id],
+      });
+    }
+
+    console.log("Messages created successfully");
+    console.log("Database seeding completed successfully!");
   } catch (error) {
     console.error("Seeding failed:", error);
     process.exit(1);
