@@ -1,32 +1,54 @@
-// src/server.ts
+import { validateConfig } from "@/config/environment";
+import { startScheduler } from "@/cron/scheduler";
 import dotenv from "dotenv";
-import cron from "node-cron";
+import { sql } from "drizzle-orm";
 import { setupApi } from "./api";
-import { processTrials } from "./scripts/process-trials";
+import { db } from "./db";
 
-// Load environment variables
 dotenv.config();
 
-// Configure and start the server
 async function startServer() {
-  const PORT = process.env.PORT || 3001;
-  const app = setupApi();
+  try {
+    validateConfig();
 
-  // Set up cron job to process trials (runs at midnight)
-  cron.schedule("0 0 * * *", async () => {
-    console.log("Running scheduled trial processing...");
-    await processTrials();
-  });
+    // Test database connection
+    await testDatabaseConnection();
 
-  app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-    console.log(`GraphQL endpoint: http://localhost:${PORT}/api/graphql`);
-    console.log(`Auth endpoint: http://localhost:${PORT}/api/auth`);
-  });
+    const PORT = process.env.PORT || 3001;
+    const app = setupApi();
+
+    // Start scheduler for background tasks
+    startScheduler();
+
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+      console.log(`GraphQL endpoint: http://localhost:${PORT}/api/graphql`);
+      console.log(`Auth endpoint: http://localhost:${PORT}/api/auth`);
+    });
+  } catch (error) {
+    console.error("Failed to start server:", error);
+    process.exit(1);
+  }
+}
+
+// Test database connection
+async function testDatabaseConnection() {
+  try {
+    const result = await db.execute(sql`SELECT 1`);
+    console.log("Database connection successful");
+    return result;
+  } catch (error) {
+    console.error("Database connection failed:", error);
+    throw error;
+  }
 }
 
 // Start the server
-startServer().catch((error) => {
-  console.error("Failed to start server:", error);
-  process.exit(1);
-});
+if (require.main === module) {
+  startServer().catch((error) => {
+    console.error("Unhandled error during server startup:", error);
+    process.exit(1);
+  });
+}
+
+export { startServer };

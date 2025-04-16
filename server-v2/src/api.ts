@@ -1,12 +1,11 @@
-// src/api.ts
+import { graphqlSchema } from "@/api/graphql/schema";
+import { handleFlutterwaveWebhook } from "@/api/webhooks/flutterwave";
 import { auth } from "@/auth/configs/auth.config";
-import { graphqlSchema } from "@/graphql/schema";
 import { createBetterAuthMiddleware } from "@/middleware/auth.middleware";
 import { errorHandler } from "@/middleware/error.middleware";
+import { organizationMiddleware } from "@/middleware/organization.middleware";
 import { subscriptionCheckMiddleware } from "@/middleware/subscription.middleware";
-import { subscriptionService } from "@/services/subscription.service";
-import { trialService } from "@/services/trial.service";
-import { handleFlutterwaveWebhook } from "@/webhooks/flutterwave";
+import { teamAccessMiddleware } from "@/middleware/team-access.middleware";
 import { toNodeHandler } from "better-auth/node";
 import cookieParser from "cookie-parser";
 import cors from "cors";
@@ -46,6 +45,14 @@ export function setupApi() {
   // Auth middleware
   app.use(createBetterAuthMiddleware(auth));
 
+  // Organization context middleware
+  app.use(organizationMiddleware);
+
+  // Team access middleware for routes that need it
+  app.use("/api/properties/:propertyId", teamAccessMiddleware);
+  app.use("/api/units", teamAccessMiddleware);
+  app.use("/api/maintenance", teamAccessMiddleware);
+
   // Subscription check middleware
   app.use(subscriptionCheckMiddleware);
 
@@ -56,13 +63,16 @@ export function setupApi() {
       // Extract user from request (set by auth middleware)
       const user = (request as any).user;
       const activeOrganization = (request as any).activeOrganization;
+      const activeTeam = (request as any).activeTeam;
+      const activeTenant = (request as any).activeTenant;
 
       return {
         user,
         activeOrganization,
+        activeTeam,
+        activeTenant,
         services: {
-          trialService,
-          subscriptionService,
+          // Register all services for dependency injection
         },
       };
     },

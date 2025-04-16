@@ -1,4 +1,3 @@
-// src/graphql/resolvers/subscription.resolvers.ts
 import { verifyTransaction } from "@/lib/payment";
 import { SUBSCRIPTION_PLANS } from "@/subscription/constants";
 

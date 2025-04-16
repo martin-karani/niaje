@@ -1,4 +1,3 @@
-// src/middleware/auth.middleware.ts
 import { AuthInstance } from "@/auth/configs/auth.config";
 import { db } from "@/db";
 import { organization } from "@/db/schema";

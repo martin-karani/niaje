@@ -7,7 +7,7 @@ import { admin, organization } from "better-auth/plugins";
 import { addMonths } from "date-fns";
 import dotenv from "dotenv";
 import { db } from "../../db";
-import { ac, agent, caretaker, owner } from "../permissions";
+import { ac, agent, caretaker, owner, tenant_user } from "../permissions";
 
 dotenv.config();
 
@@ -36,9 +36,22 @@ const authOptions: BetterAuthOptions = {
         owner,
         caretaker,
         agent,
+        tenant_user, 
       },
       teams: {
         enabled: true,
+        access: {
+          // Configure how teams affect access control
+          membersCanViewAllOrganizationData: false, // Restrict access to team data only
+          teamAdminRole: "team_leader", // Special role for team leaders
+          allowRoleOverride: true, // Allow team-specific role customization
+        },
+        creation: {
+          membersCanCreateTeams: false, // Only org owners can create teams
+        },
+        invitation: {
+          allowDirectTeamInvites: true, // Team leaders can invite directly to their team
+        }
       },
       organizationCreation: {
         disabled: false,
