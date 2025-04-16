@@ -1,4 +1,3 @@
-// src/services/features/payments.service.ts
 import { CURRENCY_CONFIG } from "@/config/environment";
 import { db } from "@/db";
 import {

@@ -1,11 +1,11 @@
-// src/auth/configs/auth.config.ts
 import { createStripeCustomer } from "@/lib/payment";
-import { emailService } from "@/services/email.service";
+import { emailService } from "@/services/system/email.service";
 import { betterAuth, BetterAuthOptions } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin, organization } from "better-auth/plugins";
 import { addMonths } from "date-fns";
 import dotenv from "dotenv";
+import { eq } from "drizzle-orm";
 import { db } from "../../db";
 import { ac, agent, caretaker, owner, tenant_user } from "../permissions";
 
@@ -36,7 +36,7 @@ const authOptions: BetterAuthOptions = {
         owner,
         caretaker,
         agent,
-        tenant_user, 
+        tenant_user,
       },
       teams: {
         enabled: true,
@@ -51,7 +51,7 @@ const authOptions: BetterAuthOptions = {
         },
         invitation: {
           allowDirectTeamInvites: true, // Team leaders can invite directly to their team
-        }
+        },
       },
       organizationCreation: {
         disabled: false,

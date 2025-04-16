@@ -1,24 +1,41 @@
-// src/db/schema/units.ts
 import { relations } from "drizzle-orm";
 import {
-    integer,
-    json,
-    numeric,
-    pgEnum,
-    pgTable,
-    text,
-    timestamp,
+  integer,
+  json,
+  numeric,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
 } from "drizzle-orm/pg-core";
 import { createId } from "../utils";
 import { inspections } from "./inspections";
 import { leases } from "./leases"; // Import leases
 import { maintenanceRequests } from "./maintenance";
+import { organization } from "./organization";
 import { utilityBills } from "./payments"; // Import utilityBills
 import { properties } from "./properties";
 
 // Enums for unit status
-export const unitStatusEnum = pgEnum('unit_status', ['vacant', 'occupied', 'notice_given', 'under_maintenance', 'archived']);
-export const unitTypeEnum = pgEnum('unit_type', ['studio', '1br', '2br', '3br', '4br_plus', 'penthouse', 'commercial_office', 'commercial_retail', 'commercial_warehouse', 'other']);
+export const unitStatusEnum = pgEnum("unit_status", [
+  "vacant",
+  "occupied",
+  "notice_given",
+  "under_maintenance",
+  "archived",
+]);
+export const unitTypeEnum = pgEnum("unit_type", [
+  "studio",
+  "1br",
+  "2br",
+  "3br",
+  "4br_plus",
+  "penthouse",
+  "commercial_office",
+  "commercial_retail",
+  "commercial_warehouse",
+  "other",
+]);
 
 export const units = pgTable("units", {
   id: text("id").primaryKey().$defaultFn(createId),
@@ -27,7 +44,7 @@ export const units = pgTable("units", {
     .references(() => properties.id, { onDelete: "cascade" }), // Delete units if property deleted
   organizationId: text("organization_id") // Denormalized/derived from property for easier filtering
     .notNull()
-    .references(() => properties.organizationId),
+    .references(() => organization.id),
 
   name: text("name").notNull(), // Unit identifier like "Apt 101", "Suite 2B", "Unit 5"
   type: unitTypeEnum("type").notNull(),
@@ -50,8 +67,12 @@ export const units = pgTable("units", {
   electricityMeterId: text("electricity_meter_id"),
   gasMeterId: text("gas_meter_id"),
 
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 // Define relations for units
@@ -60,15 +81,17 @@ export const unitsRelations = relations(units, ({ one, many }) => ({
     fields: [units.propertyId],
     references: [properties.id],
   }),
-  organization: one(organization, { // Link back to org for easier queries
-     fields: [units.organizationId],
-     references: [organization.id],
+  organization: one(organization, {
+    // Link back to org for easier queries
+    fields: [units.organizationId],
+    references: [organization.id],
   }),
   leases: many(leases), // A unit can have multiple (historical) leases
-  activeLease: one(leases, { // Potentially link to the currently active lease
-      relationName: "activeLease",
-      // Need a way to determine 'active' status in the relation query or a dedicated field
-  }),
+  // activeLease: one(leases, {
+  //   // Potentially link to the currently active lease
+  //   relationName: "activeLease",
+  //   // Need a way to determine 'active' status in the relation query or a dedicated field
+  // }),
   maintenanceRequests: many(maintenanceRequests), // Requests specific to this unit
   inspections: many(inspections), // Inspections for this unit
   utilityBills: many(utilityBills), // Utility bills for this unit

@@ -5,13 +5,16 @@ import { createBetterAuthMiddleware } from "@/middleware/auth.middleware";
 import { errorHandler } from "@/middleware/error.middleware";
 import { organizationMiddleware } from "@/middleware/organization.middleware";
 import { subscriptionCheckMiddleware } from "@/middleware/subscription.middleware";
-import { teamAccessMiddleware } from "@/middleware/team-access.middleware";
+// import { propertiesService } from "@/services/core/properties.service";
+import { maintenanceService } from "@/services/features/maintenance.service";
+// import { teamsService } from "@/services/features/teams.service";
+import { subscriptionService } from "@/services/system/subscription.service";
+import { trialService } from "@/services/system/trial.service";
 import { toNodeHandler } from "better-auth/node";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import { createYoga } from "graphql-yoga";
-
 /**
  * Setup Express application
  */
@@ -48,17 +51,12 @@ export function setupApi() {
   // Organization context middleware
   app.use(organizationMiddleware);
 
-  // Team access middleware for routes that need it
-  app.use("/api/properties/:propertyId", teamAccessMiddleware);
-  app.use("/api/units", teamAccessMiddleware);
-  app.use("/api/maintenance", teamAccessMiddleware);
-
   // Subscription check middleware
-  app.use(subscriptionCheckMiddleware);
+  app.use(subscriptionCheckMiddleware as express.RequestHandler);
 
   // Set up GraphQL Yoga
   const yoga = createYoga({
-    schema: graphqlSchema,
+    schema: graphqlSchema.schema,
     context: ({ request }) => {
       // Extract user from request (set by auth middleware)
       const user = (request as any).user;
@@ -72,7 +70,11 @@ export function setupApi() {
         activeTeam,
         activeTenant,
         services: {
-          // Register all services for dependency injection
+          trialService,
+          subscriptionService,
+          // propertiesService,
+          // teamsService,
+          maintenanceService,
         },
       };
     },

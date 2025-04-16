@@ -1,4 +1,3 @@
-// src/db/schema/properties.ts
 import { relations } from "drizzle-orm";
 import {
   integer,
@@ -7,7 +6,7 @@ import {
   pgEnum,
   pgTable,
   text,
-  timestamp
+  timestamp,
 } from "drizzle-orm/pg-core";
 import { createId } from "../utils";
 import { documents } from "./documents";
@@ -19,19 +18,29 @@ import { units } from "./units"; // Import units
 import { user } from "./users";
 
 // Enums for property types
-export const propertyTypeEnum = pgEnum('property_type', ['residential', 'commercial', 'mixed_use', 'land']);
-export const propertyStatusEnum = pgEnum('property_status', ['active', 'inactive', 'under_construction', 'sold']);
+export const propertyTypeEnum = pgEnum("property_type", [
+  "residential",
+  "commercial",
+  "mixed_use",
+  "land",
+]);
+export const propertyStatusEnum = pgEnum("property_status", [
+  "active",
+  "inactive",
+  "under_construction",
+  "sold",
+]);
 
 export const properties = pgTable("properties", {
   id: text("id").primaryKey().$defaultFn(createId),
   organizationId: text("organization_id") // Links to the Agent's Organization managing this property
     .notNull()
-    .references(() => organization.id, { onDelete: 'restrict' }), // Don't delete org if properties exist
+    .references(() => organization.id, { onDelete: "restrict" }), // Don't delete org if properties exist
   ownerId: text("owner_id") // Links to the actual Landlord/Owner User
     .notNull()
-    .references(() => user.id, { onDelete: 'restrict' }), // Don't delete user if they own properties
+    .references(() => user.id, { onDelete: "restrict" }), // Don't delete user if they own properties
   caretakerId: text("caretaker_id") // Links to the assigned Caretaker User (optional)
-    .references(() => user.id, { onDelete: 'set null' }), // Allow caretaker deletion
+    .references(() => user.id, { onDelete: "set null" }), // Allow caretaker deletion
 
   name: text("name").notNull(), // e.g., "Sunrise Apartments", "123 Main St Lot"
   addressLine1: text("address_line1").notNull(),
@@ -44,7 +53,7 @@ export const properties = pgTable("properties", {
   longitude: numeric("longitude"),
 
   type: propertyTypeEnum("type").notNull(),
-  status: propertyStatusEnum("status").default('active').notNull(),
+  status: propertyStatusEnum("status").default("active").notNull(),
   description: text("description"),
   yearBuilt: integer("year_built"),
   numberOfUnits: integer("number_of_units").default(0), // Could be calculated or stored
@@ -53,8 +62,12 @@ export const properties = pgTable("properties", {
   amenities: json("amenities"), // Array of strings like 'pool', 'gym'
   notes: text("notes"), // Internal notes for the agent org
 
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 // Define relations for properties table

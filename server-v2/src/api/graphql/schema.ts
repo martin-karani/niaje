@@ -1,274 +1,323 @@
-// src/api/graphql/schema.ts
-import { SUBSCRIPTION_PLANS } from "@/config/subscription-plans";
-import * as schema from "@/db/schema";
-import { verifyTransaction } from "@/lib/payment";
-import { mergeResolvers, mergeTypeDefs } from "@graphql-tools/merge";
-import { makeExecutableSchema } from "@graphql-tools/schema";
-import { DBSchema } from "drizzle-graphql";
+import { db } from "@/db";
+import { buildSchema } from "drizzle-graphql";
+// import { applyMiddleware } from "graphql-middleware";
 
-// Import all type definitions
-import { documentsTypeDefs } from "./typeDefs/documents.types";
-import { inspectionTypeDefs } from "./typeDefs/inspection.types";
-import { leasesTypeDefs } from "./typeDefs/leases.types";
-import { maintenanceTypeDefs } from "./typeDefs/maintenance.types";
-import { paymentsTypeDefs } from "./typeDefs/payments.types";
-import { propertiesTypeDefs } from "./typeDefs/properties.types";
-import { teamsTypeDefs } from "./typeDefs/teams.types";
-import { tenantsTypeDefs } from "./typeDefs/tenants.types";
-import { usersTypeDefs } from "./typeDefs/users.types";
+// // Import all type definitions
+// import { documentsTypeDefs } from "./typeDefs/documents.types";
+// import { inspectionTypeDefs } from "./typeDefs/inspection.types";
+// import { leasesTypeDefs } from "./typeDefs/leases.types";
+// import { maintenanceTypeDefs } from "./typeDefs/maintenance.types";
+// import { paymentsTypeDefs } from "./typeDefs/payments.types";
+// import { propertiesTypeDefs } from "./typeDefs/properties.types";
+// import { teamsTypeDefs } from "./typeDefs/teams.types";
+// import { tenantsTypeDefs } from "./typeDefs/tenants.types";
+// import { usersTypeDefs } from "./typeDefs/users.types";
 
-// Import all resolvers
-import { documentsResolvers } from "./resolvers/documents.resolvers";
-import { leasesResolvers } from "./resolvers/leases.resolvers";
-import { maintenanceResolvers } from "./resolvers/maintenance.resolvers";
-import { paymentsResolvers } from "./resolvers/payments.resolvers";
-import { propertiesResolvers } from "./resolvers/properties.resolvers";
-import { teamsResolvers } from "./resolvers/teams.resolvers";
-import { tenantsResolvers } from "./resolvers/tenants.resolvers";
-import { usersResolvers } from "./resolvers/users.resolvers";
+// // Import all resolvers
+// import { documentsResolvers } from "./resolvers/documents.resolvers";
+// import { leasesResolvers } from "./resolvers/leases.resolvers";
+// import { maintenanceResolvers } from "./resolvers/maintenance.resolvers";
+// import { paymentsResolvers } from "./resolvers/payments.resolvers";
+// import { propertiesResolvers } from "./resolvers/properties.resolvers";
+// import { teamsResolvers } from "./resolvers/teams.resolvers";
+// import { tenantsResolvers } from "./resolvers/tenants.resolvers";
+// import { usersResolvers } from "./resolvers/users.resolvers";
 
-// Define subscription type definitions
-const subscriptionTypeDefs = `
-  type TrialInfo {
-    onTrial: Boolean!
-    daysRemaining: Int!
-    expiresAt: String
-    isExpired: Boolean!
-  }
+// // Define subscription type definitions
+// const subscriptionTypeDefs = `
+//   type TrialInfo {
+//     onTrial: Boolean!
+//     daysRemaining: Int!
+//     expiresAt: String
+//     isExpired: Boolean!
+//   }
 
-  type SubscriptionLimits {
-    maxProperties: Int!
-    maxUsers: Int!
-  }
+//   type SubscriptionLimits {
+//     maxProperties: Int!
+//     maxUsers: Int!
+//   }
 
-  type SubscriptionInfo {
-    active: Boolean!
-    plan: String
-    status: String!
-    limits: SubscriptionLimits!
-  }
+//   type SubscriptionInfo {
+//     active: Boolean!
+//     plan: String
+//     status: String!
+//     limits: SubscriptionLimits!
+//   }
 
-  type SubscriptionPlan {
-    id: String!
-    name: String!
-    description: String!
-    maxProperties: Int!
-    maxUsers: Int!
-    monthlyPrice: Float!
-    yearlyPrice: Float!
-    features: [String!]!
-  }
+//   type SubscriptionPlan {
+//     id: String!
+//     name: String!
+//     description: String!
+//     maxProperties: Int!
+//     maxUsers: Int!
+//     monthlyPrice: Float!
+//     yearlyPrice: Float!
+//     features: [String!]!
+//   }
 
-  type CardCheckoutSession {
-    url: String!
-  }
-  
-  type MpesaPaymentResult {
-    transactionId: String!
-    flwRef: String!
-    status: String!
-    message: String!
-  }
+//   type CardCheckoutSession {
+//     url: String!
+//   }
 
-  extend type Organization {
-    trial: TrialInfo
-    subscription: SubscriptionInfo
-  }
+//   type MpesaPaymentResult {
+//     transactionId: String!
+//     flwRef: String!
+//     status: String!
+//     message: String!
+//   }
 
-  extend type Query {
-    subscriptionPlans: [SubscriptionPlan!]!
-    subscriptionStatus(organizationId: ID): SubscriptionStatusInfo!
-  }
+//   extend type Organization {
+//     trial: TrialInfo
+//     subscription: SubscriptionInfo
+//   }
 
-  type SubscriptionStatusInfo {
-    onTrial: Boolean!
-    trialDaysRemaining: Int!
-    subscriptionActive: Boolean!
-    subscriptionPlan: String!
-    limits: SubscriptionLimits!
-  }
+//   extend type Query {
+//     subscriptionPlans: [SubscriptionPlan!]!
+//     subscriptionStatus(organizationId: ID): SubscriptionStatusInfo!
+//   }
 
-  extend type Mutation {
-    createCardCheckout(
-      organizationId: ID!,
-      planId: String!,
-      billingInterval: String!
-    ): CardCheckoutSession!
-    
-    createMpesaPayment(
-      organizationId: ID!,
-      planId: String!,
-      billingInterval: String!,
-      phoneNumber: String!
-    ): MpesaPaymentResult!
-    
-    verifyPayment(
-      transactionId: String!
-    ): Boolean!
-  }
-`;
+//   type SubscriptionStatusInfo {
+//     onTrial: Boolean!
+//     trialDaysRemaining: Int!
+//     subscriptionActive: Boolean!
+//     subscriptionPlan: String!
+//     limits: SubscriptionLimits!
+//   }
 
-// Base Query and Mutation type definitions
-const baseTypeDefs = `
-  type Query {
-    _empty: String
-  }
-  
-  type Mutation {
-    _empty: String
-  }
-`;
+//   extend type Mutation {
+//     createCardCheckout(
+//       organizationId: ID!,
+//       planId: String!,
+//       billingInterval: String!
+//     ): CardCheckoutSession!
 
-// Generate Drizzle GraphQL schema
-const dbSchema = new DBSchema(schema, "public");
-const drizzleSchema = dbSchema.schema();
+//     createMpesaPayment(
+//       organizationId: ID!,
+//       planId: String!,
+//       billingInterval: String!,
+//       phoneNumber: String!
+//     ): MpesaPaymentResult!
 
-// Create subscription resolvers
-const subscriptionResolvers = {
-  Organization: {
-    trial: async (organization, _, { services }) => {
-      const { trialService } = services;
-      const isInTrial = await trialService.isInTrial(organization.id);
-      const daysRemaining = await trialService.getTrialDaysRemaining(
-        organization.id
-      );
+//     verifyPayment(
+//       transactionId: String!
+//     ): Boolean!
+//   }
+// `;
 
-      return {
-        onTrial: isInTrial,
-        daysRemaining,
-        expiresAt: organization.trialExpiresAt,
-        isExpired: organization.trialStatus === "expired",
-      };
-    },
-    subscription: async (organization) => {
-      return {
-        active: organization.subscriptionStatus === "active",
-        plan: organization.subscriptionPlan,
-        status: organization.subscriptionStatus,
-        limits: {
-          maxProperties: organization.maxProperties,
-          maxUsers: organization.maxUsers,
-        },
-      };
-    },
-  },
-  Query: {
-    subscriptionPlans: () => {
-      return Object.entries(SUBSCRIPTION_PLANS).map(([id, plan]) => ({
-        id,
-        ...plan,
-      }));
-    },
-    subscriptionStatus: async (
-      _,
-      { organizationId },
-      { services, user, activeOrganization }
-    ) => {
-      const { subscriptionService } = services;
-      const targetOrgId = organizationId || activeOrganization?.id;
+// // Base Query and Mutation type definitions
+// const baseTypeDefs = `
+//   type Query {
+//     _empty: String
+//   }
 
-      if (!targetOrgId) {
-        throw new Error("No organization specified");
-      }
+//   type Mutation {
+//     _empty: String
+//   }
+// `;
 
-      return subscriptionService.getSubscriptionStatus(targetOrgId);
-    },
-  },
-  Mutation: {
-    createCardCheckout: async (
-      _,
-      { organizationId, planId, billingInterval },
-      { services, user }
-    ) => {
-      const { subscriptionService } = services;
+// // Create subscription resolvers
+// const subscriptionResolvers = {
+//   Organization: {
+//     trial: async (organization, _, { services }) => {
+//       const { trialService } = services;
+//       const isInTrial = await trialService.isInTrial(organization.id);
+//       const daysRemaining = await trialService.getTrialDaysRemaining(
+//         organization.id
+//       );
 
-      if (!user) throw new Error("Authentication required");
+//       return {
+//         onTrial: isInTrial,
+//         daysRemaining,
+//         expiresAt: organization.trialExpiresAt,
+//         isExpired: organization.trialStatus === "expired",
+//       };
+//     },
+//     subscription: async (organization) => {
+//       return {
+//         active: organization.subscriptionStatus === "active",
+//         plan: organization.subscriptionPlan,
+//         status: organization.subscriptionStatus,
+//         limits: {
+//           maxProperties: organization.maxProperties,
+//           maxUsers: organization.maxUsers,
+//         },
+//       };
+//     },
+//   },
+//   Query: {
+//     subscriptionPlans: () => {
+//       return Object.entries(SUBSCRIPTION_PLANS).map(([id, plan]) => ({
+//         id,
+//         ...plan,
+//       }));
+//     },
+//     subscriptionStatus: async (
+//       _,
+//       { organizationId },
+//       { services, user, activeOrganization }
+//     ) => {
+//       const { subscriptionService } = services;
+//       const targetOrgId = organizationId || activeOrganization?.id;
 
-      return subscriptionService.createCardCheckout(
-        organizationId,
-        planId,
-        billingInterval,
-        user.id
-      );
-    },
+//       if (!targetOrgId) {
+//         throw new Error("No organization specified");
+//       }
 
-    createMpesaPayment: async (
-      _,
-      { organizationId, planId, billingInterval, phoneNumber },
-      { services, user }
-    ) => {
-      const { subscriptionService } = services;
+//       return subscriptionService.getSubscriptionStatus(targetOrgId);
+//     },
+//   },
+//   Mutation: {
+//     createCardCheckout: async (
+//       _,
+//       { organizationId, planId, billingInterval },
+//       { services, user }
+//     ) => {
+//       const { subscriptionService } = services;
 
-      if (!user) throw new Error("Authentication required");
+//       if (!user) throw new Error("Authentication required");
 
-      return subscriptionService.createMpesaPayment(
-        organizationId,
-        planId,
-        billingInterval,
-        user.id,
-        phoneNumber
-      );
-    },
+//       return subscriptionService.createCardCheckout(
+//         organizationId,
+//         planId,
+//         billingInterval,
+//         user.id
+//       );
+//     },
 
-    verifyPayment: async (_, { transactionId }, { services }) => {
-      try {
-        const result = await verifyTransaction(transactionId);
+//     createMpesaPayment: async (
+//       _,
+//       { organizationId, planId, billingInterval, phoneNumber },
+//       { services, user }
+//     ) => {
+//       const { subscriptionService } = services;
 
-        if (result.status === "successful") {
-          // Extract metadata from transaction
-          const { organizationId, planId } = result.meta;
+//       if (!user) throw new Error("Authentication required");
 
-          // Process the successful payment
-          await services.subscriptionService.handlePaymentSuccess(
-            transactionId,
-            organizationId,
-            planId
-          );
+//       return subscriptionService.createMpesaPayment(
+//         organizationId,
+//         planId,
+//         billingInterval,
+//         user.id,
+//         phoneNumber
+//       );
+//     },
 
-          return true;
-        }
+//     verifyPayment: async (_, { transactionId }, { services }) => {
+//       try {
+//         const result = await verifyTransaction(transactionId);
 
-        return false;
-      } catch (error) {
-        console.error("Error verifying payment:", error);
-        return false;
-      }
-    },
-  },
-};
+//         if (result.status === "successful") {
+//           // Extract metadata from transaction
+//           const { organizationId, planId } = result.meta;
 
-// Merge all type definitions
-const typeDefs = mergeTypeDefs([
-  baseTypeDefs,
-  drizzleSchema.typeDefs,
-  subscriptionTypeDefs,
-  propertiesTypeDefs,
-  teamsTypeDefs,
-  tenantsTypeDefs,
-  usersTypeDefs,
-  maintenanceTypeDefs,
-  inspectionTypeDefs,
-  leasesTypeDefs,
-  documentsTypeDefs,
-  paymentsTypeDefs,
-]);
+//           // Process the successful payment
+//           await services.subscriptionService.handlePaymentSuccess(
+//             transactionId,
+//             organizationId,
+//             planId
+//           );
 
-// Merge all resolvers
-const resolvers = mergeResolvers([
-  drizzleSchema.resolvers,
-  subscriptionResolvers,
-  propertiesResolvers,
-  teamsResolvers,
-  tenantsResolvers,
-  usersResolvers,
-  maintenanceResolvers,
-  leasesResolvers,
-  documentsResolvers,
-  paymentsResolvers,
-]);
+//           return true;
+//         }
 
-// Create the final schema by combining them
-export const graphqlSchema = makeExecutableSchema({
-  typeDefs,
-  resolvers,
-});
+//         return false;
+//       } catch (error) {
+//         console.error("Error verifying payment:", error);
+//         return false;
+//       }
+//     },
+//   },
+// };
+
+// // Merge all type definitions
+// const typeDefs = mergeTypeDefs([
+//   baseTypeDefs,
+//   drizzleSchema.typeDefs,
+//   subscriptionTypeDefs,
+//   // propertiesTypeDefs,
+//   // teamsTypeDefs,
+//   // tenantsTypeDefs,
+//   // usersTypeDefs,
+//   // maintenanceTypeDefs,
+//   // inspectionTypeDefs,
+//   // leasesTypeDefs,
+//   // documentsTypeDefs,
+//   // paymentsTypeDefs,
+// ]);
+
+// // Merge all resolvers
+// const resolvers = mergeResolvers([
+//   drizzleSchema.resolvers,
+//   subscriptionResolvers,
+//   // propertiesResolvers,
+//   // teamsResolvers,
+//   // tenantsResolvers,
+//   // usersResolvers,
+//   // maintenanceResolvers,
+//   // leasesResolvers,
+//   // documentsResolvers,
+//   // paymentsResolvers,
+// ]);
+
+export const graphqlSchema = buildSchema(db);
+
+// // Create a GraphQL middleware function to check team access
+// const checkTeamAccess = async (resolver, parent, args, context, info) => {
+//   const { user, activeTeam } = context;
+
+//   // Skip for admin or agent owner roles who have global access
+//   if (user?.role === "admin" || user?.role === "agent_owner") {
+//     return resolver(parent, args, context, info);
+//   }
+
+//   // Get property ID from args
+//   const propertyId =
+//     args.id || args.propertyId || (args.data && args.data.propertyId);
+
+//   if (!propertyId || !user) {
+//     throw new Error("Access denied");
+//   }
+
+//   // For agent_staff, check if they're in the team responsible for this property
+//   if (user.role === "agent_staff") {
+//     if (!activeTeam?.id) {
+//       throw new Error("You don't have permission to access this property");
+//     }
+
+//     // Get property metadata to check team assignment
+//     const property = await db.query.properties.findFirst({
+//       where: eq(schema.properties.id, propertyId),
+//     });
+
+//     if (!property) {
+//       throw new Error("Property not found");
+//     }
+
+//     // Check if property is assigned to user's team
+//     const propertyMetadata = property.metadata as any;
+//     if (
+//       !propertyMetadata?.teamId ||
+//       propertyMetadata.teamId !== activeTeam.id
+//     ) {
+//       throw new Error("This property is managed by a different team");
+//     }
+//   }
+
+//   return resolver(parent, args, context, info);
+// };
+
+// const schemaWithMiddleware = applyMiddleware(executableSchema, {
+//   "Query.property": checkTeamAccess,
+//   "Query.propertiesByTeam": checkTeamAccess,
+//   "Query.units": checkTeamAccess,
+//   "Query.unit": checkTeamAccess,
+//   "Mutation.createProperty": checkTeamAccess,
+//   "Mutation.updateProperty": checkTeamAccess,
+//   "Mutation.deleteProperty": checkTeamAccess,
+//   "Mutation.createUnit": checkTeamAccess,
+//   "Mutation.updateUnit": checkTeamAccess,
+//   "Mutation.deleteUnit": checkTeamAccess,
+//   // Add more resolver paths that need team access checks
+// });
+
+// export const graphqlSchema = schemaWithMiddleware;

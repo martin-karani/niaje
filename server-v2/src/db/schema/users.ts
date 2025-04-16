@@ -1,4 +1,3 @@
-// src/db/schema/users.ts
 import { relations } from "drizzle-orm";
 import {
   boolean,
@@ -11,15 +10,15 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { createId } from "../utils";
-import { communications } from "./communication"; // For sender/recipient
-import { documents } from "./documents"; // For uploader
-import { inspections } from "./inspections"; // For inspector
+
+import { communications } from "./communication";
+import { documents } from "./documents";
+import { inspections } from "./inspections";
 import { leases } from "./leases"; // For creator
 import { maintenanceRequests } from "./maintenance"; // For reporter/assignee
 import { member, organization } from "./organization"; // For staff relationships
 import { properties } from "./properties"; // For owner/caretaker relationships
 
-// Define enum for user roles
 export const userRoleEnum = pgEnum("user_role", [
   "agent_owner",
   "agent_staff",
@@ -27,7 +26,7 @@ export const userRoleEnum = pgEnum("user_role", [
   "caretaker",
   "tenant_user",
   "admin",
-]); // Added tenant_user for potential portal login
+]);
 
 export const user = pgTable("user", {
   id: text("id").primaryKey().$defaultFn(createId), // Use defaultFn for createId
@@ -170,20 +169,6 @@ export const verificationRelations = relations(verification, ({ one }) => ({
     references: [user.id],
   }),
 }));
-
-export const invitation = pgTable("invitation", {
-  id: text("id").primaryKey(),
-  organizationId: text("organization_id")
-    .notNull()
-    .references(() => organization.id, { onDelete: "cascade" }),
-  email: text("email").notNull(),
-  role: text("role"),
-  status: text("status").notNull(),
-  expiresAt: timestamp("expires_at").notNull(),
-  inviterId: text("inviter_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-});
 
 // Types
 export type Verification = typeof verification.$inferSelect;

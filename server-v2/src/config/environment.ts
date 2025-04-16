@@ -15,7 +15,7 @@ export const SERVER_CONFIG = {
 export const DB_CONFIG = {
   DATABASE_URL:
     process.env.DATABASE_URL ||
-    "postgres://propertyapp:propertypassword@localhost:5432/propertymanagement",
+    "postgres://propertyapp2:propertypassword2@localhost:5432/propertymanagement2",
 };
 
 // Auth configuration

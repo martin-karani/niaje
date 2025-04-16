@@ -1,5 +1,4 @@
-// src/services/system/email.service.ts
-import { EMAIL_CONFIG } from "@/config/environment";
+import { EMAIL_CONFIG, SERVER_CONFIG } from "@/config/environment";
 import { loadEmailTemplate } from "@/utils/email.utils";
 import { format } from "date-fns";
 import nodemailer from "nodemailer";
@@ -32,7 +31,7 @@ export class EmailService {
       .replace("{{name}}", name)
       .replace("{{organizationName}}", organizationName)
       .replace("{{trialEndDate}}", formattedDate)
-      .replace("{{frontendUrl}}", EMAIL_CONFIG.FRONTEND_URL || "");
+      .replace("{{frontendUrl}}", SERVER_CONFIG.FRONTEND_URL || "");
 
     await this.sendEmail({
       to: email,
@@ -56,7 +55,7 @@ export class EmailService {
       .replace("{{name}}", name)
       .replace("{{organizationName}}", organizationName)
       .replace("{{daysLeft}}", daysLeft.toString())
-      .replace("{{frontendUrl}}", EMAIL_CONFIG.FRONTEND_URL || "");
+      .replace("{{frontendUrl}}", SERVER_CONFIG.FRONTEND_URL || "");
 
     await this.sendEmail({
       to: email,
@@ -78,7 +77,7 @@ export class EmailService {
     const html = template
       .replace("{{name}}", name)
       .replace("{{organizationName}}", organizationName)
-      .replace("{{frontendUrl}}", EMAIL_CONFIG.FRONTEND_URL || "");
+      .replace("{{frontendUrl}}", SERVER_CONFIG.FRONTEND_URL || "");
 
     await this.sendEmail({
       to: email,

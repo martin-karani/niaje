@@ -3,7 +3,17 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/db/migrate.ts",
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "tsx src/scripts/seed-db.ts",
+    "db:seed:reset": "tsx src/scripts/seed-db.ts --reset",
+    "setup:db": "npm run db:generate && npm run db:migrate && npm run db:seed",
+    "reset:db": "bash src/scripts/reset-db.sh",
+    "lint": "eslint ."
   },
   "keywords": [],
   "author": "",
@@ -12,6 +22,8 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.787.0",
     "@aws-sdk/s3-request-presigner": "^3.787.0",
+    "@graphql-tools/merge": "^9.0.24",
+    "@graphql-tools/schema": "^10.0.23",
     "better-auth": "^1.2.7",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -24,6 +36,7 @@
     "graphql-yoga": "^5.13.3",
     "nanoid": "^5.1.5",
     "node-cron": "^3.0.3",
+    "nodemailer": "^6.10.1",
     "pg": "^8.14.1"
   },
   "devDependencies": {

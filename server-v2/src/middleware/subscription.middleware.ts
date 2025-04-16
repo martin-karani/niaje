@@ -1,6 +1,5 @@
-// src/middleware/subscription.middleware.ts
-import { subscriptionService } from "@/services/subscription.service";
-import { trialService } from "@/services/trial.service";
+import { subscriptionService } from "@/services/system/subscription.service";
+import { trialService } from "@/services/system/trial.service";
 import { NextFunction, Request, Response } from "express";
 
 export async function subscriptionCheckMiddleware(
