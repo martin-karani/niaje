@@ -8,14 +8,13 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 import { createId } from "../utils";
-import { documents } from "./documents"; // Link to inspection report document
-import { leases } from "./leases"; // Link inspection to a lease (move-in/out)
+import { documents } from "./documents";
+import { leases } from "./leases";
 import { organization } from "./organization";
 import { properties } from "./properties";
 import { units } from "./units";
-import { user } from "./users"; // Link to inspector
+import { user } from "./users";
 
-// Enums
 export const inspectionTypeEnum = pgEnum("inspection_type", [
   "move_in",
   "move_out",

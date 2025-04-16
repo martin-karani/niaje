@@ -1,5 +1,5 @@
 {
-  "id": "ba69d9a4-c15e-4b08-b99c-5004d1747ad0",
+  "id": "f0efb03c-51fe-4342-8f80-a4451358d7f5",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -733,15 +733,15 @@
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
-        "leases_property_id_units_property_id_fk": {
-          "name": "leases_property_id_units_property_id_fk",
+        "leases_property_id_properties_id_fk": {
+          "name": "leases_property_id_properties_id_fk",
           "tableFrom": "leases",
-          "tableTo": "units",
+          "tableTo": "properties",
           "columnsFrom": [
             "property_id"
           ],
           "columnsTo": [
-            "property_id"
+            "id"
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
@@ -1844,15 +1844,15 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "units_organization_id_properties_organization_id_fk": {
-          "name": "units_organization_id_properties_organization_id_fk",
+        "units_organization_id_organization_id_fk": {
+          "name": "units_organization_id_organization_id_fk",
           "tableFrom": "units",
-          "tableTo": "properties",
+          "tableTo": "organization",
           "columnsFrom": [
             "organization_id"
           ],
           "columnsTo": [
-            "organization_id"
+            "id"
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
