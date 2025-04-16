@@ -129,10 +129,10 @@ export const leasesRelations = relations(leases, ({ one, many }) => ({
     fields: [leases.organizationId],
     references: [organization.id],
   }),
-  // unit: one(units, {
-  //   fields: [leases.unitId],
-  //   references: [units.id],
-  // }),
+  unit: one(units, {
+    fields: [leases.unitId],
+    references: [units.id],
+  }),
   property: one(properties, {
     // Link back to property for easier queries
     fields: [leases.propertyId],
