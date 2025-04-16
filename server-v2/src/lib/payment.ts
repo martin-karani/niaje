@@ -1,19 +1,21 @@
-// src/lib/payment.ts
-import Flutterwave from "flutterwave-node-v3";
+import axios from "axios";
 import { SUBSCRIPTION_PLANS } from "../subscription/constants";
 
-// Initialize Flutterwave
-const flw = new Flutterwave(
-  process.env.FLUTTERWAVE_PUBLIC_KEY,
-  process.env.FLUTTERWAVE_SECRET_KEY
-);
+// Create an axios instance for Kora
+const koraAPI = axios.create({
+  baseURL: "https://api.korapay.com/merchant/api/v1",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${process.env.KORAPAY_SECRET_KEY}`,
+  },
+});
 
 /**
- * Create a card payment link
+ * Create a card payment link using Kora Checkout Redirect
  */
 export async function createCardPaymentLink(
   customerId: string,
-  planId: string,
+  planId: keyof typeof SUBSCRIPTION_PLANS,
   billingInterval: "month" | "year",
   organizationId: string,
   customerEmail: string,
@@ -25,11 +27,14 @@ export async function createCardPaymentLink(
   const amount =
     billingInterval === "month" ? plan.monthlyPrice : plan.yearlyPrice;
 
+  // Generate a unique reference for the transaction
+  const tx_ref = `sub_${organizationId}_${Date.now()}`;
+
+  // Prepare the payload according to Kora's initialize charge endpoint
   const payload = {
-    tx_ref: `sub_${organizationId}_${Date.now()}`,
+    reference: tx_ref,
     amount,
-    currency: "KES", // Or your preferred currency
-    payment_options: "card",
+    currency: "KES", // Adjust currency if needed
     redirect_url: `${process.env.FRONTEND_URL}/organization/billing/success`,
     customer: {
       email: customerEmail,
@@ -40,25 +45,30 @@ export async function createCardPaymentLink(
       description: `${billingInterval}ly subscription to ${plan.name} plan`,
       logo: process.env.COMPANY_LOGO_URL,
     },
+    // Kora supports meta fields to pass additional data
     meta: {
       organizationId,
       planId,
       billingInterval,
       customerId,
     },
+    // Specify payment options if needed, e.g., ["card"]
+    channels: ["card"],
   };
 
-  const response = await flw.Charge.create(payload);
+  // Call Kora's initialize charge endpoint
+  const response = await koraAPI.post("/charges/initialize", payload);
 
-  if (response.status === "success") {
-    return { url: response.data.link };
+  // Expect that a successful response includes a checkout_url
+  if (response.data.status === true) {
+    return { url: response.data.data.checkout_url };
   } else {
     throw new Error("Failed to create payment link");
   }
 }
 
 /**
- * Create an Mpesa payment request
+ * Create an Mpesa payment request using Kora's Mobile Money charge endpoint
  */
 export async function createMpesaPayment(
   planId: string,
@@ -73,51 +83,65 @@ export async function createMpesaPayment(
 
   const amount =
     billingInterval === "month" ? plan.monthlyPrice : plan.yearlyPrice;
+  const tx_ref = `sub_mpesa_${organizationId}_${Date.now()}`;
 
+  // Prepare payload for mobile money charge
   const payload = {
-    tx_ref: `sub_mpesa_${organizationId}_${Date.now()}`,
+    reference: tx_ref,
     amount,
-    currency: "KES",
-    payment_type: "mpesa",
-    country: "KE",
-    email: customerEmail,
-    phone_number: phoneNumber,
-    fullname: customerName,
-    narration: `${plan.name} Plan Subscription`,
+    currency: "KES", // KES for Mpesa
+    // Specify mobile money details in a dedicated object
+    mobile_money: {
+      number: phoneNumber,
+    },
+    // Optionally include a redirect URL if you want the customer to be redirected
+    redirect_url: `${process.env.FRONTEND_URL}/organization/billing/success`,
+    customer: {
+      email: customerEmail,
+      name: customerName,
+    },
     meta: {
       organizationId,
       planId,
       billingInterval,
     },
+    // Specify the channel for mobile money payments (if required by your integration)
+    channels: ["mobile_money"],
   };
 
-  const response = await flw.MobileMoney.mpesa(payload);
+  // Send request to Kora's mobile money charge endpoint
+  // Assuming Kora uses a distinct endpoint for mobile money;
+  // if not, you may also use /charges/initialize with the payload above.
+  const response = await koraAPI.post("/charges/mobile-money", payload);
 
-  if (response.status === "success") {
+  if (response.data.status === true) {
     return {
-      transactionId: response.data.id,
-      flwRef: response.data.flw_ref,
+      transactionId: response.data.data.transaction_reference,
+      koraRef: response.data.data.reference, // or another field that uniquely identifies the transaction
       status: "pending",
       message: "Please check your phone to complete the payment",
     };
   } else {
-    throw new Error(response.message || "Failed to initiate Mpesa payment");
+    throw new Error(
+      response.data.message || "Failed to initiate Mpesa payment"
+    );
   }
 }
 
 /**
- * Verify a transaction
+ * Verify a transaction using Kora's verify charge endpoint
  */
-export async function verifyTransaction(transactionId: string) {
-  const response = await flw.Transaction.verify({ id: transactionId });
+export async function verifyTransaction(transactionReference: string) {
+  // Kora's API uses GET /charges/:reference to verify a transaction
+  const response = await koraAPI.get(`/charges/${transactionReference}`);
 
-  if (response.status === "success") {
+  if (response.data.status === true) {
     return {
-      status: response.data.status,
-      amount: response.data.amount,
-      currency: response.data.currency,
-      customerId: response.data.customer.id,
-      meta: response.data.meta,
+      status: response.data.data.status,
+      amount: response.data.data.amount,
+      currency: response.data.data.currency,
+      customerId: response.data.data.customer?.id,
+      meta: response.data.data.meta,
     };
   } else {
     throw new Error("Failed to verify transaction");
@@ -125,14 +149,14 @@ export async function verifyTransaction(transactionId: string) {
 }
 
 /**
- * Create Stripe customer for backward compatibility if needed
+ * Create a Stripe customer for backward compatibility if needed.
+ * This function is a stub and could be extended to integrate with Kora's or another API's customer management.
  */
 export async function createStripeCustomer(
   email: string,
   name: string,
   metadata: any
 ) {
-  // This is a placeholder that maps to Flutterwave's customer API if needed
-  // For now, we'll just generate an ID that we'll use internally
+  // As a placeholder, generate an internal customer ID.
   return { id: `cust_${Date.now()}_${Math.floor(Math.random() * 1000)}` };
 }

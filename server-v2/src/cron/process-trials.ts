@@ -1,5 +1,4 @@
-// src/scripts/process-trials.ts
-import { trialService } from "@/services/trial.service";
+import { trialService } from "@/services/system/trial.service";
 
 async function processTrials() {
   console.log("Processing expired trials...");

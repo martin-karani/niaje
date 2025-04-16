@@ -1228,7 +1228,7 @@ async function seedDatabase() {
       units: [
         {
           name: "101",
-          type: "1BR",
+          type: "one_br",
           bedrooms: 1,
           bathrooms: 1,
           size: 750,
@@ -1239,7 +1239,7 @@ async function seedDatabase() {
         },
         {
           name: "102",
-          type: "Studio",
+          type: "studio",
           bedrooms: 0,
           bathrooms: 1,
           size: 500,
@@ -1250,7 +1250,7 @@ async function seedDatabase() {
         },
         {
           name: "103",
-          type: "2BR",
+          type: "two_br",
           bedrooms: 2,
           bathrooms: 2,
           size: 1000,
@@ -1261,7 +1261,7 @@ async function seedDatabase() {
         },
         {
           name: "201",
-          type: "1BR",
+          type: "one_br",
           bedrooms: 1,
           bathrooms: 1,
           size: 750,
@@ -1272,7 +1272,7 @@ async function seedDatabase() {
         },
         {
           name: "202",
-          type: "2BR",
+          type: "two_br",
           bedrooms: 2,
           bathrooms: 2,
           size: 1100,

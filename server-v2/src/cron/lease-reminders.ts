@@ -1,4 +1,3 @@
-// src/cron/lease-reminders.ts
 import { db } from "@/db";
 import { leases } from "@/db/schema";
 import { communicationsService } from "@/services/features/communications.service";
@@ -66,7 +65,6 @@ export async function processLeaseReminders() {
           recipientTenantId: primaryTenant.id,
           relatedLeaseId: lease.id,
           relatedPropertyId: lease.propertyId,
-          relatedUnitId: lease.unitId,
         });
 
         // Send email to tenant if they have an email address

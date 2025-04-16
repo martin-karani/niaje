@@ -1,5 +1,5 @@
 {
-  "id": "1c0aafdb-ebe6-4fd2-b83e-96f1926d27f2",
+  "id": "d55a2047-8746-4f35-bd54-694d09a59b1c",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -1721,8 +1721,7 @@
         },
         "type": {
           "name": "type",
-          "type": "unit_type",
-          "typeSchema": "public",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -3493,22 +3492,6 @@
         "notice_given",
         "under_maintenance",
         "archived"
-      ]
-    },
-    "public.unit_type": {
-      "name": "unit_type",
-      "schema": "public",
-      "values": [
-        "studio",
-        "1br",
-        "2br",
-        "3br",
-        "4br_plus",
-        "penthouse",
-        "commercial_office",
-        "commercial_retail",
-        "commercial_warehouse",
-        "other"
       ]
     },
     "public.user_role": {

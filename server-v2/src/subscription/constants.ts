@@ -1,4 +1,3 @@
-// src/subscription/constants.ts
 export const SUBSCRIPTION_PLANS = {
   basic: {
     name: "Basic",

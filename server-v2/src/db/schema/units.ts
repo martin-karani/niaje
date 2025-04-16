@@ -24,18 +24,6 @@ export const unitStatusEnum = pgEnum("unit_status", [
   "under_maintenance",
   "archived",
 ]);
-export const unitTypeEnum = pgEnum("unit_type", [
-  "studio",
-  "1br",
-  "2br",
-  "3br",
-  "4br_plus",
-  "penthouse",
-  "commercial_office",
-  "commercial_retail",
-  "commercial_warehouse",
-  "other",
-]);
 
 export const units = pgTable("units", {
   id: text("id").primaryKey().$defaultFn(createId),
@@ -47,7 +35,7 @@ export const units = pgTable("units", {
     .references(() => organization.id),
 
   name: text("name").notNull(), // Unit identifier like "Apt 101", "Suite 2B", "Unit 5"
-  type: unitTypeEnum("type").notNull(),
+  type: text("type").notNull(),
   status: unitStatusEnum("status").default("vacant").notNull(),
   bedrooms: integer("bedrooms").default(1),
   bathrooms: numeric("bathrooms", { precision: 2, scale: 1 }).default("1.0"), // e.g., 1.5 baths

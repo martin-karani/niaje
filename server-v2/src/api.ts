@@ -1,27 +1,25 @@
-import { graphqlSchema } from "@/api/graphql/schema";
-import { handleFlutterwaveWebhook } from "@/api/webhooks/flutterwave";
-import { auth } from "@/auth/configs/auth.config";
-import { createBetterAuthMiddleware } from "@/middleware/auth.middleware";
-import { errorHandler } from "@/middleware/error.middleware";
-import { organizationMiddleware } from "@/middleware/organization.middleware";
-import { subscriptionCheckMiddleware } from "@/middleware/subscription.middleware";
-// import { propertiesService } from "@/services/core/properties.service";
-import { maintenanceService } from "@/services/features/maintenance.service";
-// import { teamsService } from "@/services/features/teams.service";
-import { subscriptionService } from "@/services/system/subscription.service";
-import { trialService } from "@/services/system/trial.service";
 import { toNodeHandler } from "better-auth/node";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import { createYoga } from "graphql-yoga";
+import helmet from "helmet";
+
+// Import your GraphQL schema and middleware/configurations
+import { handleKorapayWebhook } from "@/api/webhooks/korapay";
+import { auth } from "@/auth/configs/auth.config";
+import { createBetterAuthMiddleware } from "@/middleware/auth.middleware";
+import { organizationMiddleware } from "@/middleware/organization.middleware";
+import { subscriptionCheckMiddleware } from "@/middleware/subscription.middleware";
+import { graphqlSchema } from "./api/graphql/schema";
+
 /**
- * Setup Express application
+ * Setup Express application with isolated GraphQL Yoga endpoint.
  */
 export function setupApi() {
   const app = express();
 
-  // Global middleware
+  // Global middleware for all API endpoints
   app.use(
     cors({
       origin: process.env.FRONTEND_URL || "*",
@@ -29,62 +27,53 @@ export function setupApi() {
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     })
   );
-
   app.use(cookieParser());
 
-  // Mount better-auth handler for all /api/auth/* routes
+  // Mount Better-Auth handler for authentication endpoints.
   app.all("/api/auth/*splat", toNodeHandler(auth));
 
-  // Special route for Flutterwave webhooks (needs raw body)
   app.post(
-    "/api/webhooks/flutterwave",
+    "/api/webhooks/korapay",
     express.raw({ type: "application/json" }),
-    handleFlutterwaveWebhook
+    handleKorapayWebhook
   );
 
-  // Regular JSON parsing for other routes
   app.use(express.json());
 
-  // Auth middleware
   app.use(createBetterAuthMiddleware(auth));
-
-  // Organization context middleware
   app.use(organizationMiddleware);
-
-  // Subscription check middleware
   app.use(subscriptionCheckMiddleware as express.RequestHandler);
 
-  // Set up GraphQL Yoga
   const yoga = createYoga({
-    schema: graphqlSchema.schema,
-    context: ({ request }) => {
-      // Extract user from request (set by auth middleware)
-      const user = (request as any).user;
-      const activeOrganization = (request as any).activeOrganization;
-      const activeTeam = (request as any).activeTeam;
-      const activeTenant = (request as any).activeTenant;
-
-      return {
-        user,
-        activeOrganization,
-        activeTeam,
-        activeTenant,
-        services: {
-          trialService,
-          subscriptionService,
-          // propertiesService,
-          // teamsService,
-          maintenanceService,
-        },
-      };
-    },
+    schema: graphqlSchema,
+    graphqlEndpoint: "/api/graphql",
   });
 
-  // Mount GraphQL endpoint
-  app.use("/api/graphql", yoga);
+  // Create an isolated router for GraphQL Yoga,
+  // with custom CSP settings for GraphiQL.
+  const graphqlRouter = express.Router();
+  graphqlRouter.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          "style-src": ["'self'", "unpkg.com"],
+          "script-src": ["'self'", "unpkg.com", "'unsafe-inline'"],
+          "img-src": ["'self'", "raw.githubusercontent.com"],
+        },
+      },
+    })
+  );
+  graphqlRouter.use(yoga);
 
-  // Error handling middleware (must be last)
-  app.use(errorHandler);
+  app.use(yoga.graphqlEndpoint, graphqlRouter);
+
+  // Global Helmet middleware for all other endpoints.
+  app.use(helmet());
+
+  // Example additional endpoint.
+  app.get("/hello", (req, res) => {
+    res.send("Hello World!");
+  });
 
   return app;
 }

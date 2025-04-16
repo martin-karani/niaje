@@ -1,3 +1,4 @@
+// src/server.ts
 import { validateConfig } from "@/config/environment";
 import { startScheduler } from "@/cron/scheduler";
 import dotenv from "dotenv";
@@ -9,17 +10,19 @@ dotenv.config();
 
 async function startServer() {
   try {
+    // Validate required environment configuration
     validateConfig();
 
-    // Test database connection
+    // Test the database connection
     await testDatabaseConnection();
 
     const PORT = process.env.PORT || 3001;
-    const app = setupApi();
+    const app = await setupApi();
 
-    // Start scheduler for background tasks
+    // Start any background tasks (e.g. cron jobs)
     startScheduler();
 
+    // Start the Express server
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
       console.log(`GraphQL endpoint: http://localhost:${PORT}/api/graphql`);
@@ -31,7 +34,7 @@ async function startServer() {
   }
 }
 
-// Test database connection
+// Helper function to test the database connection.
 async function testDatabaseConnection() {
   try {
     const result = await db.execute(sql`SELECT 1`);
@@ -43,7 +46,7 @@ async function testDatabaseConnection() {
   }
 }
 
-// Start the server
+// Only start the server if this file is executed directly.
 if (require.main === module) {
   startServer().catch((error) => {
     console.error("Unhandled error during server startup:", error);

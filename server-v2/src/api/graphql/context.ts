@@ -1,6 +1,5 @@
-// src/graphql/context.ts
-import { subscriptionService } from "@/services/subscription.service";
-import { trialService } from "@/services/trial.service";
+import { subscriptionService } from "@/services/system/subscription.service";
+import { trialService } from "@/services/system/trial.service";
 
 export interface GraphQLContext {
   user?: {

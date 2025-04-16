@@ -3,8 +3,8 @@ import { SERVER_CONFIG } from "@/config/environment";
 import cron from "node-cron";
 import { processLeaseReminders } from "./lease-reminders";
 import { processTrials } from "./process-trials";
-import { processRentReminders } from "./rent-reminders";
-import { processUtilityBills } from "./utility-bills";
+// import { processRentReminders } from "./rent-reminders";
+// import { processUtilityBills } from "./utility-bills";
 
 export function startScheduler() {
   console.log("Starting scheduled tasks...");
@@ -21,17 +21,17 @@ export function startScheduler() {
     await processLeaseReminders();
   });
 
-  // Process rent reminders daily at 2 AM
-  cron.schedule("0 2 * * *", async () => {
-    console.log("Running scheduled rent reminder processing...");
-    await processRentReminders();
-  });
+  // // Process rent reminders daily at 2 AM
+  // cron.schedule("0 2 * * *", async () => {
+  //   console.log("Running scheduled rent reminder processing...");
+  //   await processRentReminders();
+  // });
 
-  // Process utility bills on the 1st of each month at 3 AM
-  cron.schedule("0 3 1 * *", async () => {
-    console.log("Running scheduled utility bill processing...");
-    await processUtilityBills();
-  });
+  // // Process utility bills on the 1st of each month at 3 AM
+  // cron.schedule("0 3 1 * *", async () => {
+  //   console.log("Running scheduled utility bill processing...");
+  //   await processUtilityBills();
+  // });
 
   // Log that scheduler has started
   console.log("Scheduled tasks started");

@@ -334,7 +334,15 @@ async function seedDatabase(resetFirst: boolean = false) {
   console.log("Step 6: Creating units...");
 
   const unitIds = [];
-  const unitTypes = ["studio", "1br", "2br", "3br", "4br_plus", "penthouse"];
+  const unitTypes = [
+    "studio",
+    "one_br",
+    "two_br",
+    "three_br",
+    "four_br_plus",
+    "penthouse",
+    "commercial_office",
+  ];
   const unitStatuses = [
     "vacant",
     "occupied",

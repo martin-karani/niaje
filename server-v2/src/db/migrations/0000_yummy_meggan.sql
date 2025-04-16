@@ -13,7 +13,6 @@ CREATE TYPE "public"."property_status" AS ENUM('active', 'inactive', 'under_cons
 CREATE TYPE "public"."property_type" AS ENUM('residential', 'commercial', 'mixed_use', 'land');--> statement-breakpoint
 CREATE TYPE "public"."tenant_status" AS ENUM('prospect', 'active', 'past', 'rejected', 'blacklisted');--> statement-breakpoint
 CREATE TYPE "public"."unit_status" AS ENUM('vacant', 'occupied', 'notice_given', 'under_maintenance', 'archived');--> statement-breakpoint
-CREATE TYPE "public"."unit_type" AS ENUM('studio', '1br', '2br', '3br', '4br_plus', 'penthouse', 'commercial_office', 'commercial_retail', 'commercial_warehouse', 'other');--> statement-breakpoint
 CREATE TYPE "public"."user_role" AS ENUM('agent_owner', 'agent_staff', 'property_owner', 'caretaker', 'tenant_user', 'admin');--> statement-breakpoint
 CREATE TYPE "public"."inspection_status" AS ENUM('scheduled', 'completed', 'canceled', 'pending_report');--> statement-breakpoint
 CREATE TYPE "public"."inspection_type" AS ENUM('move_in', 'move_out', 'periodic', 'drive_by', 'safety', 'other');--> statement-breakpoint
@@ -237,7 +236,7 @@ CREATE TABLE "units" (
 	"property_id" text NOT NULL,
 	"organization_id" text NOT NULL,
 	"name" text NOT NULL,
-	"type" "unit_type" NOT NULL,
+	"type" text NOT NULL,
 	"status" "unit_status" DEFAULT 'vacant' NOT NULL,
 	"bedrooms" integer DEFAULT 1,
 	"bathrooms" numeric(2, 1) DEFAULT '1.0',
