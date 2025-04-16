@@ -1,6 +1,10 @@
-// src/services/organization.service.ts
 import { db } from "@/db";
-import { member, organization, properties } from "@/db/schema";
+import {
+  member,
+  type NewOrganization,
+  organization,
+  properties,
+} from "@/db/schema";
 import { addMonths } from "date-fns";
 import { eq } from "drizzle-orm";
 
@@ -8,14 +12,7 @@ export class OrganizationService {
   /**
    * Create a new organization (Agent business)
    */
-  async createOrganization(data: {
-    name: string;
-    slug: string;
-    agentOwnerId: string;
-    timezone?: string;
-    currency?: string;
-    // Other org fields
-  }) {
+  async createOrganization(data: NewOrganization) {
     // Create the organization
     const result = await db
       .insert(organization)
