@@ -1,8 +1,8 @@
-import { propertyEntity } from "@domains/properties/entities/property.entity";
-import { db } from "@infrastructure/database";
-import { NotFoundError } from "@shared/errors/not-found.error";
-import { ValidationError } from "@shared/errors/validation.error";
-import { and, eq } from "drizzle-orm";
+import { propertyEntity } from "@/domains/properties/entities/property.entity";
+import { db } from "@/infrastructure/database";
+import { NotFoundError } from "@/shared/errors/not-found.error";
+import { ValidationError } from "@/shared/errors/validation.error";
+import { and, eq, inArray } from "drizzle-orm";
 import {
   Member,
   NewTeam,
@@ -11,6 +11,7 @@ import {
   organizationEntity,
   teamEntity,
 } from "../entities/organization.entity";
+import { teamPropertyEntity } from "../entities/team-property.entity";
 
 export class TeamsService {
   /**
@@ -118,7 +119,7 @@ export class TeamsService {
     // Check if team exists
     await this.getTeamById(id);
 
-    // Delete team (cascade will delete team memberships)
+    // Delete team (cascade will delete team memberships and property assignments)
     await db.delete(teamEntity).where(eq(teamEntity.id, id));
   }
 
@@ -229,27 +230,64 @@ export class TeamsService {
     }
 
     // Verify all properties belong to the organization
-    // Check each property in propertyIds
     const properties = await db.query.propertyEntity.findMany({
       where: and(
-        eq(propertyEntity.organizationId, data.organizationId)
-        // TODO: Add condition to filter by propertyIds once we have a way to check if propertyId is in list
+        eq(propertyEntity.organizationId, data.organizationId),
+        inArray(propertyEntity.id, data.propertyIds)
       ),
     });
 
-    // For simplicity, let's just add all properties to team metadata for now
-    // In a real implementation, you would have a separate join table for team-property assignments
-    const metadata = team.metadata || {};
-    metadata.assignedProperties = data.propertyIds;
+    if (properties.length !== data.propertyIds.length) {
+      throw new ValidationError(
+        "One or more properties not found or not in this organization"
+      );
+    }
 
-    // Update team
-    await db
-      .update(teamEntity)
-      .set({
-        metadata,
-        updatedAt: new Date(),
-      })
-      .where(eq(teamEntity.id, data.teamId));
+    // Get existing assignments
+    const existingAssignments = await db.query.teamPropertyEntity.findMany({
+      where: eq(teamPropertyEntity.teamId, data.teamId),
+    });
+
+    const existingPropertyIds = existingAssignments.map((a) => a.propertyId);
+
+    // Properties to add (not already assigned)
+    const propertiesToAdd = data.propertyIds.filter(
+      (id) => !existingPropertyIds.includes(id)
+    );
+
+    // Properties to remove (no longer in the list)
+    const propertiesToRemove = existingPropertyIds.filter(
+      (id) => !data.propertyIds.includes(id)
+    );
+
+    // Start a transaction
+    await db.transaction(async (tx) => {
+      // Add new assignments
+      if (propertiesToAdd.length > 0) {
+        await tx.insert(teamPropertyEntity).values(
+          propertiesToAdd.map((propertyId) => ({
+            teamId: data.teamId,
+            propertyId,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }))
+        );
+      }
+
+      // Remove old assignments
+      if (propertiesToRemove.length > 0) {
+        for (const propertyId of propertiesToRemove) {
+          await tx
+            .delete(teamPropertyEntity)
+            .where(
+              and(
+                eq(teamPropertyEntity.teamId, data.teamId),
+                eq(teamPropertyEntity.propertyId, propertyId)
+              )
+            );
+        }
+      }
+    });
 
     return data.propertyIds.length;
   }
@@ -258,25 +296,39 @@ export class TeamsService {
    * Get properties assigned to a team
    */
   async getTeamProperties(teamId: string): Promise<any[]> {
-    const team = await this.getTeamById(teamId);
-
-    // Get property IDs from team metadata
-    const assignedPropertyIds = team.metadata?.assignedProperties || [];
-
-    // Fetch properties
-    if (assignedPropertyIds.length === 0) {
-      return [];
-    }
-
-    // Return properties that are in the assignedPropertyIds list
-    // For simplicity, we'll fetch all properties from organization and filter
-    const properties = await db.query.propertyEntity.findMany({
-      where: eq(propertyEntity.organizationId, team.organizationId),
+    const assignments = await db.query.teamPropertyEntity.findMany({
+      where: eq(teamPropertyEntity.teamId, teamId),
+      with: {
+        property: true,
+      },
     });
 
-    return properties.filter((property) =>
-      assignedPropertyIds.includes(property.id)
-    );
+    return assignments.map((a) => a.property);
+  }
+
+  /**
+   * Get property IDs assigned to a team
+   */
+  async getTeamPropertyIds(teamId: string): Promise<string[]> {
+    const assignments = await db.query.teamPropertyEntity.findMany({
+      where: eq(teamPropertyEntity.teamId, teamId),
+    });
+
+    return assignments.map((a) => a.propertyId);
+  }
+
+  /**
+   * Check if property is assigned to team
+   */
+  async isPropertyInTeam(teamId: string, propertyId: string): Promise<boolean> {
+    const assignment = await db.query.teamPropertyEntity.findFirst({
+      where: and(
+        eq(teamPropertyEntity.teamId, teamId),
+        eq(teamPropertyEntity.propertyId, propertyId)
+      ),
+    });
+
+    return !!assignment;
   }
 }
 

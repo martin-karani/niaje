@@ -1,4 +1,4 @@
-// src/infrastructure/auth/middleware.ts
+import { teamsService } from "@/domains/organizations/services/team.service";
 import { fromNodeHeaders } from "better-auth/node";
 import { NextFunction, Request, Response } from "express";
 import { auth } from "./better-auth/auth";
@@ -15,6 +15,7 @@ export function createAuthMiddleware() {
       const session = await auth.api.getSession({
         headers: fromNodeHeaders(req.headers),
       });
+
       if (session) {
         // Attach user to request
         req.user = session.user;
@@ -31,7 +32,7 @@ export function createAuthMiddleware() {
         }
 
         // Determine permissions based on user role, organization, and team
-        req.permissions = determinePermissions(
+        req.permissions = await determinePermissions(
           session.user,
           session.activeOrganization,
           session.activeTeam
@@ -83,6 +84,59 @@ export function requirePermission(permission: string) {
         error: "Forbidden",
         message: "You don't have permission to access this resource",
       });
+    }
+
+    next();
+  };
+}
+
+/**
+ * Create middleware to check property access
+ * Use this to protect routes that operate on specific properties
+ */
+export function requirePropertyAccess(propertyIdParam: string = "propertyId") {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({
+        error: "Unauthorized",
+        message: "Authentication required",
+      });
+    }
+
+    // Skip check for admins and organization owners
+    if (
+      req.user.role === "admin" ||
+      (req.activeOrganization &&
+        req.user.role === "agent_owner" &&
+        req.activeOrganization.agentOwnerId === req.user.id)
+    ) {
+      return next();
+    }
+
+    const propertyId = req.params[propertyIdParam] || req.body[propertyIdParam];
+
+    if (!propertyId) {
+      return next(); // No property ID to check
+    }
+
+    // For users in teams, check if they have access to this property
+    if (req.activeTeam) {
+      try {
+        const hasAccess = await teamsService.isPropertyInTeam(
+          req.activeTeam.id,
+          propertyId
+        );
+
+        if (!hasAccess) {
+          return res.status(403).json({
+            error: "Forbidden",
+            message: "You don't have access to this property",
+          });
+        }
+      } catch (error) {
+        console.error("Property access check error:", error);
+        // Continue even on error to avoid blocking legitimate requests
+      }
     }
 
     next();

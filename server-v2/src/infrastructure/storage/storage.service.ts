@@ -1,4 +1,5 @@
 import { STORAGE_CONFIG } from "@/shared/constants/enviroment";
+import { ValidationError } from "@/shared/errors/validation.error";
 import {
   DeleteObjectCommand,
   GetObjectCommand,
@@ -30,6 +31,7 @@ const mkdir = promisify(fs.mkdir);
 const writeFile = promisify(fs.writeFile);
 const unlink = promisify(fs.unlink);
 const readFile = promisify(fs.readFile);
+const stat = promisify(fs.stat);
 
 export class StorageService {
   /**
@@ -46,14 +48,48 @@ export class StorageService {
     isPublic: boolean = false
   ): Promise<string> {
     try {
+      // Input validation
+      if (!filePath || filePath.trim() === "") {
+        throw new ValidationError("File path cannot be empty");
+      }
+
+      if (!fileBuffer || fileBuffer.length === 0) {
+        throw new ValidationError("File buffer cannot be empty");
+      }
+
+      // Validate content type
+      if (!contentType || contentType.trim() === "") {
+        contentType = "application/octet-stream"; // Default content type
+      }
+
+      // Ensure file path is sanitized to prevent directory traversal
+      const sanitizedPath = this.sanitizeFilePath(filePath);
+
+      // File size check
+      const fileSizeInMB = fileBuffer.length / (1024 * 1024);
+      const maxSizeMB = 10; // 10MB limit
+
+      if (fileSizeInMB > maxSizeMB) {
+        throw new ValidationError(`File size exceeds the ${maxSizeMB}MB limit`);
+      }
+
+      // Call appropriate storage provider
       switch (STORAGE_CONFIG.STORAGE_TYPE) {
         case "s3":
-          return this.uploadToS3(filePath, fileBuffer, contentType, isPublic);
+          return this.uploadToS3(
+            sanitizedPath,
+            fileBuffer,
+            contentType,
+            isPublic
+          );
         case "local":
         default:
-          return this.uploadToLocalStorage(filePath, fileBuffer);
+          return this.uploadToLocalStorage(sanitizedPath, fileBuffer);
       }
     } catch (error) {
+      if (error instanceof ValidationError) {
+        throw error;
+      }
       console.error(`Error uploading file ${filePath}:`, error);
       throw new Error(`Failed to upload file: ${error.message}`);
     }
@@ -64,14 +100,31 @@ export class StorageService {
    */
   async deleteFile(filePath: string): Promise<void> {
     try {
+      if (!filePath || filePath.trim() === "") {
+        throw new ValidationError("File path cannot be empty");
+      }
+
+      // Sanitize file path
+      const sanitizedPath = this.sanitizeFilePath(filePath);
+
+      // Check if file exists before attempting to delete
+      const exists = await this.fileExists(sanitizedPath);
+      if (!exists) {
+        console.warn(`File ${sanitizedPath} does not exist, skipping deletion`);
+        return;
+      }
+
       switch (STORAGE_CONFIG.STORAGE_TYPE) {
         case "s3":
-          return this.deleteFromS3(filePath);
+          return this.deleteFromS3(sanitizedPath);
         case "local":
         default:
-          return this.deleteFromLocalStorage(filePath);
+          return this.deleteFromLocalStorage(sanitizedPath);
       }
     } catch (error) {
+      if (error instanceof ValidationError) {
+        throw error;
+      }
       console.error(`Error deleting file ${filePath}:`, error);
       throw new Error(`Failed to delete file: ${error.message}`);
     }
@@ -87,14 +140,29 @@ export class StorageService {
     expiresIn: number = 3600
   ): Promise<string> {
     try {
+      if (!filePath || filePath.trim() === "") {
+        throw new ValidationError("File path cannot be empty");
+      }
+
+      const sanitizedPath = this.sanitizeFilePath(filePath);
+
+      // Check if file exists before generating URL
+      const exists = await this.fileExists(sanitizedPath);
+      if (!exists) {
+        throw new ValidationError(`File ${sanitizedPath} does not exist`);
+      }
+
       switch (STORAGE_CONFIG.STORAGE_TYPE) {
         case "s3":
-          return this.getS3Url(filePath, expiresIn);
+          return this.getS3Url(sanitizedPath, expiresIn);
         case "local":
         default:
-          return this.getLocalUrl(filePath);
+          return this.getLocalUrl(sanitizedPath);
       }
     } catch (error) {
+      if (error instanceof ValidationError) {
+        throw error;
+      }
       console.error(`Error getting URL for file ${filePath}:`, error);
       throw new Error(`Failed to get file URL: ${error.message}`);
     }
@@ -105,12 +173,18 @@ export class StorageService {
    */
   async fileExists(filePath: string): Promise<boolean> {
     try {
+      if (!filePath || filePath.trim() === "") {
+        return false;
+      }
+
+      const sanitizedPath = this.sanitizeFilePath(filePath);
+
       switch (STORAGE_CONFIG.STORAGE_TYPE) {
         case "s3":
-          return this.fileExistsInS3(filePath);
+          return this.fileExistsInS3(sanitizedPath);
         case "local":
         default:
-          return this.fileExistsInLocalStorage(filePath);
+          return this.fileExistsInLocalStorage(sanitizedPath);
       }
     } catch (error) {
       console.error(`Error checking if file ${filePath} exists:`, error);
@@ -123,17 +197,81 @@ export class StorageService {
    */
   async getFileContent(filePath: string): Promise<Buffer> {
     try {
+      if (!filePath || filePath.trim() === "") {
+        throw new ValidationError("File path cannot be empty");
+      }
+
+      const sanitizedPath = this.sanitizeFilePath(filePath);
+
+      // Check if file exists
+      const exists = await this.fileExists(sanitizedPath);
+      if (!exists) {
+        throw new ValidationError(`File ${sanitizedPath} does not exist`);
+      }
+
       switch (STORAGE_CONFIG.STORAGE_TYPE) {
         case "s3":
-          return this.getFileFromS3(filePath);
+          return this.getFileFromS3(sanitizedPath);
         case "local":
         default:
-          return this.getFileFromLocalStorage(filePath);
+          return this.getFileFromLocalStorage(sanitizedPath);
       }
     } catch (error) {
+      if (error instanceof ValidationError) {
+        throw error;
+      }
       console.error(`Error getting file content for ${filePath}:`, error);
       throw new Error(`Failed to get file content: ${error.message}`);
     }
+  }
+
+  /**
+   * Get file metadata
+   */
+  async getFileMetadata(filePath: string): Promise<{
+    size: number;
+    lastModified: Date;
+    contentType?: string;
+  }> {
+    try {
+      if (!filePath || filePath.trim() === "") {
+        throw new ValidationError("File path cannot be empty");
+      }
+
+      const sanitizedPath = this.sanitizeFilePath(filePath);
+
+      // Check if file exists
+      const exists = await this.fileExists(sanitizedPath);
+      if (!exists) {
+        throw new ValidationError(`File ${sanitizedPath} does not exist`);
+      }
+
+      switch (STORAGE_CONFIG.STORAGE_TYPE) {
+        case "s3":
+          return this.getFileMetadataFromS3(sanitizedPath);
+        case "local":
+        default:
+          return this.getFileMetadataFromLocalStorage(sanitizedPath);
+      }
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        throw error;
+      }
+      console.error(`Error getting file metadata for ${filePath}:`, error);
+      throw new Error(`Failed to get file metadata: ${error.message}`);
+    }
+  }
+
+  /**
+   * Sanitize file path to prevent directory traversal
+   */
+  private sanitizeFilePath(filePath: string): string {
+    // Remove any parent directory references and normalize slashes
+    return filePath
+      .replace(/\.\./g, "") // Remove parent directory references
+      .replace(/^\//g, "") // Remove leading slashes
+      .replace(/\\/g, "/") // Normalize backslashes to forward slashes
+      .replace(/\/\//g, "/"); // Replace double slashes
   }
 
   /**
@@ -229,7 +367,10 @@ export class StorageService {
       await s3Client.send(command);
       return true;
     } catch (error) {
-      if (error.name === "NotFound") {
+      if (
+        error.name === "NotFound" ||
+        error.$metadata?.httpStatusCode === 404
+      ) {
         return false;
       }
       throw error;
@@ -259,6 +400,33 @@ export class StorageService {
       response.Body.on("end", () => resolve(Buffer.concat(chunks)));
       response.Body.on("error", reject);
     });
+  }
+
+  /**
+   * Get file metadata from S3
+   */
+  private async getFileMetadataFromS3(filePath: string): Promise<{
+    size: number;
+    lastModified: Date;
+    contentType?: string;
+  }> {
+    if (!s3Client || !bucketName) {
+      throw new Error("S3 client or bucket name not configured");
+    }
+
+    const params = {
+      Bucket: bucketName,
+      Key: filePath,
+    };
+
+    const command = new HeadObjectCommand(params);
+    const response = await s3Client.send(command);
+
+    return {
+      size: response.ContentLength || 0,
+      lastModified: response.LastModified || new Date(),
+      contentType: response.ContentType,
+    };
   }
 
   /**
@@ -320,6 +488,48 @@ export class StorageService {
   }
 
   /**
+   * Get file metadata from local storage
+   */
+  private async getFileMetadataFromLocalStorage(filePath: string): Promise<{
+    size: number;
+    lastModified: Date;
+    contentType?: string;
+  }> {
+    const uploadsDir = path.join(process.cwd(), "uploads");
+    const fullPath = path.join(uploadsDir, filePath);
+
+    if (!fs.existsSync(fullPath)) {
+      throw new Error(`File not found: ${filePath}`);
+    }
+
+    const stats = await stat(fullPath);
+    const extname = path.extname(fullPath).toLowerCase();
+
+    // Basic mapping of common file extensions to content types
+    const contentTypeMap: Record<string, string> = {
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".png": "image/png",
+      ".gif": "image/gif",
+      ".pdf": "application/pdf",
+      ".doc": "application/msword",
+      ".docx":
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      ".xls": "application/vnd.ms-excel",
+      ".xlsx":
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      ".csv": "text/csv",
+      ".txt": "text/plain",
+    };
+
+    return {
+      size: stats.size,
+      lastModified: stats.mtime,
+      contentType: contentTypeMap[extname] || "application/octet-stream",
+    };
+  }
+
+  /**
    * Get URL for local file
    */
   private getLocalUrl(filePath: string): string {
@@ -327,4 +537,4 @@ export class StorageService {
   }
 }
 
-export const enhancedStorageService = new StorageService();
+export const storageService = new StorageService();
