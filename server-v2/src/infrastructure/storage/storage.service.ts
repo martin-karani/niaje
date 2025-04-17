@@ -12,17 +12,26 @@ import fs from "fs";
 import path from "path";
 import { promisify } from "util";
 
-// Initialize S3 client if AWS credentials are provided
-const s3Client =
-  STORAGE_CONFIG.STORAGE_TYPE === "s3"
-    ? new S3Client({
-        region: STORAGE_CONFIG.AWS_REGION,
-        credentials: {
-          accessKeyId: STORAGE_CONFIG.AWS_ACCESS_KEY_ID || "",
-          secretAccessKey: STORAGE_CONFIG.AWS_SECRET_ACCESS_KEY || "",
-        },
-      })
-    : null;
+// Initialize S3 client lazily
+let s3Client: S3Client | null = null;
+const initS3Client = () => {
+  if (!s3Client && STORAGE_CONFIG.STORAGE_TYPE === "s3") {
+    if (
+      !STORAGE_CONFIG.AWS_ACCESS_KEY_ID ||
+      !STORAGE_CONFIG.AWS_SECRET_ACCESS_KEY
+    ) {
+      throw new Error("AWS credentials are required for S3 storage");
+    }
+    s3Client = new S3Client({
+      region: STORAGE_CONFIG.AWS_REGION || "us-east-1",
+      credentials: {
+        accessKeyId: STORAGE_CONFIG.AWS_ACCESS_KEY_ID,
+        secretAccessKey: STORAGE_CONFIG.AWS_SECRET_ACCESS_KEY,
+      },
+    });
+  }
+  return s3Client;
+};
 
 const bucketName = STORAGE_CONFIG.AWS_S3_BUCKET;
 
@@ -283,7 +292,8 @@ export class StorageService {
     contentType: string,
     isPublic: boolean = false
   ): Promise<string> {
-    if (!s3Client || !bucketName) {
+    const s3 = initS3Client();
+    if (!s3 || !bucketName) {
       throw new Error("S3 client or bucket name not configured");
     }
 
@@ -298,23 +308,34 @@ export class StorageService {
       ACL,
     };
 
-    const command = new PutObjectCommand(params);
-    await s3Client.send(command);
+    try {
+      const command = new PutObjectCommand(params);
+      const result = await s3.send(command);
 
-    // For public files, return direct S3 URL
-    if (isPublic) {
-      return `https://${bucketName}.s3.${STORAGE_CONFIG.AWS_REGION}.amazonaws.com/${filePath}`;
+      console.log(`Successfully uploaded file to S3: ${filePath}`, {
+        etag: result.ETag,
+        versionId: result.VersionId,
+      });
+
+      // For public files, return direct S3 URL
+      if (isPublic) {
+        return `https://${bucketName}.s3.${STORAGE_CONFIG.AWS_REGION || "us-east-1"}.amazonaws.com/${filePath}`;
+      }
+
+      // For private files, return pre-signed URL
+      return this.getS3Url(filePath);
+    } catch (error) {
+      console.error(`Error uploading to S3: ${filePath}`, error);
+      throw new Error(`S3 upload failed: ${error.message}`);
     }
-
-    // For private files, return pre-signed URL
-    return this.getS3Url(filePath);
   }
 
   /**
    * Delete file from S3
    */
   private async deleteFromS3(filePath: string): Promise<void> {
-    if (!s3Client || !bucketName) {
+    const s3 = initS3Client();
+    if (!s3 || !bucketName) {
       throw new Error("S3 client or bucket name not configured");
     }
 
@@ -323,8 +344,14 @@ export class StorageService {
       Key: filePath,
     };
 
-    const command = new DeleteObjectCommand(params);
-    await s3Client.send(command);
+    try {
+      const command = new DeleteObjectCommand(params);
+      await s3.send(command);
+      console.log(`Successfully deleted file from S3: ${filePath}`);
+    } catch (error) {
+      console.error(`Error deleting from S3: ${filePath}`, error);
+      throw new Error(`S3 delete failed: ${error.message}`);
+    }
   }
 
   /**
@@ -334,7 +361,8 @@ export class StorageService {
     filePath: string,
     expiresIn: number = 3600
   ): Promise<string> {
-    if (!s3Client || !bucketName) {
+    const s3 = initS3Client();
+    if (!s3 || !bucketName) {
       throw new Error("S3 client or bucket name not configured");
     }
 
@@ -343,17 +371,22 @@ export class StorageService {
       Key: filePath,
     };
 
-    const command = new GetObjectCommand(params);
-    const url = await getSignedUrl(s3Client, command, { expiresIn });
-
-    return url;
+    try {
+      const command = new GetObjectCommand(params);
+      const url = await getSignedUrl(s3, command, { expiresIn });
+      return url;
+    } catch (error) {
+      console.error(`Error generating pre-signed URL: ${filePath}`, error);
+      throw new Error(`Failed to generate pre-signed URL: ${error.message}`);
+    }
   }
 
   /**
    * Check if file exists in S3
    */
   private async fileExistsInS3(filePath: string): Promise<boolean> {
-    if (!s3Client || !bucketName) {
+    const s3 = initS3Client();
+    if (!s3 || !bucketName) {
       throw new Error("S3 client or bucket name not configured");
     }
 
@@ -364,7 +397,7 @@ export class StorageService {
       };
 
       const command = new HeadObjectCommand(params);
-      await s3Client.send(command);
+      await s3.send(command);
       return true;
     } catch (error) {
       if (
@@ -373,6 +406,7 @@ export class StorageService {
       ) {
         return false;
       }
+      console.error(`Error checking if file exists in S3: ${filePath}`, error);
       throw error;
     }
   }
@@ -381,7 +415,8 @@ export class StorageService {
    * Get file content from S3
    */
   private async getFileFromS3(filePath: string): Promise<Buffer> {
-    if (!s3Client || !bucketName) {
+    const s3 = initS3Client();
+    if (!s3 || !bucketName) {
       throw new Error("S3 client or bucket name not configured");
     }
 
@@ -390,16 +425,21 @@ export class StorageService {
       Key: filePath,
     };
 
-    const command = new GetObjectCommand(params);
-    const response = await s3Client.send(command);
+    try {
+      const command = new GetObjectCommand(params);
+      const response = await s3.send(command);
 
-    // Convert stream to buffer
-    return new Promise((resolve, reject) => {
-      const chunks: Buffer[] = [];
-      response.Body.on("data", (chunk) => chunks.push(chunk));
-      response.Body.on("end", () => resolve(Buffer.concat(chunks)));
-      response.Body.on("error", reject);
-    });
+      // Convert stream to buffer
+      return new Promise((resolve, reject) => {
+        const chunks: Buffer[] = [];
+        response.Body.on("data", (chunk) => chunks.push(chunk));
+        response.Body.on("end", () => resolve(Buffer.concat(chunks)));
+        response.Body.on("error", reject);
+      });
+    } catch (error) {
+      console.error(`Error getting file from S3: ${filePath}`, error);
+      throw new Error(`S3 file retrieval failed: ${error.message}`);
+    }
   }
 
   /**
@@ -410,7 +450,8 @@ export class StorageService {
     lastModified: Date;
     contentType?: string;
   }> {
-    if (!s3Client || !bucketName) {
+    const s3 = initS3Client();
+    if (!s3 || !bucketName) {
       throw new Error("S3 client or bucket name not configured");
     }
 
@@ -419,14 +460,19 @@ export class StorageService {
       Key: filePath,
     };
 
-    const command = new HeadObjectCommand(params);
-    const response = await s3Client.send(command);
+    try {
+      const command = new HeadObjectCommand(params);
+      const response = await s3.send(command);
 
-    return {
-      size: response.ContentLength || 0,
-      lastModified: response.LastModified || new Date(),
-      contentType: response.ContentType,
-    };
+      return {
+        size: response.ContentLength || 0,
+        lastModified: response.LastModified || new Date(),
+        contentType: response.ContentType,
+      };
+    } catch (error) {
+      console.error(`Error getting metadata from S3: ${filePath}`, error);
+      throw new Error(`S3 metadata retrieval failed: ${error.message}`);
+    }
   }
 
   /**
@@ -440,16 +486,22 @@ export class StorageService {
     const fullPath = path.join(uploadsDir, filePath);
     const dirPath = path.dirname(fullPath);
 
-    // Create directory if it doesn't exist
-    if (!fs.existsSync(dirPath)) {
-      await mkdir(dirPath, { recursive: true });
+    try {
+      // Create directory if it doesn't exist
+      if (!fs.existsSync(dirPath)) {
+        await mkdir(dirPath, { recursive: true });
+      }
+
+      // Write file
+      await writeFile(fullPath, fileBuffer);
+      console.log(`Successfully uploaded file to local storage: ${filePath}`);
+
+      // Return local URL
+      return this.getLocalUrl(filePath);
+    } catch (error) {
+      console.error(`Error uploading to local storage: ${filePath}`, error);
+      throw new Error(`Local file upload failed: ${error.message}`);
     }
-
-    // Write file
-    await writeFile(fullPath, fileBuffer);
-
-    // Return local URL
-    return this.getLocalUrl(filePath);
   }
 
   /**
@@ -459,8 +511,18 @@ export class StorageService {
     const uploadsDir = path.join(process.cwd(), "uploads");
     const fullPath = path.join(uploadsDir, filePath);
 
-    if (fs.existsSync(fullPath)) {
-      await unlink(fullPath);
+    try {
+      if (fs.existsSync(fullPath)) {
+        await unlink(fullPath);
+        console.log(
+          `Successfully deleted file from local storage: ${filePath}`
+        );
+      } else {
+        console.warn(`File not found in local storage: ${filePath}`);
+      }
+    } catch (error) {
+      console.error(`Error deleting from local storage: ${filePath}`, error);
+      throw new Error(`Local file deletion failed: ${error.message}`);
     }
   }
 
@@ -484,7 +546,15 @@ export class StorageService {
       throw new Error(`File not found: ${filePath}`);
     }
 
-    return readFile(fullPath);
+    try {
+      return await readFile(fullPath);
+    } catch (error) {
+      console.error(
+        `Error reading file from local storage: ${filePath}`,
+        error
+      );
+      throw new Error(`Local file read failed: ${error.message}`);
+    }
   }
 
   /**
@@ -502,31 +572,39 @@ export class StorageService {
       throw new Error(`File not found: ${filePath}`);
     }
 
-    const stats = await stat(fullPath);
-    const extname = path.extname(fullPath).toLowerCase();
+    try {
+      const stats = await stat(fullPath);
+      const extname = path.extname(fullPath).toLowerCase();
 
-    // Basic mapping of common file extensions to content types
-    const contentTypeMap: Record<string, string> = {
-      ".jpg": "image/jpeg",
-      ".jpeg": "image/jpeg",
-      ".png": "image/png",
-      ".gif": "image/gif",
-      ".pdf": "application/pdf",
-      ".doc": "application/msword",
-      ".docx":
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      ".xls": "application/vnd.ms-excel",
-      ".xlsx":
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      ".csv": "text/csv",
-      ".txt": "text/plain",
-    };
+      // Basic mapping of common file extensions to content types
+      const contentTypeMap: Record<string, string> = {
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".gif": "image/gif",
+        ".pdf": "application/pdf",
+        ".doc": "application/msword",
+        ".docx":
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ".xls": "application/vnd.ms-excel",
+        ".xlsx":
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ".csv": "text/csv",
+        ".txt": "text/plain",
+      };
 
-    return {
-      size: stats.size,
-      lastModified: stats.mtime,
-      contentType: contentTypeMap[extname] || "application/octet-stream",
-    };
+      return {
+        size: stats.size,
+        lastModified: stats.mtime,
+        contentType: contentTypeMap[extname] || "application/octet-stream",
+      };
+    } catch (error) {
+      console.error(
+        `Error getting file metadata from local storage: ${filePath}`,
+        error
+      );
+      throw new Error(`Local file metadata retrieval failed: ${error.message}`);
+    }
   }
 
   /**
