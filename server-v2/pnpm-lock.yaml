@@ -20,6 +20,9 @@ importers:
       '@graphql-tools/schema':
         specifier: ^10.0.23
         version: 10.0.23(graphql@16.10.0)
+      '@types/nodemailer':
+        specifier: ^6.4.17
+        version: 6.4.17
       axios:
         specifier: ^1.8.4
         version: 1.8.4
@@ -38,9 +41,6 @@ importers:
       dotenv:
         specifier: ^16.5.0
         version: 16.5.0
-      drizzle-graphql:
-        specifier: ^0.8.5
-        version: 0.8.5(drizzle-orm@0.41.0(@types/pg@8.11.13)(gel@2.0.2)(kysely@0.27.6)(pg@8.14.1))(graphql@16.10.0)
       drizzle-orm:
         specifier: ^0.41.0
         version: 0.41.0(@types/pg@8.11.13)(gel@2.0.2)(kysely@0.27.6)(pg@8.14.1)
@@ -1125,6 +1125,9 @@ packages:
   '@types/node@22.14.1':
     resolution: {integrity: sha512-u0HuPQwe/dHrItgHHpmw3N2fYCR6x4ivMNbPHRkBVP4CvN+kiRrKHWk3i8tXiO/joPwXLMYvF9TTF0eqgHIuOw==}
 
+  '@types/nodemailer@6.4.17':
+    resolution: {integrity: sha512-I9CCaIp6DTldEg7vyUTZi8+9Vo0hi1/T8gv3C89yk1rSAAzoKQ8H8ki/jBYJSFoH/BisgLP8tkZMlQ91CIquww==}
+
   '@types/pg@8.11.13':
     resolution: {integrity: sha512-6kXByGkvRvwXLuyaWzsebs2du6+XuAB2CuMsuzP7uaihQahshVgSmB22Pmh0vQMkQ1h5+PZU0d+Di1o+WpVWJg==}
 
@@ -1348,12 +1351,6 @@ packages:
   dotenv@16.5.0:
     resolution: {integrity: sha512-m/C+AwOAr9/W1UOIZUo232ejMNnJAJtYQjUbHoNTBNTJSvqzzDh7vnrei3o3r3m9blf6ZoDkvcw0VmozNRFJxg==}
     engines: {node: '>=12'}
-
-  drizzle-graphql@0.8.5:
-    resolution: {integrity: sha512-MAqBwmj/kSZWIUQdYCsYtoZWxxVRcXWkhsqt0b6fY1XC171WHBK/jZiVWepO04tDsdaDuTvzlufDHJqNl3VVWQ==}
-    peerDependencies:
-      drizzle-orm: '>=0.30.9'
-      graphql: '>=16.3.0'
 
   drizzle-kit@0.30.6:
     resolution: {integrity: sha512-U4wWit0fyZuGuP7iNmRleQyK2V8wCuv57vf5l3MnG4z4fzNTjY/U13M8owyQ5RavqvqxBifWORaR3wIUzlN64g==}
@@ -1656,12 +1653,6 @@ packages:
   gopd@1.2.0:
     resolution: {integrity: sha512-ZUKRh6/kUFoAiTAtTYPZJ3hw9wNxx+BIBOijnlG9PnrJsCcSjs1wyyD6vJpaYtgnzDrKYRSqf3OO6Rfa93xsRg==}
     engines: {node: '>= 0.4'}
-
-  graphql-parse-resolve-info@4.13.0:
-    resolution: {integrity: sha512-VVJ1DdHYcR7hwOGQKNH+QTzuNgsLA8l/y436HtP9YHoX6nmwXRWq3xWthU3autMysXdm0fQUbhTZCx0W9ICozw==}
-    engines: {node: '>=8.6'}
-    peerDependencies:
-      graphql: '>=0.9 <0.14 || ^14.0.2 || ^15.4.0 || ^16.3.0'
 
   graphql-yoga@5.13.4:
     resolution: {integrity: sha512-q5l3HEvgXnZCKG6K38fz3XNBX41GkHkIYspJbdVl9QVsm5Ah0EFUkY303tEOx8IucyB0h2hb8OfbYXEcoNCLMw==}
@@ -3533,6 +3524,10 @@ snapshots:
     dependencies:
       undici-types: 6.21.0
 
+  '@types/nodemailer@6.4.17':
+    dependencies:
+      '@types/node': 22.14.1
+
   '@types/pg@8.11.13':
     dependencies:
       '@types/node': 22.14.1
@@ -3787,14 +3782,6 @@ snapshots:
   diff@4.0.2: {}
 
   dotenv@16.5.0: {}
-
-  drizzle-graphql@0.8.5(drizzle-orm@0.41.0(@types/pg@8.11.13)(gel@2.0.2)(kysely@0.27.6)(pg@8.14.1))(graphql@16.10.0):
-    dependencies:
-      drizzle-orm: 0.41.0(@types/pg@8.11.13)(gel@2.0.2)(kysely@0.27.6)(pg@8.14.1)
-      graphql: 16.10.0
-      graphql-parse-resolve-info: 4.13.0(graphql@16.10.0)
-    transitivePeerDependencies:
-      - supports-color
 
   drizzle-kit@0.30.6:
     dependencies:
@@ -4136,14 +4123,6 @@ snapshots:
   globals@14.0.0: {}
 
   gopd@1.2.0: {}
-
-  graphql-parse-resolve-info@4.13.0(graphql@16.10.0):
-    dependencies:
-      debug: 4.4.0(supports-color@5.5.0)
-      graphql: 16.10.0
-      tslib: 2.8.1
-    transitivePeerDependencies:
-      - supports-color
 
   graphql-yoga@5.13.4(graphql@16.10.0):
     dependencies:

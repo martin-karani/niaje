@@ -24,6 +24,7 @@
     "@aws-sdk/s3-request-presigner": "^3.787.0",
     "@graphql-tools/merge": "^9.0.24",
     "@graphql-tools/schema": "^10.0.23",
+    "@types/nodemailer": "^6.4.17",
     "axios": "^1.8.4",
     "better-auth": "^1.2.7",
     "cookie-parser": "^1.4.7",

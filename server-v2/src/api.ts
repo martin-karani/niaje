@@ -1,15 +1,15 @@
-import { betterAuth } from "@infrastructure/auth/better-auth";
-import { createAuthMiddleware } from "@infrastructure/auth/middleware";
-import { createGraphQLContext } from "@infrastructure/graphql/context/context-provider";
-import { schema } from "@infrastructure/graphql/schema";
+import { uploadRoutes } from "@/api/routes/upload.routes";
+import { auth } from "@/infrastructure/auth/better-auth/auth";
+import { createAuthMiddleware } from "@/infrastructure/auth/middleware";
+import { createGraphQLContext } from "@/infrastructure/graphql/context/context-provider";
+import { schema } from "@/infrastructure/graphql/schema";
+import { errorHandler } from "@/shared/errors/error.middleware";
 import { handleWebhooks } from "@infrastructure/webhooks";
-import { errorHandler } from "@shared/errors/error.middleware";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import { createYoga } from "graphql-yoga";
 import path from "path";
-import { uploadRoutes } from "./api/routes/upload.routes";
 
 export function setupApi() {
   const app = express();
@@ -23,7 +23,7 @@ export function setupApi() {
   );
 
   app.use(cookieParser());
-  app.use("/api/auth", betterAuth.handler());
+  app.use("/api/auth", auth);
 
   // Serve static files from uploads directory
   app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
