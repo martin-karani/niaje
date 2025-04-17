@@ -4,7 +4,7 @@ import {
   leaseStatusEnum,
   paymentFrequencyEnum,
   utilityBillingTypeEnum,
-} from "../entities/lease.entity"; // Assuming entity file location
+} from "../entities/lease.entity";
 
 // DTO for creating a lease
 export const createLeaseDto = z.object({

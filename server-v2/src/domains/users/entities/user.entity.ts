@@ -1,4 +1,4 @@
-import { createId } from "@infrastructure/database/utils/id-generator";
+import { createId } from "@/infrastructure/database/utils/id-generator";
 import { relations } from "drizzle-orm";
 import {
   boolean,

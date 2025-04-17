@@ -1,17 +1,17 @@
-import { subscriptionTypeDefs } from "@domains/billing/types/subscription.types";
-import { leasesTypeDefs } from "@domains/leases/types/leases.types";
-import { maintenanceTypeDefs } from "@domains/maintenance/types/maintenance.types";
-import { organizationsTypeDefs } from "@domains/organizations/types/organizations.types";
-import { propertiesTypeDefs } from "@domains/properties/types/properties.types";
-import { tenantsTypeDefs } from "@domains/tenants/types/tenants.types";
+import { subscriptionTypeDefs } from "@/domains/billing/types/subscription.types";
+import { leasesTypeDefs } from "@/domains/leases/types/leases.types";
+import { maintenanceTypeDefs } from "@/domains/maintenance/types/maintenance.types";
+import { organizationsTypeDefs } from "@/domains/organizations/types/organizations.types";
+import { propertiesTypeDefs } from "@/domains/properties/types/properties.types";
+import { tenantsTypeDefs } from "@/domains/tenants/types/tenants.types";
 import { makeExecutableSchema } from "@graphql-tools/schema";
 
-import { subscriptionResolvers } from "@domains/billing/resolvers/subscription.resolver";
-import { leasesResolvers } from "@domains/leases/resolvers/leases.resolver";
-import { maintenanceResolvers } from "@domains/maintenance/resolvers/maintenance.resolver";
-import { organizationsResolvers } from "@domains/organizations/resolvers/organizations.resolver";
-import { propertiesResolvers } from "@domains/properties/resolvers/properties.resolver";
-import { tenantsResolvers } from "@domains/tenants/resolvers/tenants.resolver";
+import { subscriptionResolvers } from "@/domains/billing/resolvers/subscription.resolver";
+import { leasesResolvers } from "@/domains/leases/resolvers/leases.resolver";
+import { maintenanceResolvers } from "@/domains/maintenance/resolvers/maintenance.resolver";
+import { organizationsResolvers } from "@/domains/organizations/resolvers/organizations.resolver";
+import { propertiesResolvers } from "@/domains/properties/resolvers/properties.resolver";
+import { tenantsResolvers } from "@/domains/tenants/resolvers/tenants.resolver";
 
 // Base types that can be extended
 const baseTypeDefs = `

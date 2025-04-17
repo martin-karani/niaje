@@ -1,8 +1,8 @@
-import { organizationEntity } from "@domains/organizations/entities/organization.entity";
-import { propertyEntity } from "@domains/properties/entities/property.entity";
-import { unitEntity } from "@domains/properties/entities/unit.entity";
-import { userEntity } from "@domains/users/entities/user.entity";
-import { createId } from "@infrastructure/database/utils/id-generator";
+import { organizationEntity } from "@/domains/organizations/entities/organization.entity";
+import { propertyEntity } from "@/domains/properties/entities/property.entity";
+import { unitEntity } from "@/domains/properties/entities/unit.entity";
+import { userEntity } from "@/domains/users/entities/user.entity";
+import { createId } from "@/infrastructure/database/utils/id-generator";
 import { relations } from "drizzle-orm";
 import {
   json,
@@ -13,7 +13,6 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 
-// Enums for maintenance requests
 export const maintenanceStatusEnum = pgEnum("maintenance_status", [
   "reported",
   "scheduled",
@@ -79,10 +78,10 @@ export const maintenanceRequestsEntity = pgTable("maintenance_requests", {
   actualCost: numeric("actual_cost", { precision: 10, scale: 2 }),
 
   notes: text("notes"),
-  imagesBefore: json("images_before").default([]), // Array of image URLs
-  imagesAfter: json("images_after").default([]), // Array of image URLs
+  imagesBefore: json("images_before").default([]),
+  imagesAfter: json("images_after").default([]),
 
-  vendor: text("vendor"), // If work was done by external contractor
+  vendor: text("vendor"),
 
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
@@ -92,7 +91,6 @@ export const maintenanceRequestsEntity = pgTable("maintenance_requests", {
     .notNull(),
 });
 
-// Define relations for maintenance requests
 export const maintenanceRequestsRelations = relations(
   maintenanceRequestsEntity,
   ({ one }) => ({
@@ -121,7 +119,6 @@ export const maintenanceRequestsRelations = relations(
   })
 );
 
-// Types
 export type MaintenanceRequest = typeof maintenanceRequestsEntity.$inferSelect;
 export type NewMaintenanceRequest =
   typeof maintenanceRequestsEntity.$inferInsert;

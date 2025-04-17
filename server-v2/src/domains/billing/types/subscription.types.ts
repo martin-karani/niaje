@@ -1,5 +1,3 @@
-// src/domains/billing/types/subscription.types.ts
-
 export const subscriptionTypeDefs = `
   # Trial information
   type TrialInfo {

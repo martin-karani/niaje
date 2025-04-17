@@ -1,9 +1,9 @@
-import { memberEntity } from "@domains/organizations/entities/member.entity";
-import { organizationEntity } from "@domains/organizations/entities/organization.entity";
-import { userEntity } from "@domains/users/entities/user.entity";
-import { db } from "@infrastructure/database";
-import { EmailService } from "@infrastructure/email/email.service";
-import { SUBSCRIPTION_PLANS } from "@shared/constants/subscription-plans";
+import { memberEntity } from "@/domains/organizations/entities";
+import { organizationEntity } from "@/domains/organizations/entities/organization.entity";
+import { userEntity } from "@/domains/users/entities/user.entity";
+import { db } from "@/infrastructure/database";
+import { EmailService } from "@/infrastructure/email/email.service";
+import { SUBSCRIPTION_PLANS } from "@/shared/constants/subscription-plans";
 import { and, eq } from "drizzle-orm";
 import { paymentGatewayService } from "./payment-gateway.service";
 import { trialService } from "./trial.service";

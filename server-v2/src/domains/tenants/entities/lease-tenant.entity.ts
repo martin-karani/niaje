@@ -1,20 +1,20 @@
-import { leaseEntity } from "@domains/leases/entities/lease.entity"; // Adjusted path
-import { createId } from "@infrastructure/database/utils/id-generator"; // Adjusted path
+import { leaseEntity } from "@/domains/leases/entities/lease.entity";
+import { createId } from "@/infrastructure/database/utils/id-generator";
 import { relations } from "drizzle-orm";
 import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { tenantEntity } from "./tenant.entity";
 
 // Intermediate table for Many-to-Many between Leases and Tenants
 export const leaseTenantsEntity = pgTable("lease_tenants", {
-  id: text("id").primaryKey().$defaultFn(createId), // [cite: 321]
-  leaseId: text("lease_id") // [cite: 321]
+  id: text("id").primaryKey().$defaultFn(createId),
+  leaseId: text("lease_id")
     .notNull()
-    .references(() => leaseEntity.id, { onDelete: "cascade" }), // [cite: 321]
-  tenantId: text("tenant_id") // [cite: 321]
+    .references(() => leaseEntity.id, { onDelete: "cascade" }),
+  tenantId: text("tenant_id")
     .notNull()
-    .references(() => tenantEntity.id, { onDelete: "cascade" }), // [cite: 321]
-  isPrimary: boolean("is_primary").default(true).notNull(), // [cite: 321]
-  createdAt: timestamp("created_at", { withTimezone: true }) // [cite: 321]
+    .references(() => tenantEntity.id, { onDelete: "cascade" }),
+  isPrimary: boolean("is_primary").default(true).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
 });
@@ -24,12 +24,10 @@ export const leaseTenantsRelations = relations(
   leaseTenantsEntity,
   ({ one }) => ({
     lease: one(leaseEntity, {
-      // [cite: 323]
       fields: [leaseTenantsEntity.leaseId],
       references: [leaseEntity.id],
     }),
     tenant: one(tenantEntity, {
-      // [cite: 323]
       fields: [leaseTenantsEntity.tenantId],
       references: [tenantEntity.id],
     }),
@@ -37,5 +35,5 @@ export const leaseTenantsRelations = relations(
 );
 
 // Types
-export type LeaseTenant = typeof leaseTenantsEntity.$inferSelect; // [cite: 324]
-export type NewLeaseTenant = typeof leaseTenantsEntity.$inferInsert; // [cite: 325]
+export type LeaseTenant = typeof leaseTenantsEntity.$inferSelect;
+export type NewLeaseTenant = typeof leaseTenantsEntity.$inferInsert;

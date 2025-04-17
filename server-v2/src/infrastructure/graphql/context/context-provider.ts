@@ -1,5 +1,5 @@
-import { getSubscriptionFeatures } from "@domains/billing/services/subscription.service";
-import { determinePermissions } from "@infrastructure/auth/permissions";
+import { getSubscriptionFeatures } from "@/domains/billing/services/subscription.service";
+import { determinePermissions } from "@/infrastructure/auth/permissions";
 import { Request } from "express";
 import { GraphQLContext } from "./types";
 

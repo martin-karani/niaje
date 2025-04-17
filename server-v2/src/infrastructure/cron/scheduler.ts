@@ -1,4 +1,3 @@
-// src/cron/scheduler.ts
 import { SERVER_CONFIG } from "@/config/environment";
 import cron from "node-cron";
 import { processLeaseReminders } from "./lease-reminders";

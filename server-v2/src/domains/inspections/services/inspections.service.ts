@@ -1,10 +1,10 @@
-import { leaseEntity } from "@domains/leases/entities/lease.entity"; // Adjusted path
-import { propertyEntity } from "@domains/properties/entities/property.entity"; // Adjusted path
-import { unitEntity } from "@domains/properties/entities/unit.entity"; // Adjusted path
-import { userEntity } from "@domains/users/entities/user.entity"; // Adjusted path
-import { db } from "@infrastructure/database"; // Adjusted path
-import { NotFoundError } from "@shared/errors/not-found.error"; // Adjusted path
-import { ValidationError } from "@shared/errors/validation.error"; // Adjusted path
+import { leaseEntity } from "@/domains/leases/entities/lease.entity";
+import { unitEntity } from "@/domains/properties/entities";
+import { propertyEntity } from "@/domains/properties/entities/property.entity";
+import { userEntity } from "@/domains/users/entities";
+import { db } from "@/infrastructure/database";
+import { NotFoundError } from "@/shared/errors/not-found.error";
+import { ValidationError } from "@/shared/errors/validation.error";
 import { and, eq, gte, or } from "drizzle-orm";
 import {
   CompleteInspectionDto,

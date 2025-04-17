@@ -1,6 +1,5 @@
-// src/domains/billing/services/utility-bills.service.ts
-import { db } from "@infrastructure/database";
-import { AuthorizationError } from "@shared/errors/authorization.error";
+import { db } from "@/infrastructure/database";
+import { AuthorizationError } from "@/shared/errors/authorization.error";
 import { and, desc, eq } from "drizzle-orm";
 import {
   CreateUtilityBillDto,

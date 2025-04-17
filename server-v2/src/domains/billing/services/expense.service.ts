@@ -1,6 +1,5 @@
-// src/domains/billing/services/expenses.service.ts
-import { db } from "@infrastructure/database";
-import { AuthorizationError } from "@shared/errors/authorization.error";
+import { db } from "@/infrastructure/database";
+import { AuthorizationError } from "@/shared/errors/authorization.error";
 import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { CreateExpenseDto, UpdateExpenseDto } from "../dto/expense.dto";
 import { Expense, expenseEntity, NewExpense } from "../entities/expense.entity";

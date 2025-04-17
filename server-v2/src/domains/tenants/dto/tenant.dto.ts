@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { tenantStatusEnum } from "../entities/tenant.entity"; // Assuming entity file location
+import { tenantStatusEnum } from "../entities/tenant.entity";
 
 // DTO for creating a tenant
 export const createTenantDto = z.object({

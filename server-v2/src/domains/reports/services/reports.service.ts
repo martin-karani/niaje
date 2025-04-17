@@ -1,13 +1,12 @@
-import { MaintenanceRequest } from "@/domains/maintenance/entities/maintenance-request.entity";
-import { expenseEntity } from "@domains/billing/entities/expense.entity";
-import { paymentEntity } from "@domains/billing/entities/payment.entity";
-import { leaseEntity } from "@domains/leases/entities/lease.entity";
-import { maintenanceRequestEntity } from "@domains/maintenance/entities/maintenance-request.entity";
+import { expenseEntity } from "@/domains/billing/entities/expense.entity";
+import { paymentEntity } from "@/domains/billing/entities/payment.entity";
+import { leaseEntity } from "@/domains/leases/entities/lease.entity";
 import {
-  propertyEntity,
-  unitEntity,
-} from "@domains/properties/entities/property.entity";
-import { db } from "@infrastructure/database";
+  MaintenanceRequest,
+  maintenanceRequestEntity,
+} from "@/domains/maintenance/entities";
+import { propertyEntity, unitEntity } from "@/domains/properties/entities";
+import { db } from "@/infrastructure/database";
 import { differenceInDays, endOfMonth, format, startOfMonth } from "date-fns";
 import { and, between, eq, inArray, notInArray, sum } from "drizzle-orm";
 

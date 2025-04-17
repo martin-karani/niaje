@@ -1,10 +1,9 @@
-import { leaseEntity } from "@domains/leases/entities/lease.entity"; // Adjusted path
-import { organizationEntity } from "@domains/organizations/entities/organization.entity"; // Adjusted path
-import { propertyEntity } from "@domains/properties/entities/property.entity"; // Adjusted path
-import { unitEntity } from "@domains/properties/entities/unit.entity"; // Adjusted path
-import { tenantEntity } from "@domains/tenants/entities/tenant.entity"; // Adjusted path
-import { userEntity } from "@domains/users/entities/user.entity"; // Adjusted path
-import { createId } from "@infrastructure/database/utils/id-generator"; // Adjusted path
+import { leaseEntity } from "@/domains/leases/entities";
+import { organizationEntity } from "@/domains/organizations/entities";
+import { propertyEntity, unitEntity } from "@/domains/properties/entities";
+import { tenantEntity } from "@/domains/tenants/entities";
+import { userEntity } from "@/domains/users/entities";
+import { createId } from "@/infrastructure/database/utils/id-generator";
 import { relations } from "drizzle-orm";
 import {
   date,
@@ -15,8 +14,8 @@ import {
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
-import { expenseEntity } from "./expense.entity"; // Adjusted path
-import { utilityBillEntity } from "./utility-bill.entity"; // Adjusted path
+import { expenseEntity } from "./expense.entity";
+import { utilityBillEntity } from "./utility-bill.entity";
 
 // Enums
 export const paymentMethodEnum = pgEnum("payment_method", [

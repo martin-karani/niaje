@@ -1,17 +1,17 @@
-import { unitEntity } from "@domains/properties/entities/unit.entity"; // Adjusted path
-import { leaseTenantsEntity } from "@domains/tenants/entities/lease-tenant.entity";
-import { db } from "@infrastructure/database"; // Adjusted path
-import { NotFoundError } from "@shared/errors/not-found.error"; // Adjusted path
+import { unitEntity } from "@/domains/properties/entities/unit.entity";
+import { leaseTenantsEntity } from "@/domains/tenants/entities/lease-tenant.entity";
+import { db } from "@/infrastructure/database";
+import { NotFoundError } from "@/shared/errors/not-found.error";
 import { and, eq } from "drizzle-orm";
+import { CreateLeaseDto, UpdateLeaseDto } from "../dto/lease.dto";
 import { Lease, NewLease, leaseEntity } from "../entities/lease.entity";
 
 export class LeasesService {
-  // Helper to check if lease belongs to org
   private async checkLeaseOrg(
     leaseId: string,
     organizationId: string
   ): Promise<Lease> {
-    const lease = await this.getLeaseById(leaseId); // Use existing method that throws NotFoundError
+    const lease = await this.getLeaseById(leaseId);
     if (lease.organizationId !== organizationId) {
       throw new NotFoundError(
         `Lease with ID ${leaseId} not found in your organization.`
@@ -25,18 +25,16 @@ export class LeasesService {
       where: eq(leaseEntity.organizationId, organizationId),
       with: {
         unit: {
-          // Include unit details
           with: {
-            property: true, // And property details
+            property: true,
           },
         },
         tenantAssignments: {
-          // Include tenant assignments
           with: {
-            tenant: true, // And tenant details
+            tenant: true,
           },
         },
-        creator: true, // Include user who created the lease
+        creator: true,
       },
       orderBy: (leases, { desc }) => [desc(leases.createdAt)],
     });
@@ -49,9 +47,9 @@ export class LeasesService {
         unit: { with: { property: true } },
         tenantAssignments: { with: { tenant: true } },
         creator: true,
-        payments: true, // Include related payments
-        utilityBills: true, // Include related utility bills
-        documents: true, // Include related documents
+        payments: true,
+        utilityBills: true,
+        documents: true,
       },
     });
 
@@ -69,7 +67,7 @@ export class LeasesService {
     return db.query.leaseEntity.findMany({
       where: and(
         eq(leaseEntity.propertyId, propertyId),
-        eq(leaseEntity.organizationId, organizationId) // Ensure org match
+        eq(leaseEntity.organizationId, organizationId)
       ),
       with: {
         unit: true,
@@ -87,7 +85,7 @@ export class LeasesService {
     return db.query.leaseEntity.findMany({
       where: and(
         eq(leaseEntity.unitId, unitId),
-        eq(leaseEntity.organizationId, organizationId) // Ensure org match
+        eq(leaseEntity.organizationId, organizationId)
       ),
       with: {
         tenantAssignments: { with: { tenant: true } },
@@ -105,12 +103,11 @@ export class LeasesService {
       where: eq(leaseTenantsEntity.tenantId, tenantId),
       with: {
         lease: {
-          // Fetch the full lease record
-          where: eq(leaseEntity.organizationId, organizationId), // Ensure lease belongs to org
+          where: eq(leaseEntity.organizationId, organizationId),
           with: {
             unit: { with: { property: true } },
             creator: true,
-            tenantAssignments: { with: { tenant: true } }, // Re-fetch tenant assignments for full details
+            tenantAssignments: { with: { tenant: true } },
           },
         },
       },
@@ -146,11 +143,10 @@ export class LeasesService {
       .insert(leaseEntity)
       .values({
         ...data,
-        propertyId: unit.propertyId, // Set derived propertyId
+        propertyId: unit.propertyId,
         startDate: startDate,
         endDate: endDate,
         moveInDate: moveInDate,
-        // Add other converted dates...
         createdAt: new Date(),
         updatedAt: new Date(),
       })
@@ -182,7 +178,6 @@ export class LeasesService {
       updateData.moveInDate = data.moveInDate
         ? new Date(data.moveInDate)
         : null;
-    // Add other date conversions...
 
     const result = await db
       .update(leaseEntity)
@@ -195,7 +190,7 @@ export class LeasesService {
           eq(leaseEntity.id, id),
           eq(leaseEntity.organizationId, organizationId)
         )
-      ) // Double check org
+      )
       .returning();
 
     // Update unit status based on new lease status if changed
@@ -212,7 +207,7 @@ export class LeasesService {
             eq(leaseEntity.unitId, existingLease.unitId),
             eq(leaseEntity.status, "active"),
             eq(leaseEntity.organizationId, organizationId),
-            eq(leaseEntity.id, id) // Exclude the current lease being updated
+            eq(leaseEntity.id, id)
           ),
         });
         if (!otherActiveLease) {
@@ -237,7 +232,7 @@ export class LeasesService {
           eq(leaseEntity.unitId, existingLease.unitId),
           eq(leaseEntity.status, "active"),
           eq(leaseEntity.organizationId, organizationId),
-          eq(leaseEntity.id, id) // Exclude the current lease being deleted
+          eq(leaseEntity.id, id)
         ),
       });
       if (!otherActiveLease) {

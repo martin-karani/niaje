@@ -1,4 +1,3 @@
-// src/domains/properties/types/properties.types.ts
 export const propertiesTypeDefs = `
   type Property {
     id: ID!

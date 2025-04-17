@@ -1,5 +1,5 @@
-import { checkPermissions } from "@infrastructure/auth/permissions"; // Placeholder permission check
-import { GraphQLContext } from "@infrastructure/graphql/context/types"; // Adjusted path
+import { checkPermissions } from "@/infrastructure/auth/permissions";
+import { GraphQLContext } from "@/infrastructure/graphql/context/types";
 import {
   CompleteInspectionDto,
   CreateInspectionDto,

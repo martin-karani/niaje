@@ -1,5 +1,5 @@
-import { checkPermissions } from "@infrastructure/auth/permissions"; // Placeholder permission check
-import { GraphQLContext } from "@infrastructure/graphql/context/types"; // Adjusted path
+import { checkPermissions } from "@/infrastructure/auth/permissions";
+import { GraphQLContext } from "@/infrastructure/graphql/context/types";
 import {
   CreateExpenseDto,
   ExpenseIdDto,
@@ -16,9 +16,9 @@ import {
   UpdateUtilityBillDto,
   UtilityBillIdDto,
 } from "../dto/utility-bill.dto";
-import { expensesService } from "../services/expenses.service";
+import { expensesService } from "../services/expense.service";
 import { paymentsService } from "../services/payments.service";
-import { utilityBillsService } from "../services/utility-bills.service";
+import { utilityBillsService } from "../services/utility-bill.service";
 
 export const billingResolvers = {
   Query: {

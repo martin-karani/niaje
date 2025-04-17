@@ -1,5 +1,5 @@
-import { db } from "@infrastructure/database"; // Adjusted path
-import { NotFoundError } from "@shared/errors/not-found.error"; // Adjusted path
+import { db } from "@/infrastructure/database";
+import { NotFoundError } from "@/shared/errors/not-found.error";
 import { and, eq } from "drizzle-orm";
 import {
   LeaseTenant,

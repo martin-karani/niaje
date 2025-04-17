@@ -1,5 +1,4 @@
-// src/domains/billing/services/payment-gateway.service.ts
-import { SUBSCRIPTION_PLANS } from "@shared/constants/subscription-plans";
+import { SUBSCRIPTION_PLANS } from "@/shared/constants/subscription-plans";
 import axios from "axios";
 
 /**

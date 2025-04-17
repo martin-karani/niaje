@@ -1,8 +1,8 @@
-import { db } from "@/db";
-import { teamsService } from "@domains/organizations/services/teams.service";
-import { GraphQLContext } from "@infrastructure/graphql/context/types";
-import { AuthorizationError } from "@shared/errors/authorization.error";
-import { SubscriptionLimitError } from "@shared/errors/subscription-limit.error";
+import { teamsService } from "@/domains/organizations/services";
+import { db } from "@/infrastructure/database";
+import { GraphQLContext } from "@/infrastructure/graphql/context/types";
+import { AuthorizationError } from "@/shared/errors/authorization.error";
+import { SubscriptionLimitError } from "@/shared/errors/subscription-limit.error";
 import { eq } from "drizzle-orm";
 import { unitEntity, type Unit } from "../entities/unit.entity";
 import { propertiesService } from "../services/properties.service";

@@ -3,7 +3,7 @@ import { maintenanceRequestsEntity } from "@/domains/maintenance/entities/mainte
 import { organizationEntity } from "@/domains/organizations/entities/organization.entity";
 import { propertyEntity } from "@/domains/properties/entities/property.entity";
 import { tenantEntity } from "@/domains/tenants/entities/tenant.entity";
-import { userEntity } from "@/domains/users/entities/users.entity";
+import { userEntity } from "@/domains/users/entities";
 import { createId } from "@/infrastructure/database/utils/id-generator";
 import { relations } from "drizzle-orm";
 import {

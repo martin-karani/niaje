@@ -1,3 +1,4 @@
+import { organizationEntity } from "@/domains/organizations/entities/organization.entity";
 import { createId } from "@/infrastructure/database/utils/id-generator";
 import {
   integer,

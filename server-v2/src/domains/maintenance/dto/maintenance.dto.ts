@@ -5,10 +5,9 @@ import {
   maintenanceStatusEnum,
 } from "../entities/maintenance-request.entity";
 
-// DTO for creating a maintenance request
 export const createMaintenanceRequestDto = z.object({
   propertyId: z.string(),
-  unitId: z.string().optional().nullable(), // Optional - not all requests are unit-specific
+  unitId: z.string().optional().nullable(),
   title: z.string().min(3, "Title must be at least 3 characters"),
   description: z.string().min(5, "Description must be at least 5 characters"),
   priority: z.enum(maintenancePriorityEnum.enumValues).default("medium"),
@@ -22,7 +21,6 @@ export const createMaintenanceRequestDto = z.object({
   organizationId: z.string(), // Required on creation, likely from context
 });
 
-// DTO for updating a maintenance request
 export const updateMaintenanceRequestDto = z.object({
   id: z.string(),
   status: z.enum(maintenanceStatusEnum.enumValues).optional(),
@@ -41,18 +39,15 @@ export const updateMaintenanceRequestDto = z.object({
   vendor: z.string().optional().nullable(),
 });
 
-// DTO for maintenance request ID operations
 export const maintenanceRequestIdDto = z.object({
   id: z.string(),
 });
 
-// DTO for assigning a maintenance request
 export const assignMaintenanceRequestDto = z.object({
   id: z.string(),
   assigneeId: z.string(),
 });
 
-// Types based on the schemas
 export type CreateMaintenanceRequestDto = z.infer<
   typeof createMaintenanceRequestDto
 >;

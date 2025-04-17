@@ -1,5 +1,5 @@
-import { startScheduler } from "@infrastructure/cron/scheduler";
-import { db } from "@infrastructure/database";
+import { startScheduler } from "@/infrastructure/cron/scheduler";
+import { db } from "@/infrastructure/database";
 import dotenv from "dotenv";
 import { sql } from "drizzle-orm";
 import { setupApi } from "./api";

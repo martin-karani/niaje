@@ -2,7 +2,7 @@ import { z } from "zod";
 import {
   inspectionStatusEnum,
   inspectionTypeEnum,
-} from "../entities/inspection.entity"; // Assuming entity file location
+} from "../entities/inspection.entity";
 
 // DTO for creating an inspection
 export const createInspectionDto = z.object({

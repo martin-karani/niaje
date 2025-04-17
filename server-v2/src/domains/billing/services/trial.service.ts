@@ -1,8 +1,9 @@
-// src/domains/billing/services/trial.service.ts
-import { memberEntity } from "@domains/organizations/entities/member.entity";
-import { organizationEntity } from "@domains/organizations/entities/organization.entity";
-import { db } from "@infrastructure/database";
-import { EmailService } from "@infrastructure/email/email.service";
+import {
+  memberEntity,
+  organizationEntity,
+} from "@/domains/organizations/entities";
+import { db } from "@/infrastructure/database";
+import { EmailService } from "@/infrastructure/email/email.service";
 import { addDays, differenceInDays, isBefore } from "date-fns";
 import { and, eq, gte, lt, lte } from "drizzle-orm";
 

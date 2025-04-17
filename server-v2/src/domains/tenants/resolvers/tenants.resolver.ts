@@ -1,11 +1,15 @@
-import { checkPermissions } from "@infrastructure/auth/permissions"; // Placeholder permission check
-import { GraphQLContext } from "@infrastructure/graphql/context/types"; // Adjusted path
+import { leaseEntity } from "@/domains/leases/entities";
+import { checkPermissions } from "@/infrastructure/auth/permissions";
+import { db } from "@/infrastructure/database";
+import { GraphQLContext } from "@/infrastructure/graphql/context/types";
+import { eq } from "drizzle-orm";
 import {
   AssignTenantToLeaseDto,
   CreateTenantDto,
   TenantIdDto,
   UpdateTenantDto,
 } from "../dto/tenant.dto";
+import { LeaseTenant, Tenant } from "../entities";
 import { tenantsService } from "../services/tenants.service";
 
 export const tenantsResolvers = {

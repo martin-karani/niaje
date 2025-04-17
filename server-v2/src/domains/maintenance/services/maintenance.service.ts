@@ -1,8 +1,8 @@
-import { propertyEntity } from "@domains/properties/entities/property.entity"; // Adjusted path
-import { unitEntity } from "@domains/properties/entities/unit.entity"; // Adjusted path
-import { userEntity } from "@domains/users/entities/user.entity"; // Adjusted path
-import { db } from "@infrastructure/database"; // Adjusted path
-import { NotFoundError } from "@shared/errors/not-found.error"; // Adjusted path
+import { propertyEntity } from "@/domains/properties/entities/property.entity";
+import { unitEntity } from "@/domains/properties/entities/unit.entity";
+import { userEntity } from "@/domains/users/entities/user.entity";
+import { db } from "@/infrastructure/database";
+import { NotFoundError } from "@/shared/errors/not-found.error";
 import { and, eq } from "drizzle-orm";
 import { UpdateMaintenanceRequestDto } from "../dto/maintenance.dto";
 import {

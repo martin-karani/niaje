@@ -1,13 +1,13 @@
-import { tenantEntity } from "@domains/tenants/entities/tenant.entity"; // Adjusted path
-import { db } from "@infrastructure/database"; // Adjusted path
-import { NotFoundError } from "@shared/errors/not-found.error"; // Adjusted path
-import { ValidationError } from "@shared/errors/validation.error"; // Adjusted path
-import { emailService } from "@shared/services/email.service"; // Adjusted path
+import { tenantEntity } from "@/domains/tenants/entities/tenant.entity";
+import { db } from "@/infrastructure/database";
+import { NotFoundError } from "@/shared/errors/not-found.error";
+import { ValidationError } from "@/shared/errors/validation.error";
+import { emailService } from "@/shared/services/email.service";
 import {
   generateTemporaryPassword,
   hashPassword,
   verifyPassword,
-} from "@shared/utils/auth.utils"; // Adjusted path
+} from "@/shared/utils/auth.utils";
 import { and, eq } from "drizzle-orm";
 import {
   accountEntity,

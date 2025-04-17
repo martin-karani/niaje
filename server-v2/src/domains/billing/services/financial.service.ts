@@ -1,8 +1,7 @@
-// src/domains/billing/services/financial.service.ts
-import { unitEntity } from "@domains/properties/entities/unit.entity";
-import { db } from "@infrastructure/database";
+import { unitEntity } from "@/domains/properties/entities/unit.entity";
+import { db } from "@/infrastructure/database";
 import { eq } from "drizzle-orm";
-import { expensesService } from "./expenses.service";
+import { expensesService } from "./expense.service";
 import { paymentsService } from "./payments.service";
 
 // Define a Period type for date ranges

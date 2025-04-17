@@ -1,9 +1,9 @@
-import { emailService } from "@domains/communications/services/email.service";
-import { db } from "@infrastructure/database";
-import { createId } from "@infrastructure/database/utils/id-generator";
-import { NotFoundError } from "@shared/errors/not-found.error";
-import { ValidationError } from "@shared/errors/validation.error";
-import { generateToken } from "@shared/utils/auth.utils";
+import { emailService } from "@/domains/communications/services/email.service";
+import { db } from "@/infrastructure/database";
+import { createId } from "@/infrastructure/database/utils/id-generator";
+import { NotFoundError } from "@/shared/errors/not-found.error";
+import { ValidationError } from "@/shared/errors/validation.error";
+import { generateToken } from "@/shared/utils/auth.utils";
 import { addDays } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import {

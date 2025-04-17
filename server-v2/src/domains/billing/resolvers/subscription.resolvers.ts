@@ -1,7 +1,6 @@
-// src/domains/billing/resolvers/subscription.resolver.ts
-import { GraphQLContext } from "@infrastructure/graphql/context/types";
-import { SUBSCRIPTION_PLANS } from "@shared/constants/subscription-plans";
-import { AuthorizationError } from "@shared/errors/authorization.error";
+import { GraphQLContext } from "@/infrastructure/graphql/context/types";
+import { SUBSCRIPTION_PLANS } from "@/shared/constants/subscription-plans";
+import { AuthorizationError } from "@/shared/errors/authorization.error";
 import {
   CreateCardCheckoutDto,
   CreateMpesaPaymentDto,

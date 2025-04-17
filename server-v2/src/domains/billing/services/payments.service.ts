@@ -1,6 +1,5 @@
-// src/domains/billing/services/payments.service.ts
-import { db } from "@infrastructure/database";
-import { AuthorizationError } from "@shared/errors/authorization.error";
+import { db } from "@/infrastructure/database";
+import { AuthorizationError } from "@/shared/errors/authorization.error";
 import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { CreatePaymentDto, UpdatePaymentDto } from "../dto/payment.dto";
 import { NewPayment, Payment, paymentEntity } from "../entities/payment.entity";

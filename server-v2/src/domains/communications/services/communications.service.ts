@@ -1,6 +1,5 @@
-// src/services/features/communications.service.ts
-import { db } from "@/db";
 import { communications, tenants, user } from "@/db/schema";
+import { db } from "@/infrastructure/database";
 import { emailService } from "@/services/system/email.service";
 import { and, desc, eq } from "drizzle-orm";
 

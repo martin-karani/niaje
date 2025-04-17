@@ -1,16 +1,18 @@
-import { auth } from "@infrastructure/auth/better-auth/auth";
-import { GraphQLContext } from "@infrastructure/graphql/context/types";
-import { AuthorizationError } from "@shared/errors/authorization.error";
+import { auth } from "@/infrastructure/auth/better-auth/auth";
+import { GraphQLContext } from "@/infrastructure/graphql/context/types";
+import { AuthorizationError } from "@/shared/errors/authorization.error";
 import {
   CreateOrganizationDto,
   OrganizationIdDto,
   SwitchOrganizationDto,
   UpdateOrganizationDto,
 } from "../dto/organization.dto";
-import { invitationsService } from "../services/invitations.service";
-import { membersService } from "../services/members.service";
-import { organizationsService } from "../services/organizations.service";
-import { teamsService } from "../services/teams.service";
+import {
+  invitationsService,
+  membersService,
+  organizationsService,
+  teamsService,
+} from "../services";
 
 /**
  * Helper function to check organization permissions

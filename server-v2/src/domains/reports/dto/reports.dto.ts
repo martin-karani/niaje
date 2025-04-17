@@ -1,18 +1,13 @@
-// src/domains/billing/dto/reports.dto.ts
 import { z } from "zod";
 
 // Base report request schema with period range
 export const reportPeriodDto = z.object({
-  startDate: z
-    .string()
-    .refine((val) => !isNaN(Date.parse(val)), {
-      message: "startDate must be a valid date string",
-    }),
-  endDate: z
-    .string()
-    .refine((val) => !isNaN(Date.parse(val)), {
-      message: "endDate must be a valid date string",
-    }),
+  startDate: z.string().refine((val) => !isNaN(Date.parse(val)), {
+    message: "startDate must be a valid date string",
+  }),
+  endDate: z.string().refine((val) => !isNaN(Date.parse(val)), {
+    message: "endDate must be a valid date string",
+  }),
   propertyId: z.string().optional(),
 });
 

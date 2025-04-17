@@ -1,6 +1,6 @@
-import { tenantsService } from "@domains/tenants/services/tenants.service"; // Needed for tenant relations
-import { checkPermissions } from "@infrastructure/auth/permissions"; // Placeholder permission check
-import { GraphQLContext } from "@infrastructure/graphql/context/types"; // Adjusted path
+import { tenantsService } from "@/domains/tenants/services/tenants.service";
+import { checkPermissions } from "@/infrastructure/auth/permissions";
+import { GraphQLContext } from "@/infrastructure/graphql/context/types";
 import { CreateLeaseDto, LeaseIdDto, UpdateLeaseDto } from "../dto/lease.dto";
 import { Lease } from "../entities/lease.entity";
 import { leasesService } from "../services/leases.service";

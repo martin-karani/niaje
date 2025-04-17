@@ -1,6 +1,6 @@
-import { organizationEntity } from "@domains/organizations/entities/organization.entity";
-import { userEntity } from "@domains/users/entities/user.entity";
-import { createId } from "@infrastructure/database/utils/id-generator";
+import { organizationEntity } from "@/domains/organizations/entities";
+import { userEntity } from "@/domains/users/entities";
+import { createId } from "@/infrastructure/database/utils/id-generator";
 import { relations } from "drizzle-orm";
 import {
   integer,

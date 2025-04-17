@@ -1,5 +1,5 @@
-import { GraphQLContext } from "@infrastructure/graphql/context/types";
-import { AuthorizationError } from "@shared/errors/authorization.error";
+import { GraphQLContext } from "@/infrastructure/graphql/context/types";
+import { AuthorizationError } from "@/shared/errors/authorization.error";
 import {
   FinancialReportDto,
   MaintenanceReportDto,

@@ -1,8 +1,8 @@
-import { organizationEntity } from "@domains/organizations/entities/organization.entity"; // Adjusted path
-import { propertyEntity } from "@domains/properties/entities/property.entity"; // Adjusted path
-import { unitEntity } from "@domains/properties/entities/unit.entity"; // Adjusted path
-import { userEntity } from "@domains/users/entities/user.entity"; // Adjusted path
-import { createId } from "@infrastructure/database/utils/id-generator"; // Adjusted path
+import { organizationEntity } from "@/domains/organizations/entities";
+import { propertyEntity } from "@/domains/properties/entities";
+import { unitEntity } from "@/domains/properties/entities/unit.entity";
+import { userEntity } from "@/domains/users/entities/user.entity";
+import { createId } from "@/infrastructure/database/utils/id-generator";
 import { relations } from "drizzle-orm";
 import {
   date,

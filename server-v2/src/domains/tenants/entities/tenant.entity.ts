@@ -1,9 +1,9 @@
-import { paymentEntity } from "@domains/billing/entities/payment.entity"; // Adjusted path
-import { communicationEntity } from "@domains/communications/entities/communication.entity"; // Adjusted path (assuming comms domain exists)
-import { documentEntity } from "@domains/documents/entities/document.entity"; // Adjusted path (assuming documents domain exists)
-import { organizationEntity } from "@domains/organizations/entities/organization.entity"; // Adjusted path
-import { userEntity } from "@domains/users/entities/user.entity"; // Adjusted path
-import { createId } from "@infrastructure/database/utils/id-generator"; // Adjusted path
+import { paymentEntity } from "@/domains/billing/entities/payment.entity";
+import { communicationEntity } from "@/domains/communications/entities";
+import { documentEntity } from "@/domains/documents/entities/document.entity";
+import { organizationEntity } from "@/domains/organizations/entities/organization.entity";
+import { userEntity } from "@/domains/users/entities/user.entity";
+import { createId } from "@/infrastructure/database/utils/id-generator";
 import { relations } from "drizzle-orm";
 import {
   date,
@@ -13,7 +13,7 @@ import {
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
-import { leaseTenantsEntity } from "./lease-tenant.entity"; // Join table
+import { leaseTenantsEntity } from "./lease-tenant.entity";
 
 // Enums for tenant status
 export const tenantStatusEnum = pgEnum("tenant_status", [
@@ -22,45 +22,45 @@ export const tenantStatusEnum = pgEnum("tenant_status", [
   "past",
   "rejected",
   "blacklisted",
-]); // [cite: 318]
+]);
 
 export const tenantEntity = pgTable("tenants", {
-  id: text("id").primaryKey().$defaultFn(createId), // [cite: 319]
-  organizationId: text("organization_id") // [cite: 319]
+  id: text("id").primaryKey().$defaultFn(createId),
+  organizationId: text("organization_id")
     .notNull()
-    .references(() => organizationEntity.id, { onDelete: "restrict" }), // [cite: 319]
+    .references(() => organizationEntity.id, { onDelete: "restrict" }),
   userId: text("user_id").references(() => userEntity.id, {
     onDelete: "set null",
-  }), // [cite: 319]
+  }),
 
-  firstName: text("first_name").notNull(), // [cite: 319]
-  lastName: text("last_name").notNull(), // [cite: 319]
-  email: text("email").notNull(), // [cite: 319]
-  phone: text("phone"), // [cite: 319]
-  status: tenantStatusEnum("status").default("active").notNull(), // [cite: 319]
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  status: tenantStatusEnum("status").default("active").notNull(),
 
-  dateOfBirth: date("date_of_birth"), // [cite: 319]
-  occupation: text("occupation"), // [cite: 320]
-  employer: text("employer"), // [cite: 320]
-  income: numeric("income"), // [cite: 320]
+  dateOfBirth: date("date_of_birth"),
+  occupation: text("occupation"),
+  employer: text("employer"),
+  income: numeric("income"),
 
   // Emergency Contact
-  emergencyContactName: text("emergency_contact_name"), // [cite: 320]
-  emergencyContactRelation: text("emergency_contact_relation"), // [cite: 320]
-  emergencyContactPhone: text("emergency_contact_phone"), // [cite: 320]
-  emergencyContactEmail: text("emergency_contact_email"), // [cite: 320]
+  emergencyContactName: text("emergency_contact_name"),
+  emergencyContactRelation: text("emergency_contact_relation"),
+  emergencyContactPhone: text("emergency_contact_phone"),
+  emergencyContactEmail: text("emergency_contact_email"),
 
   // Move-in / Move-out
-  expectedMoveInDate: date("expected_move_in_date"), // [cite: 320]
-  actualMoveInDate: date("actual_move_in_date"), // [cite: 320]
-  expectedMoveOutDate: date("expected_move_out_date"), // [cite: 320]
-  actualMoveOutDate: date("actual_move_out_date"), // [cite: 320]
+  expectedMoveInDate: date("expected_move_in_date"),
+  actualMoveInDate: date("actual_move_in_date"),
+  expectedMoveOutDate: date("expected_move_out_date"),
+  actualMoveOutDate: date("actual_move_out_date"),
 
-  notes: text("notes"), // [cite: 320]
-  createdAt: timestamp("created_at", { withTimezone: true }) // [cite: 320]
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }) // [cite: 320]
+  updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
 });
@@ -68,20 +68,17 @@ export const tenantEntity = pgTable("tenants", {
 // Define relations for tenants
 export const tenantsRelations = relations(tenantEntity, ({ one, many }) => ({
   organization: one(organizationEntity, {
-    // [cite: 322]
     fields: [tenantEntity.organizationId],
     references: [organizationEntity.id],
   }),
   userAccount: one(userEntity, {
-    // [cite: 322]
     fields: [tenantEntity.userId],
     references: [userEntity.id],
   }),
-  leaseAssignments: many(leaseTenantsEntity), // [cite: 322]
-  payments: many(paymentEntity), // [cite: 322]
-  documents: many(documentEntity, { relationName: "tenantDocuments" }), // [cite: 322]
+  leaseAssignments: many(leaseTenantsEntity),
+  payments: many(paymentEntity),
+  documents: many(documentEntity, { relationName: "tenantDocuments" }),
   communications: many(communicationEntity, {
-    // [cite: 322]
     relationName: "tenantCommunications",
   }),
 }));

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { userRoleEnum } from "../entities/user.entity";
+import { userRoleEnum } from "../entities";
 
 // DTO for creating a user
 export const createUserDto = z

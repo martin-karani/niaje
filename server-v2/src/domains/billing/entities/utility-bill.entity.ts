@@ -1,10 +1,9 @@
-// src/domains/billing/entities/utility-bill.entity.ts
-import { leaseEntity } from "@domains/leases/entities/lease.entity";
-import { organizationEntity } from "@domains/organizations/entities/organization.entity";
-import { propertyEntity } from "@domains/properties/entities/property.entity";
-import { unitEntity } from "@domains/properties/entities/unit.entity";
-import { tenantEntity } from "@domains/tenants/entities/tenant.entity";
-import { createId } from "@infrastructure/database/utils/id-generator";
+import { leaseEntity } from "@/domains/leases/entities/lease.entity";
+import { organizationEntity } from "@/domains/organizations/entities/organization.entity";
+import { propertyEntity } from "@/domains/properties/entities/property.entity";
+import { unitEntity } from "@/domains/properties/entities/unit.entity";
+import { tenantEntity } from "@/domains/tenants/entities/tenant.entity";
+import { createId } from "@/infrastructure/database/utils/id-generator";
 import { relations } from "drizzle-orm";
 import {
   date,
@@ -16,7 +15,6 @@ import {
 } from "drizzle-orm/pg-core";
 import { paymentEntity } from "./payment.entity";
 
-// Utility bill status enum
 export const utilityBillStatusEnum = pgEnum("utility_bill_status", [
   "due",
   "paid",
@@ -24,7 +22,6 @@ export const utilityBillStatusEnum = pgEnum("utility_bill_status", [
   "canceled",
 ]);
 
-// Utility type enum
 export const utilityTypeEnum = pgEnum("utility_type", [
   "water",
   "electricity",
@@ -35,7 +32,6 @@ export const utilityTypeEnum = pgEnum("utility_type", [
   "other",
 ]);
 
-// Utility bills table
 export const utilityBillEntity = pgTable("utility_bills", {
   id: text("id").primaryKey().$defaultFn(createId),
   organizationId: text("organization_id")

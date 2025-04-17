@@ -1,4 +1,4 @@
-import { AC } from "@infrastructure/auth/better-auth/access-control";
+import { AC } from "@/infrastructure/auth/better-auth/access-control";
 
 export function determinePermissions(
   user: any,

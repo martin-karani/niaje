@@ -1,5 +1,5 @@
-import { db } from "@infrastructure/database";
-import { NotFoundError } from "@shared/errors/not-found.error";
+import { db } from "@/infrastructure/database";
+import { NotFoundError } from "@/shared/errors/not-found.error";
 import { eq } from "drizzle-orm";
 import {
   NewProperty,
