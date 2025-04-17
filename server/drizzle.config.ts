@@ -1,5 +1,6 @@
-import { defineConfig } from "drizzle-kit";
 import * as dotenv from "dotenv";
+import { defineConfig } from "drizzle-kit";
+import { DB_CONFIG } from "./src/config/environment";
 
 dotenv.config();
 
@@ -7,9 +8,7 @@ export default defineConfig({
   schema: "./src/db/schema/**/*.ts",
   out: "./src/db/migrations",
   dbCredentials: {
-    url:
-      process.env.DATABASE_URL ||
-      "postgresql://propertyapp:propertypassword@localhost:5432/propertymanagement",
+    url: DB_CONFIG.DATABASE_URL,
   },
   verbose: true,
   strict: true,

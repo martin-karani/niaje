@@ -1,19 +1,19 @@
-import { auth } from "@/auth/configs/auth.config";
-import { createBetterAuthMiddleware } from "@/middleware/auth.middleware";
-import { errorHandler } from "@/middleware/error.middleware";
-import { toNodeHandler } from "better-auth/node";
+import { uploadRoutes } from "@/api/routes/upload.routes";
+import { auth } from "@/infrastructure/auth/better-auth/auth";
+import { createAuthMiddleware } from "@/infrastructure/auth/middleware";
+import { createGraphQLContext } from "@/infrastructure/graphql/context/context-provider";
+import { schema } from "@/infrastructure/graphql/schema";
+import { errorHandler } from "@/shared/errors/error.middleware";
+import { handleWebhooks } from "@infrastructure/webhooks";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
-import { trpcMiddleware } from "./trpc";
+import { createYoga } from "graphql-yoga";
+import path from "path";
 
-/**
- * Setup Express application
- */
 export function setupApi() {
   const app = express();
 
-  // Global middleware
   app.use(
     cors({
       origin: process.env.FRONTEND_URL || "*",
@@ -23,20 +23,35 @@ export function setupApi() {
   );
 
   app.use(cookieParser());
+  app.use("/api/auth", auth);
 
-  // Mount better-auth handler for all /api/auth/* routes
-  // IMPORTANT: Place this before express.json() middleware
-  app.all("/api/auth/*splat", toNodeHandler(auth));
+  // Serve static files from uploads directory
+  app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
+  // Handle webhooks (raw body for signature verification)
+  app.post(
+    "/api/webhooks/:provider",
+    express.raw({ type: "application/json" }),
+    handleWebhooks
+  );
+
+  // Normal JSON processing for other routes
   app.use(express.json());
+  app.use(createAuthMiddleware());
 
-  // Create an auth middleware to get session data for non-auth routes
-  app.use(createBetterAuthMiddleware(auth));
+  // File upload routes
+  app.use("/api/upload", uploadRoutes);
 
-  // Mount tRPC
-  app.use(trpcMiddleware);
+  // GraphQL endpoint
+  const yoga = createYoga({
+    schema,
+    graphqlEndpoint: "/api/graphql",
+    context: async ({ request }) => createGraphQLContext(request),
+  });
 
-  // Error handling middleware (must be last)
+  app.use("/api/graphql", yoga);
+
+  // Error handler middleware (must be last)
   app.use(errorHandler);
 
   return app;
