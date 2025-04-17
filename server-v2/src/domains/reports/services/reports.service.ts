@@ -1,3 +1,4 @@
+import { MaintenanceRequest } from "@/domains/maintenance/entities/maintenance-request.entity";
 import { expenseEntity } from "@domains/billing/entities/expense.entity";
 import { paymentEntity } from "@domains/billing/entities/payment.entity";
 import { leaseEntity } from "@domains/leases/entities/lease.entity";
@@ -257,22 +258,23 @@ export class ReportsService {
     const propertyIds = matchingProperties.map((p) => p.id);
 
     // Get maintenance requests within period
-    const requests = await db.query.maintenanceRequestEntity.findMany({
-      where: and(
-        inArray(maintenanceRequestEntity.propertyId, propertyIds),
-        between(maintenanceRequestEntity.createdAt, periodStart, periodEnd)
-      ),
-      with: {
-        property: true,
-        unit: true,
-        reporter: true,
-        assignee: true,
-      },
-    });
+    const requests: MaintenanceRequest[] =
+      await db.query.maintenanceRequestEntity.findMany({
+        where: and(
+          inArray(maintenanceRequestEntity.propertyId, propertyIds),
+          between(maintenanceRequestEntity.createdAt, periodStart, periodEnd)
+        ),
+        with: {
+          property: true,
+          unit: true,
+          reporter: true,
+          assignee: true,
+        },
+      });
 
     // Calculate total counts
     const totalRequests = requests.length;
-    const completedRequests = requests.filter(
+    const completedRequests: number = requests.filter(
       (r) => r.status === "completed"
     ).length;
     const openRequests = requests.filter((r) =>
@@ -313,7 +315,13 @@ export class ReportsService {
     const avgCost = requestsWithCost > 0 ? totalCost / requestsWithCost : 0;
 
     // Group by priority
-    const priorityCounts = {};
+    const priorityCounts: Record<"low" | "medium" | "high" | "urgent", number> =
+      {
+        low: 0,
+        medium: 0,
+        high: 0,
+        urgent: 0,
+      };
     for (const request of requests) {
       priorityCounts[request.priority] =
         (priorityCounts[request.priority] || 0) + 1;
@@ -327,7 +335,28 @@ export class ReportsService {
     );
 
     // Group by category
-    const categoryCounts = {};
+    const categoryCounts: Record<
+      | "plumbing"
+      | "electrical"
+      | "hvac"
+      | "appliances"
+      | "structural"
+      | "landscaping"
+      | "pest_control"
+      | "cleaning"
+      | "other",
+      number
+    > = {
+      plumbing: 0,
+      electrical: 0,
+      hvac: 0,
+      appliances: 0,
+      structural: 0,
+      landscaping: 0,
+      pest_control: 0,
+      cleaning: 0,
+      other: 0,
+    };
     for (const request of requests) {
       if (request.category) {
         categoryCounts[request.category] =

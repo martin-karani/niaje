@@ -1,3 +1,4 @@
+// src/infrastructure/auth/better-auth/access-control.ts
 export class AC {
   private user: any;
   private organization: any;
@@ -49,21 +50,139 @@ export class AC {
   private getRolePermissions(
     role: string
   ): Record<string, Record<string, boolean>> {
-    // This would normally come from your better-auth AC system
+    // Define permissions for all roles
     const roleMap: Record<string, Record<string, Record<string, boolean>>> = {
+      admin: {
+        // Admin has access to everything
+        property: { view: true, create: true, update: true, delete: true },
+        tenant: {
+          view: true,
+          create: true,
+          update: true,
+          manage: true,
+          approve: true,
+          remove: true,
+        },
+        lease: { view: true, create: true, update: true },
+        maintenance: { view: true, manage: true },
+        staff: { assign: true, remove: true, view: true },
+        financial: {
+          view: true,
+          manage: true,
+          record: true,
+          invoice: true,
+          view_limited: true,
+        },
+      },
+      agent_owner: {
+        // Agent owner can do everything within their organization
+        property: { view: true, create: true, update: true, delete: true },
+        tenant: {
+          view: true,
+          create: true,
+          update: true,
+          manage: true,
+          approve: true,
+          remove: true,
+        },
+        lease: { view: true, create: true, update: true },
+        maintenance: { view: true, manage: true },
+        staff: { assign: true, remove: true, view: true },
+        financial: {
+          view: true,
+          manage: true,
+          record: true,
+          invoice: true,
+          view_limited: true,
+        },
+      },
       agent_staff: {
+        // Regular staff with limited permissions
         property: { view: true, create: true, update: true, delete: false },
-        tenant: { view: true, create: true, update: true, manage: true },
+        tenant: {
+          view: true,
+          create: true,
+          update: true,
+          manage: true,
+          approve: true,
+          remove: false,
+        },
         lease: { view: true, create: true, update: true },
         maintenance: { view: true, manage: true },
         staff: { assign: false, remove: false, view: true },
+        financial: {
+          view: false,
+          manage: false,
+          record: true,
+          invoice: true,
+          view_limited: true,
+        },
+      },
+      property_owner: {
+        // Landlord permissions (view-only for most things)
+        property: { view: true, create: false, update: false, delete: false },
+        tenant: {
+          view: true,
+          create: false,
+          update: false,
+          manage: false,
+          approve: false,
+          remove: false,
+        },
+        lease: { view: true, create: false, update: false },
+        maintenance: { view: true, manage: false },
+        staff: { assign: false, remove: false, view: false },
+        financial: {
+          view: true,
+          manage: false,
+          record: false,
+          invoice: false,
+          view_limited: false,
+        },
       },
       caretaker: {
+        // Caretaker permissions (focused on maintenance and tenant management)
         property: { view: true, create: false, update: false, delete: false },
-        tenant: { view: true, create: false, update: false, manage: true },
+        tenant: {
+          view: true,
+          create: false,
+          update: false,
+          manage: true,
+          approve: false,
+          remove: false,
+        },
         lease: { view: true, create: false, update: false },
         maintenance: { view: true, manage: true },
         staff: { assign: false, remove: false, view: false },
+        financial: {
+          view: false,
+          manage: false,
+          record: true,
+          invoice: false,
+          view_limited: true,
+        },
+      },
+      tenant_user: {
+        // Tenant portal user permissions
+        property: { view: false, create: false, update: false, delete: false },
+        tenant: {
+          view: false,
+          create: false,
+          update: false,
+          manage: false,
+          approve: false,
+          remove: false,
+        },
+        lease: { view: true, create: false, update: false },
+        maintenance: { view: true, manage: true }, // Can create and view their own maintenance requests
+        staff: { assign: false, remove: false, view: false },
+        financial: {
+          view: false,
+          manage: false,
+          record: false,
+          invoice: false,
+          view_limited: true,
+        },
       },
     };
 
@@ -73,8 +192,11 @@ export class AC {
   private getTeamPermissions(
     teamId: string
   ): Record<string, Record<string, boolean>> {
-    // In a real implementation, this would fetch team-specific permissions
-    // For now, return an empty object
+    // In a real implementation, fetch team-specific permissions from database
+    // This would load team permissions from the database based on teamId
+    // For now, we're returning an empty object as a placeholder
+
+    // TODO: Implement proper team permissions fetching
     return {};
   }
 }

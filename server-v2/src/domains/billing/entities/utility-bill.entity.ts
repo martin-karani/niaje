@@ -1,8 +1,10 @@
-import { organizationEntity } from "@domains/organizations/entities/organization.entity"; // Adjusted path
-import { propertyEntity } from "@domains/properties/entities/property.entity"; // Adjusted path
-import { unitEntity } from "@domains/properties/entities/unit.entity"; // Adjusted path
-import { userEntity } from "@domains/users/entities/user.entity"; // Adjusted path
-import { createId } from "@infrastructure/database/utils/id-generator"; // Adjusted path
+// src/domains/billing/entities/utility-bill.entity.ts
+import { leaseEntity } from "@domains/leases/entities/lease.entity";
+import { organizationEntity } from "@domains/organizations/entities/organization.entity";
+import { propertyEntity } from "@domains/properties/entities/property.entity";
+import { unitEntity } from "@domains/properties/entities/unit.entity";
+import { tenantEntity } from "@domains/tenants/entities/tenant.entity";
+import { createId } from "@infrastructure/database/utils/id-generator";
 import { relations } from "drizzle-orm";
 import {
   date,
@@ -14,42 +16,59 @@ import {
 } from "drizzle-orm/pg-core";
 import { paymentEntity } from "./payment.entity";
 
-// Enums
-export const expenseCategoryEnum = pgEnum("expense_category", [
-  "maintenance_repair",
-  "utilities",
-  "property_tax",
-  "insurance",
-  "management_fee",
-  "advertising",
-  "supplies",
-  "capital_improvement",
+// Utility bill status enum
+export const utilityBillStatusEnum = pgEnum("utility_bill_status", [
+  "due",
+  "paid",
+  "overdue",
+  "canceled",
+]);
+
+// Utility type enum
+export const utilityTypeEnum = pgEnum("utility_type", [
+  "water",
+  "electricity",
+  "gas",
+  "internet",
+  "trash",
+  "sewer",
   "other",
 ]);
 
-// Expenses Table
-export const expenseEntity = pgTable("expenses", {
+// Utility bills table
+export const utilityBillEntity = pgTable("utility_bills", {
   id: text("id").primaryKey().$defaultFn(createId),
   organizationId: text("organization_id")
     .notNull()
     .references(() => organizationEntity.id, { onDelete: "restrict" }),
-  propertyId: text("property_id").references(() => propertyEntity.id, {
+  propertyId: text("property_id")
+    .notNull()
+    .references(() => propertyEntity.id, { onDelete: "cascade" }),
+  unitId: text("unit_id")
+    .notNull()
+    .references(() => unitEntity.id, { onDelete: "cascade" }),
+  leaseId: text("lease_id").references(() => leaseEntity.id, {
     onDelete: "set null",
-  }), // Optional link to specific property
-  unitId: text("unit_id").references(() => unitEntity.id, {
+  }),
+  tenantId: text("tenant_id").references(() => tenantEntity.id, {
     onDelete: "set null",
-  }), // Optional link to specific unit
+  }),
 
-  category: expenseCategoryEnum("category").notNull(),
+  utilityType: utilityTypeEnum("utility_type").notNull(),
+  billingPeriodStart: date("billing_period_start").notNull(),
+  billingPeriodEnd: date("billing_period_end").notNull(),
+  dueDate: date("due_date").notNull(),
   amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
-  expenseDate: date("expense_date").notNull(),
-  description: text("description").notNull(),
-  vendor: text("vendor"), // Who was paid?
+  status: utilityBillStatusEnum("status").default("due").notNull(),
 
-  paymentId: text("payment_id").references(() => paymentEntity.id), // Link to the corresponding outgoing payment transaction
+  meterReadingStart: numeric("meter_reading_start"),
+  meterReadingEnd: numeric("meter_reading_end"),
+  consumption: numeric("consumption"),
+  rate: numeric("rate"),
 
-  recordedBy: text("recorded_by").references(() => userEntity.id), // User who recorded the expense
+  paymentId: text("payment_id").references(() => paymentEntity.id),
   notes: text("notes"),
+
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -58,33 +77,37 @@ export const expenseEntity = pgTable("expenses", {
     .notNull(),
 });
 
-// Relations for Expenses
-export const expensesRelations = relations(expenseEntity, ({ one }) => ({
-  organization: one(organizationEntity, {
-    fields: [expenseEntity.organizationId],
-    references: [organizationEntity.id],
-    relationName: "organizationExpenses",
-  }),
-  property: one(propertyEntity, {
-    fields: [expenseEntity.propertyId],
-    references: [propertyEntity.id],
-    relationName: "propertyExpenses",
-  }),
-  unit: one(unitEntity, {
-    fields: [expenseEntity.unitId],
-    references: [unitEntity.id],
-  }),
-  recorder: one(userEntity, {
-    fields: [expenseEntity.recordedBy],
-    references: [userEntity.id],
-  }),
-  payment: one(paymentEntity, {
-    // Link back to the actual payment transaction
-    fields: [expenseEntity.paymentId],
-    references: [paymentEntity.id],
-  }),
-}));
+// Relations for utility bills
+export const utilityBillsRelations = relations(
+  utilityBillEntity,
+  ({ one }) => ({
+    organization: one(organizationEntity, {
+      fields: [utilityBillEntity.organizationId],
+      references: [organizationEntity.id],
+    }),
+    property: one(propertyEntity, {
+      fields: [utilityBillEntity.propertyId],
+      references: [propertyEntity.id],
+    }),
+    unit: one(unitEntity, {
+      fields: [utilityBillEntity.unitId],
+      references: [unitEntity.id],
+    }),
+    lease: one(leaseEntity, {
+      fields: [utilityBillEntity.leaseId],
+      references: [leaseEntity.id],
+    }),
+    tenant: one(tenantEntity, {
+      fields: [utilityBillEntity.tenantId],
+      references: [tenantEntity.id],
+    }),
+    payment: one(paymentEntity, {
+      fields: [utilityBillEntity.paymentId],
+      references: [paymentEntity.id],
+    }),
+  })
+);
 
 // Types
-export type Expense = typeof expenseEntity.$inferSelect;
-export type NewExpense = typeof expenseEntity.$inferInsert;
+export type UtilityBill = typeof utilityBillEntity.$inferSelect;
+export type NewUtilityBill = typeof utilityBillEntity.$inferInsert;
