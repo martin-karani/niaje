@@ -1,4 +1,3 @@
-// src/infrastructure/graphql/context/types.ts
 export interface GraphQLContext {
   user?: {
     id: string;
