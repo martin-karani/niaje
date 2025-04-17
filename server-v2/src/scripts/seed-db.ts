@@ -2,7 +2,7 @@
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { createId } from "@/db/utils";
-import { hashPassword } from "@/utils/auth.utils";
+import { hashPassword } from "@/shared/utils/auth.utils";
 import { and, eq } from "drizzle-orm";
 import * as process from "process";
 

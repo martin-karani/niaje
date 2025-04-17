@@ -35,8 +35,6 @@ const schema = {
   ...maintenanceEntities,
 };
 
-// Create drizzle instance
 export const db = drizzle(pool, {
   schema,
-  logger: process.env.NODE_ENV !== "production",
 });
