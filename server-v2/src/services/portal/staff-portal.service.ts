@@ -7,7 +7,7 @@ import {
   tenants,
   units,
 } from "@/db/schema";
-import { and, count, eq } from "drizzle-orm";
+import { and, count, eq, inArray } from "drizzle-orm";
 
 export class StaffPortalService {
   /**

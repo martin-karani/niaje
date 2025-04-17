@@ -1,25 +1,17 @@
-import { toNodeHandler } from "better-auth/node";
+import { betterAuth } from "@infrastructure/auth/better-auth";
+import { createAuthMiddleware } from "@infrastructure/auth/middleware";
+import { createGraphQLContext } from "@infrastructure/graphql/context/context-provider";
+import { schema } from "@infrastructure/graphql/schema";
+import { handleWebhooks } from "@infrastructure/webhooks";
+import { errorHandler } from "@shared/errors/error.middleware";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import { createYoga } from "graphql-yoga";
-import helmet from "helmet";
 
-// Import your GraphQL schema and middleware/configurations
-import { handleKorapayWebhook } from "@/api/webhooks/korapay";
-import { auth } from "@/auth/configs/auth.config";
-import { createBetterAuthMiddleware } from "@/middleware/auth.middleware";
-import { organizationMiddleware } from "@/middleware/organization.middleware";
-import { subscriptionCheckMiddleware } from "@/middleware/subscription.middleware";
-import { graphqlSchema } from "./api/graphql/schema";
-
-/**
- * Setup Express application with isolated GraphQL Yoga endpoint.
- */
 export function setupApi() {
   const app = express();
 
-  // Global middleware for all API endpoints
   app.use(
     cors({
       origin: process.env.FRONTEND_URL || "*",
@@ -27,53 +19,27 @@ export function setupApi() {
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     })
   );
-  app.use(cookieParser());
 
-  // Mount Better-Auth handler for authentication endpoints.
-  app.all("/api/auth/*splat", toNodeHandler(auth));
+  app.use(cookieParser());
+  app.use("/api/auth", betterAuth.handler());
 
   app.post(
-    "/api/webhooks/korapay",
+    "/api/webhooks/:provider",
     express.raw({ type: "application/json" }),
-    handleKorapayWebhook
+    handleWebhooks
   );
 
   app.use(express.json());
-
-  app.use(createBetterAuthMiddleware(auth));
-  app.use(organizationMiddleware);
-  app.use(subscriptionCheckMiddleware as express.RequestHandler);
+  app.use(createAuthMiddleware());
 
   const yoga = createYoga({
-    schema: graphqlSchema,
+    schema,
     graphqlEndpoint: "/api/graphql",
+    context: async ({ request }) => createGraphQLContext(request),
   });
 
-  // Create an isolated router for GraphQL Yoga,
-  // with custom CSP settings for GraphiQL.
-  const graphqlRouter = express.Router();
-  graphqlRouter.use(
-    helmet({
-      contentSecurityPolicy: {
-        directives: {
-          "style-src": ["'self'", "unpkg.com"],
-          "script-src": ["'self'", "unpkg.com", "'unsafe-inline'"],
-          "img-src": ["'self'", "raw.githubusercontent.com"],
-        },
-      },
-    })
-  );
-  graphqlRouter.use(yoga);
-
-  app.use(yoga.graphqlEndpoint, graphqlRouter);
-
-  // Global Helmet middleware for all other endpoints.
-  app.use(helmet());
-
-  // Example additional endpoint.
-  app.get("/hello", (req, res) => {
-    res.send("Hello World!");
-  });
+  app.use("/api/graphql", yoga);
+  app.use(errorHandler);
 
   return app;
 }

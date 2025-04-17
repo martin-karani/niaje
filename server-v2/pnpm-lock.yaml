@@ -68,6 +68,9 @@ importers:
       pg:
         specifier: ^8.14.1
         version: 8.14.1
+      zod:
+        specifier: ^3.24.2
+        version: 3.24.2
     devDependencies:
       '@types/express':
         specifier: ^5.0.1

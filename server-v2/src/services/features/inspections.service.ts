@@ -1,4 +1,3 @@
-// src/services/features/inspections.service.ts
 import { db } from "@/db";
 import { inspections, properties, units } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
