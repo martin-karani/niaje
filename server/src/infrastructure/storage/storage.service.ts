@@ -1,9 +1,11 @@
-import { STORAGE_CONFIG } from "@/shared/constants/enviroment";
+import { STORAGE_CONFIG } from "@/shared/constants/environment";
+import { AuthorizationError } from "@/shared/errors/authorization.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import {
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
@@ -41,6 +43,7 @@ const writeFile = promisify(fs.writeFile);
 const unlink = promisify(fs.unlink);
 const readFile = promisify(fs.readFile);
 const stat = promisify(fs.stat);
+const readdir = promisify(fs.readdir);
 
 export class StorageService {
   /**
@@ -49,12 +52,14 @@ export class StorageService {
    * @param fileBuffer the file data as buffer
    * @param contentType MIME type of the file
    * @param isPublic whether the file should be publicly accessible
+   * @param metadata additional metadata to store with the file
    */
   async uploadFile(
     filePath: string,
     fileBuffer: Buffer,
     contentType: string,
-    isPublic: boolean = false
+    isPublic: boolean = false,
+    metadata: Record<string, string> = {}
   ): Promise<string> {
     try {
       // Input validation
@@ -82,6 +87,12 @@ export class StorageService {
         throw new ValidationError(`File size exceeds the ${maxSizeMB}MB limit`);
       }
 
+      // Add timestamp to metadata to track upload time
+      const enhancedMetadata = {
+        ...metadata,
+        uploadTimestamp: new Date().toISOString(),
+      };
+
       // Call appropriate storage provider
       switch (STORAGE_CONFIG.STORAGE_TYPE) {
         case "s3":
@@ -89,11 +100,16 @@ export class StorageService {
             sanitizedPath,
             fileBuffer,
             contentType,
-            isPublic
+            isPublic,
+            enhancedMetadata
           );
         case "local":
         default:
-          return this.uploadToLocalStorage(sanitizedPath, fileBuffer);
+          return this.uploadToLocalStorage(
+            sanitizedPath,
+            fileBuffer,
+            enhancedMetadata
+          );
       }
     } catch (error) {
       if (error instanceof ValidationError) {
@@ -178,6 +194,55 @@ export class StorageService {
   }
 
   /**
+   * List all files in a specific directory path
+   * @param directoryPath The directory path to list files from
+   * @param organizationId The organization ID for permission check
+   * @returns Array of file information objects
+   */
+  async listFiles(
+    directoryPath: string,
+    organizationId: string
+  ): Promise<
+    Array<{
+      name: string;
+      path: string;
+      size: number;
+      lastModified: Date;
+      isDirectory: boolean;
+    }>
+  > {
+    try {
+      if (!directoryPath || directoryPath.trim() === "") {
+        throw new ValidationError("Directory path cannot be empty");
+      }
+
+      // Security check: ensure user can only access their organization's files
+      if (!directoryPath.startsWith(`organizations/${organizationId}/`)) {
+        throw new AuthorizationError("Access denied to this directory path");
+      }
+
+      const sanitizedPath = this.sanitizeFilePath(directoryPath);
+
+      switch (STORAGE_CONFIG.STORAGE_TYPE) {
+        case "s3":
+          return this.listFilesFromS3(sanitizedPath);
+        case "local":
+        default:
+          return this.listFilesFromLocalStorage(sanitizedPath);
+      }
+    } catch (error) {
+      if (
+        error instanceof ValidationError ||
+        error instanceof AuthorizationError
+      ) {
+        throw error;
+      }
+      console.error(`Error listing files from ${directoryPath}:`, error);
+      throw new Error(`Failed to list files: ${error.message}`);
+    }
+  }
+
+  /**
    * Check if a file exists
    */
   async fileExists(filePath: string): Promise<boolean> {
@@ -241,6 +306,7 @@ export class StorageService {
     size: number;
     lastModified: Date;
     contentType?: string;
+    metadata?: Record<string, string>;
   }> {
     try {
       if (!filePath || filePath.trim() === "") {
@@ -284,13 +350,144 @@ export class StorageService {
   }
 
   /**
+   * List files from S3 bucket
+   */
+  private async listFilesFromS3(directoryPath: string): Promise<
+    Array<{
+      name: string;
+      path: string;
+      size: number;
+      lastModified: Date;
+      isDirectory: boolean;
+    }>
+  > {
+    const s3 = initS3Client();
+    if (!s3 || !bucketName) {
+      throw new Error("S3 client or bucket name not configured");
+    }
+
+    // Ensure directory path ends with a slash for prefix matching
+    const prefix = directoryPath.endsWith("/")
+      ? directoryPath
+      : `${directoryPath}/`;
+
+    const params = {
+      Bucket: bucketName,
+      Prefix: prefix,
+      Delimiter: "/",
+    };
+
+    try {
+      const command = new ListObjectsV2Command(params);
+      const result = await s3.send(command);
+
+      const files = [];
+
+      // Process regular files (Contents)
+      if (result.Contents) {
+        for (const item of result.Contents) {
+          // Skip the directory itself (just has the prefix)
+          if (item.Key === prefix) continue;
+
+          files.push({
+            name: item.Key!.split("/").pop() || "",
+            path: item.Key!,
+            size: item.Size || 0,
+            lastModified: item.LastModified || new Date(),
+            isDirectory: false,
+          });
+        }
+      }
+
+      // Process directories (CommonPrefixes)
+      if (result.CommonPrefixes) {
+        for (const prefixItem of result.CommonPrefixes) {
+          const prefixPath = prefixItem.Prefix!;
+          const dirName = prefixPath.split("/").filter(Boolean).pop() || "";
+
+          files.push({
+            name: dirName,
+            path: prefixPath,
+            size: 0, // Directories don't have size
+            lastModified: new Date(), // S3 doesn't provide last modified for prefixes
+            isDirectory: true,
+          });
+        }
+      }
+
+      return files;
+    } catch (error) {
+      console.error(`Error listing files from S3: ${directoryPath}`, error);
+      throw new Error(`S3 listing failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * List files from local storage
+   */
+  private async listFilesFromLocalStorage(directoryPath: string): Promise<
+    Array<{
+      name: string;
+      path: string;
+      size: number;
+      lastModified: Date;
+      isDirectory: boolean;
+    }>
+  > {
+    const uploadsDir = path.join(process.cwd(), "uploads");
+    const fullPath = path.join(uploadsDir, directoryPath);
+
+    if (!fs.existsSync(fullPath)) {
+      return [];
+    }
+
+    try {
+      const entries = await readdir(fullPath, { withFileTypes: true });
+      const files = [];
+
+      for (const entry of entries) {
+        const entryPath = path.join(directoryPath, entry.name);
+        const fullEntryPath = path.join(uploadsDir, entryPath);
+
+        if (entry.isDirectory()) {
+          files.push({
+            name: entry.name,
+            path: entryPath,
+            size: 0,
+            lastModified: new Date(),
+            isDirectory: true,
+          });
+        } else {
+          const stats = await stat(fullEntryPath);
+          files.push({
+            name: entry.name,
+            path: entryPath,
+            size: stats.size,
+            lastModified: stats.mtime,
+            isDirectory: false,
+          });
+        }
+      }
+
+      return files;
+    } catch (error) {
+      console.error(
+        `Error listing files from local storage: ${directoryPath}`,
+        error
+      );
+      throw new Error(`Local file listing failed: ${error.message}`);
+    }
+  }
+
+  /**
    * Upload file to S3
    */
   private async uploadToS3(
     filePath: string,
     fileBuffer: Buffer,
     contentType: string,
-    isPublic: boolean = false
+    isPublic: boolean = false,
+    metadata: Record<string, string> = {}
   ): Promise<string> {
     const s3 = initS3Client();
     if (!s3 || !bucketName) {
@@ -300,12 +497,19 @@ export class StorageService {
     // Set ACL based on public/private setting
     const ACL = isPublic ? "public-read" : "private";
 
+    // Convert metadata to string values (S3 only accepts string metadata)
+    const stringMetadata: Record<string, string> = {};
+    Object.entries(metadata).forEach(([key, value]) => {
+      stringMetadata[key] = String(value);
+    });
+
     const params = {
       Bucket: bucketName,
       Key: filePath,
       Body: fileBuffer,
       ContentType: contentType,
       ACL,
+      Metadata: stringMetadata,
     };
 
     try {
@@ -449,6 +653,7 @@ export class StorageService {
     size: number;
     lastModified: Date;
     contentType?: string;
+    metadata?: Record<string, string>;
   }> {
     const s3 = initS3Client();
     if (!s3 || !bucketName) {
@@ -468,6 +673,7 @@ export class StorageService {
         size: response.ContentLength || 0,
         lastModified: response.LastModified || new Date(),
         contentType: response.ContentType,
+        metadata: response.Metadata,
       };
     } catch (error) {
       console.error(`Error getting metadata from S3: ${filePath}`, error);
@@ -480,11 +686,13 @@ export class StorageService {
    */
   private async uploadToLocalStorage(
     filePath: string,
-    fileBuffer: Buffer
+    fileBuffer: Buffer,
+    metadata: Record<string, string> = {}
   ): Promise<string> {
     const uploadsDir = path.join(process.cwd(), "uploads");
     const fullPath = path.join(uploadsDir, filePath);
     const dirPath = path.dirname(fullPath);
+    const metadataPath = `${fullPath}.metadata.json`;
 
     try {
       // Create directory if it doesn't exist
@@ -494,6 +702,12 @@ export class StorageService {
 
       // Write file
       await writeFile(fullPath, fileBuffer);
+
+      // Store metadata in a separate file if provided
+      if (Object.keys(metadata).length > 0) {
+        await writeFile(metadataPath, JSON.stringify(metadata, null, 2));
+      }
+
       console.log(`Successfully uploaded file to local storage: ${filePath}`);
 
       // Return local URL
@@ -510,6 +724,7 @@ export class StorageService {
   private async deleteFromLocalStorage(filePath: string): Promise<void> {
     const uploadsDir = path.join(process.cwd(), "uploads");
     const fullPath = path.join(uploadsDir, filePath);
+    const metadataPath = `${fullPath}.metadata.json`;
 
     try {
       if (fs.existsSync(fullPath)) {
@@ -517,6 +732,11 @@ export class StorageService {
         console.log(
           `Successfully deleted file from local storage: ${filePath}`
         );
+
+        // Delete metadata file if it exists
+        if (fs.existsSync(metadataPath)) {
+          await unlink(metadataPath);
+        }
       } else {
         console.warn(`File not found in local storage: ${filePath}`);
       }
@@ -564,9 +784,11 @@ export class StorageService {
     size: number;
     lastModified: Date;
     contentType?: string;
+    metadata?: Record<string, string>;
   }> {
     const uploadsDir = path.join(process.cwd(), "uploads");
     const fullPath = path.join(uploadsDir, filePath);
+    const metadataPath = `${fullPath}.metadata.json`;
 
     if (!fs.existsSync(fullPath)) {
       throw new Error(`File not found: ${filePath}`);
@@ -593,10 +815,18 @@ export class StorageService {
         ".txt": "text/plain",
       };
 
+      // Load metadata if it exists
+      let metadata: Record<string, string> | undefined = undefined;
+      if (fs.existsSync(metadataPath)) {
+        const metadataJson = await readFile(metadataPath, "utf8");
+        metadata = JSON.parse(metadataJson);
+      }
+
       return {
         size: stats.size,
         lastModified: stats.mtime,
         contentType: contentTypeMap[extname] || "application/octet-stream",
+        metadata,
       };
     } catch (error) {
       console.error(

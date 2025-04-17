@@ -2,6 +2,8 @@ import {
   deleteFile,
   getFileMetadata,
   getFileUrl,
+  listFiles,
+  searchFiles,
   uploadFile,
   uploadMultipleFiles,
 } from "@/api/controllers/upload.controller";
@@ -44,5 +46,19 @@ router.get("/url/:filePath(*)", requireAuth(), getFileUrl);
  * @access Private
  */
 router.get("/metadata/:filePath(*)", requireAuth(), getFileMetadata);
+
+/**
+ * @route GET /api/upload/list/:directoryPath
+ * @desc List files in a directory
+ * @access Private
+ */
+router.get("/list/:directoryPath(*)", requireAuth(), listFiles);
+
+/**
+ * @route GET /api/upload/search
+ * @desc Search for files
+ * @access Private
+ */
+router.get("/search", requireAuth(), searchFiles);
 
 export const uploadRoutes = router;
