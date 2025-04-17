@@ -1,4 +1,3 @@
-// src/infrastructure/auth/better-auth/access-control.ts
 export class AC {
   private user: any;
   private organization: any;

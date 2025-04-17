@@ -193,3 +193,75 @@ export const deleteFile = async (
     next(error);
   }
 };
+
+/**
+ * Get a presigned URL for file download
+ */
+export const getFileUrl = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { filePath } = req.params;
+
+    if (!req.user || !req.activeOrganization) {
+      throw new AuthorizationError("Authentication required");
+    }
+
+    const organizationId = req.activeOrganization.id;
+
+    // Security check: ensure file belongs to the organization
+    if (!filePath.startsWith(`organizations/${organizationId}/`)) {
+      throw new AuthorizationError(
+        "You don't have permission to access this file"
+      );
+    }
+
+    // Get presigned URL for the file (expires in 1 hour by default)
+    const fileUrl = await storageService.getFileUrl(filePath);
+
+    res.status(200).json({
+      success: true,
+      url: fileUrl,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get file metadata
+ */
+export const getFileMetadata = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { filePath } = req.params;
+
+    if (!req.user || !req.activeOrganization) {
+      throw new AuthorizationError("Authentication required");
+    }
+
+    const organizationId = req.activeOrganization.id;
+
+    // Security check: ensure file belongs to the organization
+    if (!filePath.startsWith(`organizations/${organizationId}/`)) {
+      throw new AuthorizationError(
+        "You don't have permission to access this file"
+      );
+    }
+
+    // Get file metadata
+    const metadata = await storageService.getFileMetadata(filePath);
+
+    res.status(200).json({
+      success: true,
+      metadata,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

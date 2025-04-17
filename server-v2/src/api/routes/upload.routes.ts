@@ -4,7 +4,7 @@ import {
   getFileUrl,
   uploadFile,
   uploadMultipleFiles,
-} from "@/api/routes/controllers/upload.controller";
+} from "@/api/controllers/upload.controller";
 import { requireAuth } from "@/infrastructure/auth/middleware";
 import express from "express";
 

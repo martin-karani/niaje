@@ -1,16 +1,13 @@
-// src/infrastructure/auth/auth.ts
-import { paymentGatewayService } from "@domains/billing/services/payment-gateway.service";
-import { emailService } from "@domains/communications/services/email.service";
-import { organizationEntity } from "@domains/organizations/entities/organization.entity";
-import { db } from "@infrastructure/database";
+import { paymentGatewayService } from "@/domains/billing/services/payment-gateway.service";
+import { emailService } from "@/domains/communications/services/email.service";
+import { organizationEntity } from "@/domains/organizations/entities/organization.entity";
+import { db } from "@/infrastructure/database";
 import { betterAuth, BetterAuthOptions } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin, organization } from "better-auth/plugins";
 import { addMonths } from "date-fns";
 import dotenv from "dotenv";
 import { eq } from "drizzle-orm";
-
-// Import the new permission system
 
 dotenv.config();
 
@@ -206,5 +203,5 @@ export const auth = betterAuth(authOptions);
 export type AuthInstance = ReturnType<typeof betterAuth>;
 
 // Export AC and determinePermissions for use in GraphQL context
-export { AC } from "./better-auth/access-control";
-export { determinePermissions } from "./permissions";
+export { determinePermissions } from "../permissions";
+export { AC } from "./access-control";
