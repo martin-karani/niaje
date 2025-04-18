@@ -24,6 +24,7 @@ export const propertiesTypeDefs = `
     
     # Computed fields
     occupancyRate: Float!
+    isInActiveTeam: Boolean!
     createdAt: String!
     updatedAt: String!
   }

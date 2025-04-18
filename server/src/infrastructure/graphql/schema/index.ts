@@ -2,6 +2,12 @@ import { billingResolvers } from "@/domains/billing/resolvers/billings.resolvers
 import { subscriptionResolvers } from "@/domains/billing/resolvers/subscription.resolvers";
 import { billingTypeDefs } from "@/domains/billing/types/billing.type";
 import { subscriptionTypeDefs } from "@/domains/billing/types/subscription.types";
+import { communicationsResolvers } from "@/domains/communications/resolvers/communications.resolver";
+import { communicationsTypeDefs } from "@/domains/communications/types/communications.types";
+import { documentsResolvers } from "@/domains/documents/resolvers/documents.resolver";
+import { documentTypeDefs } from "@/domains/documents/types/document.types";
+import { inspectionsResolvers } from "@/domains/inspections/resolvers/inspections.resolver";
+import { inspectionsTypeDefs } from "@/domains/inspections/types/inspections.types";
 import { leasesResolvers } from "@/domains/leases/resolvers/leases.resolver";
 import { leasesTypeDefs } from "@/domains/leases/types/leases.types";
 import { maintenanceResolvers } from "@/domains/maintenance/resolvers/maintenance.resolver";
@@ -39,6 +45,8 @@ const typeDefs = [
   usersTypeDefs,
   billingTypeDefs,
   communicationsTypeDefs,
+  documentTypeDefs,
+  inspectionsTypeDefs,
 ];
 
 // Merge all resolvers
@@ -52,6 +60,9 @@ const resolvers = {
     ...maintenanceResolvers.Query,
     ...subscriptionResolvers.Query,
     ...billingResolvers.Query,
+    ...communicationsResolvers.Query,
+    ...documentsResolvers.Query,
+    ...inspectionsResolvers.Query,
   },
   Mutation: {
     ...propertiesResolvers.Mutation,
@@ -61,6 +72,9 @@ const resolvers = {
     ...maintenanceResolvers.Mutation,
     ...subscriptionResolvers.Mutation,
     ...billingResolvers.Mutation,
+    ...communicationsResolvers.Mutation,
+    ...documentsResolvers.Mutation,
+    ...inspectionsResolvers.Mutation,
   },
   // Type resolvers
   Property: propertiesResolvers.Property,
@@ -71,6 +85,8 @@ const resolvers = {
     ...subscriptionResolvers.Organization,
   },
   MaintenanceRequest: maintenanceResolvers.MaintenanceRequest,
+  Communication: communicationsResolvers.Communication,
+  Document: documentsResolvers.Document,
 };
 
 // Create executable schema
