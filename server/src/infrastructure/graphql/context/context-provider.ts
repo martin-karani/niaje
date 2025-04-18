@@ -11,7 +11,19 @@ export async function createGraphQLContext(
   const team = request.activeTeam || null;
   const tenant = request.activeTenant || null;
 
-  const permissions = determinePermissions(user, organization, team);
+  const permissions = determinePermissions(user, organization, team) as {
+    canViewProperties: boolean;
+    canManageProperties: boolean;
+    canDeleteProperties: boolean;
+    canViewTenants: boolean;
+    canManageTenants: boolean;
+    canViewLeases: boolean;
+    canManageLeases: boolean;
+    canViewMaintenance: boolean;
+    canManageMaintenance: boolean;
+    canManageUsers: boolean;
+    canManageSubscription: boolean;
+  };
 
   const features = organization
     ? await getSubscriptionFeatures(organization.id)

@@ -3,8 +3,8 @@ import { auth } from "@/infrastructure/auth/better-auth/auth";
 import { createAuthMiddleware } from "@/infrastructure/auth/middleware";
 import { createGraphQLContext } from "@/infrastructure/graphql/context/context-provider";
 import { schema } from "@/infrastructure/graphql/schema";
-import { errorHandler } from "@/shared/errors/error.middleware";
 import { handleWebhooks } from "@infrastructure/webhooks";
+import { toNodeHandler } from "better-auth/node";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
@@ -23,7 +23,7 @@ export function setupApi() {
   );
 
   app.use(cookieParser());
-  app.use("/api/auth", auth);
+  app.use("/api/auth", toNodeHandler(auth));
 
   // Serve static files from uploads directory
   app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
@@ -51,8 +51,6 @@ export function setupApi() {
 
   app.use("/api/graphql", yoga);
 
-  // Error handler middleware (must be last)
-  app.use(errorHandler);
 
   return app;
 }

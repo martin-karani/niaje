@@ -1,6 +1,5 @@
-import { memberEntity } from "@/domains/organizations/entities";
-import { organizationEntity } from "@/domains/organizations/entities/organization.entity";
-import { userEntity } from "@/domains/users/entities/user.entity";
+import { memberEntity, organizationEntity } from "@/domains/organizations/entities/organization.entity";
+import { userEntity } from "@/domains/users/entities";
 import { db } from "@/infrastructure/database";
 import { EmailService } from "@/infrastructure/email/email.service";
 import { SUBSCRIPTION_PLANS } from "@/shared/constants/subscription-plans";
@@ -169,11 +168,34 @@ export class SubscriptionService {
     trialDaysRemaining: number;
     subscriptionActive: boolean;
     subscriptionPlan: string;
+    limits: { maxProperties: number; maxUsers: number };
+  }> {
+    // existing implementation...
+  }
+
+  /**
+   * Retrieve the feature set for an organization's current plan or trial
+   */
+  async getSubscriptionFeatures(
+    organizationId: string
+  ): Promise<{
+    planKey: string;
+    name: string;
+    description: string;
+    features: string[];
+    pricing?: {
+      monthlyPrice: number;
+      yearlyPrice: number;
+      monthlyPriceId: string;
+      yearlyPriceId: string;
+    };
     limits: {
       maxProperties: number;
       maxUsers: number;
     };
+    trialDaysRemaining?: number;
   }> {
+    // Load organization
     const org = await db.query.organizationEntity.findFirst({
       where: eq(organizationEntity.id, organizationId),
     });
@@ -185,13 +207,19 @@ export class SubscriptionService {
       await trialService.getTrialDaysRemaining(organizationId);
 
     return {
-      onTrial,
-      trialDaysRemaining,
-      subscriptionActive: org.subscriptionStatus === "active",
-      subscriptionPlan: org.subscriptionPlan || "none",
+      planKey,
+      name: plan.name,
+      description: plan.description,
+      features: plan.features,
+      pricing: {
+        monthlyPrice: plan.monthlyPrice,
+        yearlyPrice: plan.yearlyPrice,
+        monthlyPriceId: plan.monthlyPriceId,
+        yearlyPriceId: plan.yearlyPriceId,
+      },
       limits: {
-        maxProperties: org.maxProperties,
-        maxUsers: org.maxUsers,
+        maxProperties: plan.maxProperties,
+        maxUsers: plan.maxUsers,
       },
     };
   }
