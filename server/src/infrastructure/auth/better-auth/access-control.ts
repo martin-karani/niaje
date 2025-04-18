@@ -1,8 +1,8 @@
+
 export class AC {
   private user: any;
   private organization: any;
   private team: any;
-
   constructor(user: any, organization: any, team: any) {
     this.user = user;
     this.organization = organization;
@@ -22,7 +22,6 @@ export class AC {
 
     // Get user role permissions from better-auth AC system
     const rolePermissions = this.getRolePermissions(this.user.role);
-
     // Check team-specific permissions
     if (this.team) {
       const teamPermissions = this.getTeamPermissions(this.team.id);
@@ -184,7 +183,6 @@ export class AC {
         },
       },
     };
-
     return roleMap[role] || {};
   }
 

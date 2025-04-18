@@ -42,7 +42,6 @@ export class InvitationsService {
         inviter: true,
       },
     });
-
     if (!invitation) {
       throw new NotFoundError(`Invitation with ID ${id} not found`);
     }
@@ -61,7 +60,6 @@ export class InvitationsService {
         inviter: true,
       },
     });
-
     if (!invitation) {
       throw new NotFoundError(`Invitation with token ${token} not found`);
     }
@@ -83,7 +81,6 @@ export class InvitationsService {
     const organization = await db.query.organizationEntity.findFirst({
       where: eq(organizationEntity.id, data.organizationId),
     });
-
     if (!organization) {
       throw new NotFoundError("Organization not found");
     }
@@ -96,7 +93,6 @@ export class InvitationsService {
         eq(invitationEntity.status, "pending")
       ),
     });
-
     if (existingInvitation) {
       throw new ValidationError(
         "An active invitation already exists for this email"
@@ -105,10 +101,8 @@ export class InvitationsService {
 
     // Generate invitation token
     const token = generateToken();
-
     // Create expiration date (7 days from now)
     const expiresAt = addDays(new Date(), 7);
-
     // Create invitation
     const invitationData: NewInvitation = {
       id: createId(),
@@ -122,17 +116,14 @@ export class InvitationsService {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-
     const [invitation] = await db
       .insert(invitationEntity)
       .values(invitationData)
       .returning();
-
     // Get organization and inviter details for email
     const inviter = await db.query.userEntity.findFirst({
       where: eq(userEntity.id, data.inviterId),
     });
-
     // Send invitation email
     if (inviter) {
       try {
@@ -165,7 +156,6 @@ export class InvitationsService {
         eq(invitationEntity.organizationId, organizationId)
       ),
     });
-
     if (!invitation) {
       throw new NotFoundError("Invitation not found");
     }
@@ -184,7 +174,6 @@ export class InvitationsService {
       })
       .where(eq(invitationEntity.id, id))
       .returning();
-
     return updatedInvitation;
   }
 
@@ -194,7 +183,6 @@ export class InvitationsService {
   async acceptInvitation(token: string, userId: string): Promise<void> {
     // Find invitation by token
     const invitation = await this.getInvitationByToken(token);
-
     // Check if invitation is still valid
     if (invitation.status !== "pending") {
       throw new ValidationError(
@@ -213,7 +201,6 @@ export class InvitationsService {
         eq(memberEntity.organizationId, invitation.organizationId)
       ),
     });
-
     if (existingMembership) {
       throw new ValidationError(
         "You are already a member of this organization"
@@ -231,7 +218,6 @@ export class InvitationsService {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-
     await db.transaction(async (tx) => {
       // Create membership
       await tx.insert(memberEntity).values(membershipData);
@@ -265,7 +251,6 @@ export class InvitationsService {
         inviter: true,
       },
     });
-
     if (!invitation) {
       throw new NotFoundError("Invitation not found");
     }
@@ -289,7 +274,6 @@ export class InvitationsService {
       })
       .where(eq(invitationEntity.id, id))
       .returning();
-
     // Send invitation email
     if (invitation.inviter && invitation.organization) {
       try {

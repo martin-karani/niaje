@@ -1,3 +1,4 @@
+
 import { leaseEntity } from "@/domains/leases/entities/lease.entity";
 import { organizationEntity } from "@/domains/organizations/entities/organization.entity";
 import { propertyEntity } from "@/domains/properties/entities/property.entity";
