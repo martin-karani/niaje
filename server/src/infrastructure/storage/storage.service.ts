@@ -1,4 +1,4 @@
-import { STORAGE_CONFIG } from "@/shared/constants/environment";
+import { STORAGE_CONFIG } from "@/shared/constants/enviroment";
 import { AuthorizationError } from "@/shared/errors/authorization.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import {

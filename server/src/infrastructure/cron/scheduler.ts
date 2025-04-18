@@ -1,4 +1,4 @@
-import { SERVER_CONFIG } from "@/config/environment";
+import { SERVER_CONFIG } from "@/shared/constants/enviroment";
 import cron from "node-cron";
 import { processLeaseReminders } from "./lease-reminders";
 import { processTrials } from "./process-trials";

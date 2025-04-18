@@ -1,7 +1,6 @@
-import { db } from "@infrastructure/database";
-import { createId } from "@infrastructure/database/utils/id-generator";
-import { NotFoundError } from "@shared/errors/not-found.error";
-import { ValidationError } from "@shared/errors/validation.error";
+import { db } from "@/infrastructure/database";
+import { createId } from "@/infrastructure/database/utils/id-generator";
+import { NotFoundError, ValidationError } from "@/shared/errors";
 import { and, eq } from "drizzle-orm";
 import {
   Member,

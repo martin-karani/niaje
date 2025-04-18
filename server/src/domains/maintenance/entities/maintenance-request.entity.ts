@@ -5,6 +5,7 @@ import { userEntity } from "@/domains/users/entities/user.entity";
 import { createId } from "@/infrastructure/database/utils/id-generator";
 import { relations } from "drizzle-orm";
 import {
+  boolean,
   json,
   numeric,
   pgEnum,

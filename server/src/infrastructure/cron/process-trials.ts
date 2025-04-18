@@ -1,4 +1,4 @@
-import { trialService } from "@/services/system/trial.service";
+import { trialService } from "@/domains/billing/services/trial.service";
 
 async function processTrials() {
   console.log("Processing expired trials...");

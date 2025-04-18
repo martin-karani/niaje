@@ -1,15 +1,14 @@
-import { uploadRoutes } from "@/api/routes/upload.routes";
 import { auth } from "@/infrastructure/auth/better-auth/auth";
-import { createAuthMiddleware } from "@/infrastructure/auth/middleware";
 import { createGraphQLContext } from "@/infrastructure/graphql/context/context-provider";
 import { schema } from "@/infrastructure/graphql/schema";
-import { handleWebhooks } from "@infrastructure/webhooks";
+import { handleWebhooks } from "@/infrastructure/webhooks";
 import { toNodeHandler } from "better-auth/node";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import { createYoga } from "graphql-yoga";
 import path from "path";
+import { createAuthMiddleware } from "./infrastructure/auth/middleware";
 
 export function setupApi() {
   const app = express();
@@ -23,7 +22,7 @@ export function setupApi() {
   );
 
   app.use(cookieParser());
-  app.use("/api/auth", toNodeHandler(auth));
+  app.use("/api/auth/*splat", toNodeHandler(auth));
 
   // Serve static files from uploads directory
   app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
@@ -40,7 +39,7 @@ export function setupApi() {
   app.use(createAuthMiddleware());
 
   // File upload routes
-  app.use("/api/upload", uploadRoutes);
+  // app.use("/api/upload", uploadRoutes);
 
   // GraphQL endpoint
   const yoga = createYoga({
@@ -50,7 +49,6 @@ export function setupApi() {
   });
 
   app.use("/api/graphql", yoga);
-
 
   return app;
 }

@@ -1,6 +1,6 @@
-import { db } from "@infrastructure/database";
-import { NotFoundError } from "@shared/errors/not-found.error";
-import { ValidationError } from "@shared/errors/validation.error";
+import { db } from "@/infrastructure/database";
+import { NotFoundError } from "@/shared/errors/not-found.error";
+import { ValidationError } from "@/shared/errors/validation.error";
 import { and, eq } from "drizzle-orm";
 import {
   CreateOrganizationDto,

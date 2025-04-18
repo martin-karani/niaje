@@ -1,7 +1,7 @@
 import { communicationsService } from "@/domains/communications/services/communications.service";
-import { emailService } from "@/domains/communications/services/email.service";
 import { leaseEntity } from "@/domains/leases/entities/lease.entity";
 import { db } from "@/infrastructure/database";
+import { emailService } from "@/infrastructure/email/email.service";
 import { addDays, differenceInDays, format } from "date-fns";
 import { and, eq, lte } from "drizzle-orm";
 

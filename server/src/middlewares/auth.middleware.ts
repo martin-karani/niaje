@@ -1,6 +1,6 @@
-import { AuthInstance } from "@/auth/configs/auth.config";
-import { db } from "@/db";
-import { organization } from "@/db/schema";
+import { organizationEntity } from "@/domains/organizations/entities";
+import { AuthInstance } from "@/infrastructure/auth/better-auth/auth";
+import { db } from "@/infrastructure/database";
 import { fromNodeHeaders } from "better-auth/node";
 import { eq } from "drizzle-orm";
 import { NextFunction, Request, Response } from "express";
@@ -23,7 +23,7 @@ export function createBetterAuthMiddleware(auth: AuthInstance) {
       // If there's an active organization, attach it too
       if (session?.activeOrganizationId) {
         const activeOrg = await db.query.organization.findFirst({
-          where: eq(organization.id, session.activeOrganizationId),
+          where: eq(organizationEntity.id, session.activeOrganizationId),
         });
 
         if (activeOrg) {

@@ -7,7 +7,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx src/db/migrate.ts",
+    "db:migrate": "tsx src/infrastructure/database/migrate.ts",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx src/scripts/seed-db.ts",
     "db:seed:reset": "tsx src/scripts/seed-db.ts --reset",
@@ -45,9 +45,14 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@types/cookie-parser": "^1.4.8",
+    "@types/cors": "^2.8.17",
     "@types/express": "^5.0.1",
+    "@types/multer": "^1.4.12",
     "@types/node": "^22.14.1",
+    "@types/node-cron": "^3.0.11",
     "@types/pg": "^8.11.13",
+    "@types/uuid": "^10.0.0",
     "drizzle-kit": "^0.30.6",
     "eslint": "^9.24.0",
     "nodemon": "^3.1.9",

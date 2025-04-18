@@ -1,4 +1,4 @@
-
+import { inspectionEntity } from "@/domains/inspections/entities";
 import { leaseEntity } from "@/domains/leases/entities/lease.entity";
 import { organizationEntity } from "@/domains/organizations/entities/organization.entity";
 import { propertyEntity } from "@/domains/properties/entities/property.entity";
@@ -70,6 +70,12 @@ export const documentEntity = pgTable("documents", {
   relatedTenantId: text("related_tenant_id").references(() => tenantEntity.id, {
     onDelete: "set null",
   }),
+  relatedInspectionId: text("related_inspection_id").references(
+    () => inspectionEntity.id,
+    {
+      onDelete: "set null",
+    }
+  ),
 
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
@@ -106,6 +112,12 @@ export const documentsRelations = relations(documentEntity, ({ one }) => ({
     fields: [documentEntity.relatedTenantId],
     references: [tenantEntity.id],
     relationName: "tenantDocuments",
+  }),
+  // Add this relation
+  inspection: one(inspectionEntity, {
+    fields: [documentEntity.relatedInspectionId],
+    references: [inspectionEntity.id],
+    relationName: "inspectionDocuments",
   }),
 }));
 

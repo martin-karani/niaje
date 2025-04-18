@@ -1,8 +1,8 @@
 import { paymentEntity } from "@/domains/billing/entities/payment.entity";
 import { communicationsService } from "@/domains/communications/services/communications.service";
-import { emailService } from "@/domains/communications/services/email.service";
 import { leaseEntity } from "@/domains/leases/entities/lease.entity";
 import { db } from "@/infrastructure/database";
+import { emailService } from "@/infrastructure/email/email.service";
 import { addDays, endOfDay, format, startOfDay } from "date-fns";
 import { and, eq, isNotNull } from "drizzle-orm";
 

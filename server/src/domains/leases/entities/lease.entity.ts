@@ -1,9 +1,6 @@
-import { paymentEntity, utilityBillEntity } from "@/domains/billing/entities";
-import { documentEntity } from "@/domains/documents/entities";
 import { organizationEntity } from "@/domains/organizations/entities";
 import { propertyEntity } from "@/domains/properties/entities/property.entity";
 import { unitEntity } from "@/domains/properties/entities/unit.entity";
-import { leaseTenantsEntity } from "@/domains/tenants/entities/lease-tenant.entity";
 import { userEntity } from "@/domains/users/entities";
 import { createId } from "@/infrastructure/database/utils/id-generator";
 import { relations } from "drizzle-orm";
@@ -142,10 +139,6 @@ export const leasesRelations = relations(leaseEntity, ({ one, many }) => ({
     references: [userEntity.id],
     relationName: "leaseCreator",
   }),
-  tenantAssignments: many(leaseTenantsEntity),
-  payments: many(paymentEntity),
-  utilityBills: many(utilityBillEntity),
-  documents: many(documentEntity, { relationName: "leaseDocuments" }),
 }));
 
 // Types

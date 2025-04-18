@@ -1,6 +1,6 @@
 import { paymentsService } from "@/domains/billing/services/payments.service";
 import { subscriptionService } from "@/domains/billing/services/subscription.service";
-import { EmailService } from "@/domains/communications/services/email.service";
+import { EmailService } from "@/infrastructure/email/email.service";
 import crypto from "crypto";
 import { Request, Response } from "express";
 

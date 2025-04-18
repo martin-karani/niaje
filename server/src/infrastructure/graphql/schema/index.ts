@@ -1,15 +1,15 @@
 import { subscriptionTypeDefs } from "@/domains/billing/types/subscription.types";
 import { leasesTypeDefs } from "@/domains/leases/types/leases.types";
-import { maintenanceTypeDefs } from "@/domains/maintenance/types/maintenance.types";
-import { organizationsTypeDefs } from "@/domains/organizations/types/organizations.types";
 import { propertiesTypeDefs } from "@/domains/properties/types/properties.types";
 import { tenantsTypeDefs } from "@/domains/tenants/types/tenants.types";
 import { makeExecutableSchema } from "@graphql-tools/schema";
 
-import { subscriptionResolvers } from "@/domains/billing/resolvers/subscription.resolver";
+import { subscriptionResolvers } from "@/domains/billing/resolvers/subscription.resolvers";
 import { leasesResolvers } from "@/domains/leases/resolvers/leases.resolver";
 import { maintenanceResolvers } from "@/domains/maintenance/resolvers/maintenance.resolver";
+import { maintenanceTypeDefs } from "@/domains/maintenance/types/maintenace.types";
 import { organizationsResolvers } from "@/domains/organizations/resolvers/organizations.resolver";
+import { organizationsTypeDefs } from "@/domains/organizations/types/organizations.type";
 import { propertiesResolvers } from "@/domains/properties/resolvers/properties.resolver";
 import { tenantsResolvers } from "@/domains/tenants/resolvers/tenants.resolver";
 

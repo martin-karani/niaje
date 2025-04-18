@@ -1,8 +1,8 @@
 import { utilityBillEntity } from "@/domains/billing/entities/utility-bill.entity";
 import { communicationsService } from "@/domains/communications/services/communications.service";
-import { emailService } from "@/domains/communications/services/email.service";
 import { leaseEntity } from "@/domains/leases/entities/lease.entity";
 import { db } from "@/infrastructure/database";
+import { emailService } from "@/infrastructure/email/email.service";
 import { addDays, addMonths, endOfMonth, format, startOfMonth } from "date-fns";
 import { and, eq, isNotNull } from "drizzle-orm";
 

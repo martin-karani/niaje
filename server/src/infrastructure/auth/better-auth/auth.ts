@@ -1,7 +1,7 @@
 import { paymentGatewayService } from "@/domains/billing/services/payment-gateway.service";
-import { emailService } from "@/domains/communications/services/email.service";
 import { organizationEntity } from "@/domains/organizations/entities/organization.entity";
 import { db } from "@/infrastructure/database";
+import { emailService } from "@/infrastructure/email/email.service";
 import { betterAuth, BetterAuthOptions } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin, organization } from "better-auth/plugins";

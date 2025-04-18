@@ -1,7 +1,9 @@
-import { communications, tenants, user } from "@/db/schema";
+import { communicationEntity } from "@/domains/communications/entities";
+import { tenantEntity } from "@/domains/tenants/entities";
+import { userEntity } from "@/domains/users/entities";
 import { db } from "@/infrastructure/database";
-import { emailService } from "@/services/system/email.service";
-import { and, desc, eq } from "drizzle-orm";
+import { emailService } from "@/infrastructure/email/email.service";
+import { and, desc, eq, lte } from "drizzle-orm";
 
 export class CommunicationsService {
   /**
@@ -29,7 +31,7 @@ export class CommunicationsService {
 
     // Create the communication record
     const result = await db
-      .insert(communications)
+      .insert(communicationEntity)
       .values({
         organizationId: data.organizationId,
         type: data.type,
@@ -60,7 +62,7 @@ export class CommunicationsService {
         // Get recipient info from user or tenant
         if (data.recipientUserId) {
           const recipient = await db.query.user.findFirst({
-            where: eq(user.id, data.recipientUserId),
+            where: eq(userEntity.id, data.recipientUserId),
           });
 
           if (recipient) {
@@ -69,7 +71,7 @@ export class CommunicationsService {
           }
         } else if (data.recipientTenantId) {
           const recipient = await db.query.tenants.findFirst({
-            where: eq(tenants.id, data.recipientTenantId),
+            where: eq(tenantEntity.id, data.recipientTenantId),
           });
 
           if (recipient) {
@@ -89,26 +91,26 @@ export class CommunicationsService {
 
           // Update communication with delivery info
           await db
-            .update(communications)
+            .update(communicationEntity)
             .set({
               status: "delivered",
               deliveredAt: new Date(),
               updatedAt: new Date(),
             })
-            .where(eq(communications.id, result[0].id));
+            .where(eq(communicationEntity.id, result[0].id));
         }
       } catch (error) {
         console.error("Error sending email:", error);
 
         // Update communication with failure info
         await db
-          .update(communications)
+          .update(communicationEntity)
           .set({
             status: "failed",
             failedReason: `Error sending email: ${error.message}`,
             updatedAt: new Date(),
           })
-          .where(eq(communications.id, result[0].id));
+          .where(eq(communicationEntity.id, result[0].id));
       }
     }
 
@@ -120,13 +122,13 @@ export class CommunicationsService {
    */
   async markAsRead(id: string) {
     const result = await db
-      .update(communications)
+      .update(communicationEntity)
       .set({
         isRead: true,
         readAt: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(communications.id, id))
+      .where(eq(communicationEntity.id, id))
       .returning();
 
     return result[0];
@@ -136,9 +138,9 @@ export class CommunicationsService {
    * Get communications for a user
    */
   async getUserCommunications(userId: string, limit = 50) {
-    return db.query.communications.findMany({
-      where: eq(communications.recipientUserId, userId),
-      orderBy: [desc(communications.createdAt)],
+    return db.query.communicationEntity.findMany({
+      where: eq(communicationEntity.recipientUserId, userId),
+      orderBy: [desc(communicationEntity.createdAt)],
       limit,
     });
   }
@@ -147,9 +149,9 @@ export class CommunicationsService {
    * Get communications for a tenant
    */
   async getTenantCommunications(tenantId: string, limit = 50) {
-    return db.query.communications.findMany({
-      where: eq(communications.recipientTenantId, tenantId),
-      orderBy: [desc(communications.createdAt)],
+    return db.query.communicationEntity.findMany({
+      where: eq(communicationEntity.recipientTenantId, tenantId),
+      orderBy: [desc(communicationEntity.createdAt)],
       limit,
     });
   }
@@ -162,12 +164,14 @@ export class CommunicationsService {
     const now = new Date();
 
     // Find communications scheduled to be sent now or in the past
-    const scheduledCommunications = await db.query.communications.findMany({
-      where: and(
-        eq(communications.status, "scheduled"),
-        lte(communications.scheduledSendAt, now)
-      ),
-    });
+    const scheduledCommunications = await db.query.communicationEntity.findMany(
+      {
+        where: and(
+          eq(communicationEntity.status, "scheduled"),
+          lte(communicationEntity.scheduledSendAt, now)
+        ),
+      }
+    );
 
     console.log(
       `Processing ${scheduledCommunications.length} scheduled communications`
@@ -180,8 +184,8 @@ export class CommunicationsService {
         let recipientName: string | undefined;
 
         if (comm.recipientUserId) {
-          const recipient = await db.query.user.findFirst({
-            where: eq(user.id, comm.recipientUserId),
+          const recipient = await db.query.userEntity.findFirst({
+            where: eq(userEntity.id, comm.recipientUserId),
           });
 
           if (recipient) {
@@ -190,7 +194,7 @@ export class CommunicationsService {
           }
         } else if (comm.recipientTenantId) {
           const recipient = await db.query.tenants.findFirst({
-            where: eq(tenants.id, comm.recipientTenantId),
+            where: eq(tenantEntity.id, comm.recipientTenantId),
           });
 
           if (recipient) {
@@ -210,25 +214,25 @@ export class CommunicationsService {
 
           // Update as delivered
           await db
-            .update(communications)
+            .update(communicationEntity)
             .set({
               status: "delivered",
               sentAt: new Date(),
               deliveredAt: new Date(),
               updatedAt: new Date(),
             })
-            .where(eq(communications.id, comm.id));
+            .where(eq(communicationEntity.id, comm.id));
         } else {
           // For other types (SMS, in-app), we would integrate with relevant services
           // For now, just mark as sent
           await db
-            .update(communications)
+            .update(communicationEntity)
             .set({
               status: "sent",
               sentAt: new Date(),
               updatedAt: new Date(),
             })
-            .where(eq(communications.id, comm.id));
+            .where(eq(communicationEntity.id, comm.id));
         }
       } catch (error) {
         console.error(
@@ -238,13 +242,13 @@ export class CommunicationsService {
 
         // Mark as failed
         await db
-          .update(communications)
+          .update(communicationEntity)
           .set({
             status: "failed",
             failedReason: `Error: ${error.message}`,
             updatedAt: new Date(),
           })
-          .where(eq(communications.id, comm.id));
+          .where(eq(communicationEntity.id, comm.id));
       }
     }
   }

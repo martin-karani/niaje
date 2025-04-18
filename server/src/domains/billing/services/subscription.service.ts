@@ -1,11 +1,13 @@
-import { memberEntity, organizationEntity } from "@/domains/organizations/entities/organization.entity";
+import {
+  memberEntity,
+  organizationEntity,
+} from "@/domains/organizations/entities/organization.entity";
 import { userEntity } from "@/domains/users/entities";
 import { db } from "@/infrastructure/database";
 import { EmailService } from "@/infrastructure/email/email.service";
 import { SUBSCRIPTION_PLANS } from "@/shared/constants/subscription-plans";
 import { and, eq } from "drizzle-orm";
 import { paymentGatewayService } from "./payment-gateway.service";
-import { trialService } from "./trial.service";
 
 export class SubscriptionService {
   constructor(private emailService: EmailService) {}
@@ -174,54 +176,78 @@ export class SubscriptionService {
   }
 
   /**
-   * Retrieve the feature set for an organization's current plan or trial
+   * Get features enabled for an organization based on their subscription plan
    */
-  async getSubscriptionFeatures(
-    organizationId: string
-  ): Promise<{
-    planKey: string;
-    name: string;
-    description: string;
-    features: string[];
-    pricing?: {
-      monthlyPrice: number;
-      yearlyPrice: number;
-      monthlyPriceId: string;
-      yearlyPriceId: string;
-    };
-    limits: {
-      maxProperties: number;
-      maxUsers: number;
-    };
-    trialDaysRemaining?: number;
+
+  async getSubscriptionFeatures(organizationId: string): Promise<{
+    maxProperties: number;
+    maxUsers: number;
+    advancedReporting: boolean;
+    documentStorage: boolean;
   }> {
-    // Load organization
-    const org = await db.query.organizationEntity.findFirst({
-      where: eq(organizationEntity.id, organizationId),
-    });
-
-    if (!org) throw new Error("Organization not found");
-
-    const onTrial = await trialService.isInTrial(organizationId);
-    const trialDaysRemaining =
-      await trialService.getTrialDaysRemaining(organizationId);
-
-    return {
-      planKey,
-      name: plan.name,
-      description: plan.description,
-      features: plan.features,
-      pricing: {
-        monthlyPrice: plan.monthlyPrice,
-        yearlyPrice: plan.yearlyPrice,
-        monthlyPriceId: plan.monthlyPriceId,
-        yearlyPriceId: plan.yearlyPriceId,
-      },
-      limits: {
-        maxProperties: plan.maxProperties,
-        maxUsers: plan.maxUsers,
-      },
+    // Default features (free tier)
+    const defaultFeatures = {
+      maxProperties: 5,
+      maxUsers: 3,
+      advancedReporting: false,
+      documentStorage: false,
     };
+
+    try {
+      // Get organization subscription details
+      const organization = await db.query.organizationEntity.findFirst({
+        where: eq(organizationEntity.id, organizationId),
+      });
+
+      if (!organization) {
+        console.warn(`Organization not found: ${organizationId}`);
+        return defaultFeatures;
+      }
+
+      // If on a trial, provide basic features
+      if (organization.trialStatus === "active") {
+        return {
+          maxProperties: organization.maxProperties || 5,
+          maxUsers: organization.maxUsers || 3,
+          advancedReporting: false,
+          documentStorage: true,
+        };
+      }
+
+      // If subscription is active, get features from subscription plan
+      if (
+        organization.subscriptionStatus === "active" &&
+        organization.subscriptionPlan
+      ) {
+        const planKey =
+          organization.subscriptionPlan as keyof typeof SUBSCRIPTION_PLANS;
+        const plan = SUBSCRIPTION_PLANS[planKey];
+
+        if (plan) {
+          return {
+            maxProperties: organization.maxProperties || plan.maxProperties,
+            maxUsers: organization.maxUsers || plan.maxUsers,
+            advancedReporting: planKey !== "basic", // Standard and above
+            documentStorage: true, // All paid plans have document storage
+          };
+        }
+      }
+
+      // Default to organization limits or default features
+      return {
+        maxProperties:
+          organization.maxProperties || defaultFeatures.maxProperties,
+        maxUsers: organization.maxUsers || defaultFeatures.maxUsers,
+        advancedReporting: false,
+        documentStorage: false,
+      };
+    } catch (error) {
+      console.error(
+        `Error getting subscription features for ${organizationId}:`,
+        error
+      );
+      return defaultFeatures;
+    }
   }
 }
 

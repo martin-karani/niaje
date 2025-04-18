@@ -1,6 +1,7 @@
-import { emailService } from "@/domains/communications/services/email.service";
+import { userEntity } from "@/domains/users/entities";
 import { db } from "@/infrastructure/database";
 import { createId } from "@/infrastructure/database/utils/id-generator";
+import { emailService } from "@/infrastructure/email/email.service";
 import { NotFoundError } from "@/shared/errors/not-found.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { generateToken } from "@/shared/utils/auth.utils";
