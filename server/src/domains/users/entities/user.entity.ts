@@ -104,7 +104,6 @@ export const userRelations = relations(userEntity, ({ many }) => ({
   sessions: many(sessionEntity),
   accounts: many(accountEntity),
   verifications: many(verificationEntity),
-  // Other relations will be defined in their respective domain entities
 }));
 
 export const sessionRelations = relations(sessionEntity, ({ one }) => ({
