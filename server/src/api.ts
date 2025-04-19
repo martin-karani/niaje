@@ -39,7 +39,7 @@ export function setupApi() {
   app.use(createAuthMiddleware());
 
   // File upload routes
-  // app.use("/api/upload", uploadRoutes);
+  // app.post("/api/upload", uploadRoutes);
 
   // GraphQL endpoint
   const yoga = createYoga({
