@@ -24,11 +24,9 @@ const authOptions: BetterAuthOptions = {
   basePath: "/api/auth",
 
   plugins: [
-    adminClient({
-      adminRoles: ["admin"], // Match server admin roles
-    }),
+    adminClient(),
     organizationClient({
-      roles: availableRoles,
+      // roles: availableRoles,
       teams: {
         enabled: true, // Enable teams to match server configuration
       },

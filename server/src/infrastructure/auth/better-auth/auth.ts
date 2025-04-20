@@ -89,6 +89,16 @@ const authOptions: BetterAuthOptions = {
           allowDirectTeamInvites: true, // Team leaders can invite directly to their team
         },
       },
+      async sendInvitationEmail(data) {
+        const inviteLink = `https://example.com/accept-invitation/${data.id}`;
+        sendOrganizationInvitation({
+          email: data.email,
+          invitedByUsername: data.inviter.user.name,
+          invitedByEmail: data.inviter.user.email,
+          teamName: data.organization.name,
+          inviteLink,
+        });
+      },
       organizationCreation: {
         disabled: false,
         beforeCreate: async ({ organization, user }, request) => {
@@ -229,10 +239,16 @@ const authOptions: BetterAuthOptions = {
   },
 
   databaseHooks: {
-    user: {
+    session: {
       create: {
-        after: async (user) => {
-          console.log(`User created via better-auth hook: ${user.email}`);
+        before: async (session) => {
+          const organization = await getActiveOrganization(session.userId);
+          return {
+            data: {
+              ...session,
+              activeOrganizationId: organization.id,
+            },
+          };
         },
       },
     },
