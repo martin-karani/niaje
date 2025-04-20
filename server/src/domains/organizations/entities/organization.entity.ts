@@ -55,11 +55,6 @@ export const organizationEntity = pgTable("organizations", {
   // Limits (based on subscription plan)
   maxProperties: integer("max_properties").default(5),
   maxUsers: integer("max_users").default(3),
-
-  // Organization settings
-  timezone: text("timezone").default("UTC"),
-  currency: text("currency").default("USD"),
-  dateFormat: text("date_format").default("YYYY-MM-DD"),
   logo: text("logo"),
   address: text("address"),
 

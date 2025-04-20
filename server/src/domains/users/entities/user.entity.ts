@@ -3,6 +3,7 @@ import { relations } from "drizzle-orm";
 import {
   boolean,
   json,
+  numeric,
   pgEnum,
   pgTable,
   text,
@@ -34,6 +35,10 @@ export const userEntity = pgTable("users", {
   city: text("city"),
   country: text("country"),
   bio: text("bio"),
+  banned: boolean("banned").default(false),
+  banReason: text("ban_reason"),
+  banExpires: numeric("ban_expires"),
+
   lastLoginAt: timestamp("last_login_at"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
@@ -53,6 +58,7 @@ export const sessionEntity = pgTable("sessions", {
   token: text("token").notNull(),
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
+  impersonatedBy: text("impersonated_by"), // User(Admin) ID of the impersonator
   data: json("data"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()

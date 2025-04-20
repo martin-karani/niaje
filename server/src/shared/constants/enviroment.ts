@@ -21,6 +21,8 @@ export const DB_CONFIG = {
 export const AUTH_CONFIG = {
   BETTER_AUTH_SECRET:
     process.env.BETTER_AUTH_SECRET || "better-auth-secret-123456789",
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
 };
 
 // Payment configuration

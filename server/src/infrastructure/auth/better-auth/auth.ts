@@ -2,9 +2,10 @@ import { paymentGatewayService } from "@/domains/billing/services/payment-gatewa
 import { organizationEntity } from "@/domains/organizations/entities/organization.entity";
 import { db } from "@/infrastructure/database";
 import { emailService } from "@/infrastructure/email/email.service";
+import { AUTH_CONFIG } from "@/shared/constants/enviroment";
 import { betterAuth, BetterAuthOptions } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { admin, organization } from "better-auth/plugins";
+import { admin, openAPI, organization } from "better-auth/plugins";
 import { addMonths } from "date-fns";
 import dotenv from "dotenv";
 import { eq } from "drizzle-orm";
@@ -52,6 +53,14 @@ const authOptions: BetterAuthOptions = {
 
   database: drizzleAdapter(db, {
     provider: "pg",
+    schema: {
+      user: "users",
+      session: "sessions",
+      organization: "organizations",
+      team: "teams",
+      member: "members",
+      invitation: "invitations",
+    },
   }),
 
   plugins: [
@@ -63,7 +72,8 @@ const authOptions: BetterAuthOptions = {
       // Instead of using the old ac and role definitions,
       // we'll use a simpler configuration and rely on our custom AC class
       // for runtime permission checks
-      roles: availableRoles,
+      // roles: availableRoles,
+
       teams: {
         enabled: true,
         access: {
@@ -81,19 +91,21 @@ const authOptions: BetterAuthOptions = {
       },
       organizationCreation: {
         disabled: false,
-        beforeCreate: async ({ organization, user }) => {
+        beforeCreate: async ({ organization, user }, request) => {
           // Calculate trial expiration date (1 month from now)
           const trialExpiresAt = addMonths(new Date(), 1);
 
           return {
             data: {
               ...organization,
-              trialStatus: "active",
-              trialStartedAt: new Date(),
-              trialExpiresAt,
-              subscriptionStatus: "none",
-              maxProperties: 5, // Trial limits
-              maxUsers: 3,
+              metadata: {
+                trialStatus: "active",
+                trialStartedAt: new Date(),
+                trialExpiresAt,
+                subscriptionStatus: "none",
+                maxProperties: 5, // Trial limits
+                maxUsers: 3,
+              },
             },
           };
         },
@@ -123,7 +135,7 @@ const authOptions: BetterAuthOptions = {
               user.email,
               user.name,
               organization.name,
-              organization.trialExpiresAt
+              organization.metadata.trialExpiresAt
             );
           } catch (error) {
             console.error("Error in organization afterCreate hook:", error);
@@ -131,8 +143,15 @@ const authOptions: BetterAuthOptions = {
         },
       },
     }),
+    openAPI(),
   ],
-
+  socialProviders: {
+    google: {
+      clientId: AUTH_CONFIG.GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+      redirectURI: `${baseUrl}/api/auth/social/google/callback`,
+    },
+  },
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false,
@@ -145,6 +164,24 @@ const authOptions: BetterAuthOptions = {
       );
     },
     resetPasswordTokenExpiresIn: 3600,
+    password: {
+      hash: async (password) => {
+        // Hash the password using bcrypt or any other hashing algorithm
+        return password; // Replace with actual hashing logic
+      },
+      verify: async (password, hashedPassword) => {
+        // Verify the password against the hashed password
+        return password === hashedPassword; // Replace with actual verification logic
+      },
+    },
+  },
+  emailVerification: {
+    sendVerificationEmail: async ({ user, url, token }) => {
+      // Send verification email to user
+    },
+    sendOnSignUp: true,
+    autoSignInAfterVerification: true,
+    expiresIn: 3600, // 1 hour
   },
 
   user: {
@@ -160,7 +197,12 @@ const authOptions: BetterAuthOptions = {
       country: { type: "string", required: false },
       bio: { type: "string", required: false },
     },
-    changeEmail: { enabled: false },
+    changeEmail: {
+      enabled: true,
+      sendChangeEmailVerification: async ({ user, newEmail, url, token }) => {
+        // Send change email verification
+      },
+    },
     deleteUser: { enabled: false },
   },
 
@@ -173,6 +215,12 @@ const authOptions: BetterAuthOptions = {
       enabled: true,
       maxAge: 300,
     },
+  },
+
+  rateLimit: {
+    enabled: true,
+    max: 100,
+    window: 15 * 60 * 1000, // 15 minutes
   },
 
   advanced: {
@@ -193,7 +241,7 @@ const authOptions: BetterAuthOptions = {
   onAPIError: {
     throw: false,
     onError: (error, ctx) => {
-      console.error(`Better Auth API Error (${ctx?.path}):`, error.message);
+      console.error(`Better Auth API Error (${ctx?.path}):`, error);
     },
     errorURL: "/auth/error",
   },
