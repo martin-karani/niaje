@@ -123,6 +123,61 @@ const DEFAULT_TEMPLATES: Record<string, string> = {
       <a href="{{frontendUrl}}/tenant/login" style="display: inline-block; background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Login to Portal</a>
     </div>
   `,
+
+  // Adding templates for better-auth integration
+  "email-verification": `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2>Verify Your Email Address</h2>
+      <p>Hello {{name}},</p>
+      <p>Thank you for registering with our Property Management System. To complete your registration, please verify your email address by clicking the button below:</p>
+      <a href="{{verificationUrl}}" style="display: inline-block; background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Verify Email Address</a>
+      <p>If you did not create an account, please ignore this email.</p>
+      <p>This verification link will expire in 24 hours.</p>
+      <p>If you're having trouble clicking the button, copy and paste the URL below into your web browser:</p>
+      <p>{{verificationUrl}}</p>
+    </div>
+  `,
+
+  "reset-password": `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2>Reset Your Password</h2>
+      <p>Hello {{name}},</p>
+      <p>We received a request to reset the password for your account. To proceed with the password reset, please click the button below:</p>
+      <a href="{{resetUrl}}" style="display: inline-block; background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset Password</a>
+      <p>If you did not request a password reset, please ignore this email.</p>
+      <p>This password reset link will expire in 1 hour.</p>
+      <p>If you're having trouble clicking the button, copy and paste the URL below into your web browser:</p>
+      <p>{{resetUrl}}</p>
+    </div>
+  `,
+
+  "change-email-verification": `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2>Verify Your New Email Address</h2>
+      <p>Hello {{name}},</p>
+      <p>We received a request to change your email address from <strong>{{currentEmail}}</strong> to <strong>{{newEmail}}</strong>.</p>
+      <p>To confirm this change, please click the button below:</p>
+      <a href="{{verificationUrl}}" style="display: inline-block; background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Verify New Email Address</a>
+      <p>If you did not request this change, please ignore this email or contact our support team.</p>
+      <p>This verification link will expire in 24 hours.</p>
+      <p>If you're having trouble clicking the button, copy and paste the URL below into your web browser:</p>
+      <p>{{verificationUrl}}</p>
+    </div>
+  `,
+
+  "delete-account-verification": `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2>Confirm Account Deletion</h2>
+      <p>Hello {{name}},</p>
+      <p>We received a request to delete your account. This action is permanent and cannot be undone.</p>
+      <p>If you wish to proceed with account deletion, please click the button below:</p>
+      <a href="{{verificationUrl}}" style="display: inline-block; background-color: #FF5252; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Confirm Account Deletion</a>
+      <p>If you did not request account deletion, please contact our support team immediately.</p>
+      <p>This confirmation link will expire in 24 hours.</p>
+      <p>If you're having trouble clicking the button, copy and paste the URL below into your web browser:</p>
+      <p>{{verificationUrl}}</p>
+    </div>
+  `,
 };
 
 /**

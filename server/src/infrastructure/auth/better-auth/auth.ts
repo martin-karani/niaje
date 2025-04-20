@@ -5,7 +5,13 @@ import { emailService } from "@/infrastructure/email/email.service";
 import { AUTH_CONFIG } from "@/shared/constants/enviroment";
 import { betterAuth, BetterAuthOptions } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { admin, openAPI, organization } from "better-auth/plugins";
+import {
+  admin,
+  defaultStatements,
+  openAPI,
+  organization,
+} from "better-auth/plugins";
+import { createAccessControl } from "better-auth/plugins/access";
 import { addMonths } from "date-fns";
 import dotenv from "dotenv";
 import { eq } from "drizzle-orm";
@@ -16,22 +22,19 @@ const authSecret =
   process.env.BETTER_AUTH_SECRET || "better-auth-secret-123456789";
 const baseUrl = process.env.BASE_URL || "http://localhost:3001";
 
-/**
- * Define access control resources and actions
- *
- * This defines what types of resources and actions exist in the system,
- * but doesn't grant permissions - that's handled by the AC class.
- */
-const resources = {
-  property: ["create", "update", "delete", "view"],
-  tenant: ["create", "approve", "remove", "view", "manage"],
-  lease: ["create", "update", "view"],
-  maintenance: ["create", "update", "view", "manage"],
-  staff: ["assign", "remove", "view"],
-  financial: ["view", "manage", "record", "invoice", "view_limited"],
-  communication: ["tenant", "landlord", "caretaker"],
-  tenant_portal: ["access", "make_payment", "view_lease", "create_maintenance"],
-};
+const statements = {
+  ...defaultStatements,
+  property: ["create", "read", "update", "delete", "assign"],
+  tenant: ["create", "read", "update", "delete", "contact"],
+  lease: ["create", "read", "update", "delete", "renew", "terminate"],
+  payment: ["create", "read", "update", "delete", "process", "refund"],
+  maintenance: ["create", "read", "update", "delete", "assign", "complete"],
+  report: ["create", "read", "export"],
+  settings: ["read", "update"],
+} as const;
+
+// Create access control
+const ac = createAccessControl(statements);
 
 /**
  * Define all available roles in the system
@@ -69,25 +72,10 @@ const authOptions: BetterAuthOptions = {
       defaultRole: "user",
     }),
     organization({
-      // Instead of using the old ac and role definitions,
-      // we'll use a simpler configuration and rely on our custom AC class
-      // for runtime permission checks
-      // roles: availableRoles,
-
+      ac,
+      roles: availableRoles,
       teams: {
         enabled: true,
-        access: {
-          // Configure how teams affect access control
-          membersCanViewAllOrganizationData: false, // Restrict access to team data only
-          teamAdminRole: "team_leader", // Special role for team leaders
-          allowRoleOverride: true, // Allow team-specific role customization
-        },
-        creation: {
-          membersCanCreateTeams: false, // Only org owners can create teams
-        },
-        invitation: {
-          allowDirectTeamInvites: true, // Team leaders can invite directly to their team
-        },
       },
       async sendInvitationEmail(data) {
         const inviteLink = `https://example.com/accept-invitation/${data.id}`;
@@ -187,7 +175,7 @@ const authOptions: BetterAuthOptions = {
   },
   emailVerification: {
     sendVerificationEmail: async ({ user, url, token }) => {
-      // Send verification email to user
+      await emailService.sendVerificationEmail({ user, url, token });
     },
     sendOnSignUp: true,
     autoSignInAfterVerification: true,
@@ -210,7 +198,12 @@ const authOptions: BetterAuthOptions = {
     changeEmail: {
       enabled: true,
       sendChangeEmailVerification: async ({ user, newEmail, url, token }) => {
-        // Send change email verification
+        await emailService.sendChangeEmailVerification({
+          user,
+          newEmail,
+          url,
+          token,
+        });
       },
     },
     deleteUser: { enabled: false },
