@@ -1,4 +1,4 @@
-import { startScheduler } from "@/infrastructure/cron/scheduler";
+// import { startScheduler } from "@/infrastructure/cron/scheduler";
 import { db } from "@/infrastructure/database";
 import dotenv from "dotenv";
 import { sql } from "drizzle-orm";
@@ -16,7 +16,7 @@ async function startServer() {
     const app = setupApi();
 
     // Start scheduler for background tasks
-    startScheduler();
+    // startScheduler();
 
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);

@@ -3,13 +3,11 @@ import {
   organizationEntity,
 } from "@/domains/organizations/entities";
 import { db } from "@/infrastructure/database";
-import { EmailService } from "@/infrastructure/email/email.service";
+import emailService from "@/infrastructure/email/email.service";
 import { addDays, differenceInDays, isBefore } from "date-fns";
 import { and, eq, gte, lt, lte } from "drizzle-orm";
 
 export class TrialService {
-  constructor(private emailService: EmailService) {}
-
   /**
    * Check if an organization is on an active trial
    */
@@ -87,7 +85,7 @@ export class TrialService {
 
       // Send expiration email
       if (orgOwner && orgOwner.user) {
-        this.emailService.sendTrialExpiredEmail(
+        emailService.sendTrialExpiredEmail(
           orgOwner.user.email,
           orgOwner.user.name,
           org.name
@@ -123,7 +121,7 @@ export class TrialService {
 
         // Send expiration warning email
         if (orgOwner && orgOwner.user) {
-          this.emailService.sendTrialExpiringEmail(
+          emailService.sendTrialExpiringEmail(
             orgOwner.user.email,
             orgOwner.user.name,
             org.name,
@@ -175,7 +173,7 @@ export class TrialService {
 
     // Send welcome email with trial info
     if (orgOwner && orgOwner.user) {
-      this.emailService.sendTrialStartedEmail(
+      emailService.sendTrialStartedEmail(
         orgOwner.user.email,
         orgOwner.user.name,
         org.name,
@@ -186,4 +184,4 @@ export class TrialService {
 }
 
 // Create and export singleton instance
-export const trialService = new TrialService(new EmailService());
+export const trialService = new TrialService();

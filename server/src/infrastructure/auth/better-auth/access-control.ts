@@ -1,14 +1,22 @@
-
+/**
+ * Access Control class to handle permission checks
+ * This builds on top of Better-Auth's permission system with additional context
+ * for property management specific logic
+ */
 export class AC {
   private user: any;
   private organization: any;
   private team: any;
+
   constructor(user: any, organization: any, team: any) {
     this.user = user;
     this.organization = organization;
     this.team = team;
   }
 
+  /**
+   * Check if user has permission to perform an action on a resource
+   */
   can(resource: string, action: string | string[]): boolean {
     // If no user or no organization, deny access
     if (!this.user || !this.organization) {
@@ -20,12 +28,27 @@ export class AC {
       return action.some((a) => this.can(resource, a));
     }
 
-    // Get user role permissions from better-auth AC system
+    // Admin users can do everything
+    if (this.user.role === "admin") {
+      return true;
+    }
+
+    // Organization owners can do everything within their organization
+    if (
+      this.user.role === "agent_owner" &&
+      this.organization.agentOwnerId === this.user.id
+    ) {
+      return true;
+    }
+
+    // Get role-based permissions
     const rolePermissions = this.getRolePermissions(this.user.role);
-    // Check team-specific permissions
+
+    // Check team-specific permissions (if user is in a team)
     if (this.team) {
       const teamPermissions = this.getTeamPermissions(this.team.id);
-      // Team permissions override role permissions
+
+      // Team permissions override role permissions if defined
       if (
         teamPermissions[resource] &&
         teamPermissions[resource][action] !== undefined
@@ -45,6 +68,9 @@ export class AC {
     return false;
   }
 
+  /**
+   * Get permissions for a specific role
+   */
   private getRolePermissions(
     role: string
   ): Record<string, Record<string, boolean>> {
@@ -52,148 +78,316 @@ export class AC {
     const roleMap: Record<string, Record<string, Record<string, boolean>>> = {
       admin: {
         // Admin has access to everything
-        property: { view: true, create: true, update: true, delete: true },
+        property: {
+          view: true,
+          create: true,
+          update: true,
+          delete: true,
+          assign_caretaker: true,
+        },
+        unit: { view: true, create: true, update: true, delete: true },
         tenant: {
           view: true,
           create: true,
           update: true,
-          manage: true,
-          approve: true,
-          remove: true,
+          delete: true,
+          contact: true,
         },
-        lease: { view: true, create: true, update: true },
-        maintenance: { view: true, manage: true },
-        staff: { assign: true, remove: true, view: true },
-        financial: {
+        lease: {
           view: true,
-          manage: true,
-          record: true,
-          invoice: true,
-          view_limited: true,
+          create: true,
+          update: true,
+          terminate: true,
+          renew: true,
+        },
+        payment: { view: true, record: true, process: true, approve: true },
+        expense: { view: true, create: true, update: true, delete: true },
+        maintenance: {
+          view: true,
+          create: true,
+          update: true,
+          resolve: true,
+          assign: true,
+        },
+        document: { view: true, upload: true, delete: true },
+        organization: {
+          view: true,
+          update: true,
+          delete: true,
+          manage_subscription: true,
+        },
+        member: { invite: true, remove: true, update_role: true },
+        team: {
+          create: true,
+          update: true,
+          delete: true,
+          assign_properties: true,
         },
       },
+
       agent_owner: {
-        // Agent owner can do everything within their organization
-        property: { view: true, create: true, update: true, delete: true },
+        // Agent owners have full access within their organization
+        property: {
+          view: true,
+          create: true,
+          update: true,
+          delete: true,
+          assign_caretaker: true,
+        },
+        unit: { view: true, create: true, update: true, delete: true },
         tenant: {
           view: true,
           create: true,
           update: true,
-          manage: true,
-          approve: true,
-          remove: true,
+          delete: true,
+          contact: true,
         },
-        lease: { view: true, create: true, update: true },
-        maintenance: { view: true, manage: true },
-        staff: { assign: true, remove: true, view: true },
-        financial: {
+        lease: {
           view: true,
-          manage: true,
-          record: true,
-          invoice: true,
-          view_limited: true,
+          create: true,
+          update: true,
+          terminate: true,
+          renew: true,
+        },
+        payment: { view: true, record: true, process: true, approve: true },
+        expense: { view: true, create: true, update: true, delete: true },
+        maintenance: {
+          view: true,
+          create: true,
+          update: true,
+          resolve: true,
+          assign: true,
+        },
+        document: { view: true, upload: true, delete: true },
+        organization: {
+          view: true,
+          update: true,
+          delete: true,
+          manage_subscription: true,
+        },
+        member: { invite: true, remove: true, update_role: true },
+        team: {
+          create: true,
+          update: true,
+          delete: true,
+          assign_properties: true,
         },
       },
+
       agent_staff: {
         // Regular staff with limited permissions
-        property: { view: true, create: true, update: true, delete: false },
+        property: {
+          view: true,
+          create: true,
+          update: true,
+          delete: false,
+          assign_caretaker: false,
+        },
+        unit: { view: true, create: true, update: true, delete: false },
         tenant: {
           view: true,
           create: true,
           update: true,
-          manage: true,
-          approve: true,
-          remove: false,
+          delete: false,
+          contact: true,
         },
-        lease: { view: true, create: true, update: true },
-        maintenance: { view: true, manage: true },
-        staff: { assign: false, remove: false, view: true },
-        financial: {
-          view: false,
-          manage: false,
-          record: true,
-          invoice: true,
-          view_limited: true,
+        lease: {
+          view: true,
+          create: true,
+          update: true,
+          terminate: false,
+          renew: true,
+        },
+        payment: { view: true, record: true, process: false, approve: false },
+        expense: { view: true, create: true, update: true, delete: false },
+        maintenance: {
+          view: true,
+          create: true,
+          update: true,
+          resolve: true,
+          assign: true,
+        },
+        document: { view: true, upload: true, delete: false },
+        organization: {
+          view: true,
+          update: false,
+          delete: false,
+          manage_subscription: false,
+        },
+        member: { invite: false, remove: false, update_role: false },
+        team: {
+          create: false,
+          update: false,
+          delete: false,
+          assign_properties: false,
         },
       },
+
       property_owner: {
-        // Landlord permissions (view-only for most things)
-        property: { view: true, create: false, update: false, delete: false },
+        // Property owners can view their own properties and related data
+        property: {
+          view: true,
+          create: false,
+          update: false,
+          delete: false,
+          assign_caretaker: false,
+        },
+        unit: { view: true, create: false, update: false, delete: false },
         tenant: {
           view: true,
           create: false,
           update: false,
-          manage: false,
-          approve: false,
-          remove: false,
+          delete: false,
+          contact: false,
         },
-        lease: { view: true, create: false, update: false },
-        maintenance: { view: true, manage: false },
-        staff: { assign: false, remove: false, view: false },
-        financial: {
-          view: true,
-          manage: false,
-          record: false,
-          invoice: false,
-          view_limited: false,
-        },
-      },
-      caretaker: {
-        // Caretaker permissions (focused on maintenance and tenant management)
-        property: { view: true, create: false, update: false, delete: false },
-        tenant: {
+        lease: {
           view: true,
           create: false,
           update: false,
-          manage: true,
-          approve: false,
-          remove: false,
+          terminate: false,
+          renew: false,
         },
-        lease: { view: true, create: false, update: false },
-        maintenance: { view: true, manage: true },
-        staff: { assign: false, remove: false, view: false },
-        financial: {
+        payment: { view: true, record: false, process: false, approve: false },
+        expense: { view: true, create: false, update: false, delete: false },
+        maintenance: {
+          view: true,
+          create: true,
+          update: false,
+          resolve: false,
+          assign: false,
+        },
+        document: { view: true, upload: false, delete: false },
+        organization: {
           view: false,
-          manage: false,
-          record: true,
-          invoice: false,
-          view_limited: true,
+          update: false,
+          delete: false,
+          manage_subscription: false,
+        },
+        member: { invite: false, remove: false, update_role: false },
+        team: {
+          view: false,
+          create: false,
+          update: false,
+          delete: false,
+          assign_properties: false,
         },
       },
+
+      caretaker: {
+        // Caretakers focus on maintenance and tenant communication
+        property: {
+          view: true,
+          create: false,
+          update: false,
+          delete: false,
+          assign_caretaker: false,
+        },
+        unit: { view: true, create: false, update: false, delete: false },
+        tenant: {
+          view: true,
+          create: false,
+          update: false,
+          delete: false,
+          contact: true,
+        },
+        lease: {
+          view: true,
+          create: false,
+          update: false,
+          terminate: false,
+          renew: false,
+        },
+        payment: { view: false, record: false, process: false, approve: false },
+        expense: { view: false, create: false, update: false, delete: false },
+        maintenance: {
+          view: true,
+          create: true,
+          update: true,
+          resolve: true,
+          assign: false,
+        },
+        document: { view: true, upload: false, delete: false },
+        organization: {
+          view: false,
+          update: false,
+          delete: false,
+          manage_subscription: false,
+        },
+        member: { invite: false, remove: false, update_role: false },
+        team: {
+          view: false,
+          create: false,
+          update: false,
+          delete: false,
+          assign_properties: false,
+        },
+      },
+
       tenant_user: {
         // Tenant portal user permissions
-        property: { view: false, create: false, update: false, delete: false },
+        property: {
+          view: false,
+          create: false,
+          update: false,
+          delete: false,
+          assign_caretaker: false,
+        },
+        unit: { view: false, create: false, update: false, delete: false },
         tenant: {
           view: false,
           create: false,
           update: false,
-          manage: false,
-          approve: false,
-          remove: false,
+          delete: false,
+          contact: false,
         },
-        lease: { view: true, create: false, update: false },
-        maintenance: { view: true, manage: true }, // Can create and view their own maintenance requests
-        staff: { assign: false, remove: false, view: false },
-        financial: {
+        lease: {
+          view: true,
+          create: false,
+          update: false,
+          terminate: false,
+          renew: false,
+        },
+        payment: { view: true, record: true, process: false, approve: false },
+        expense: { view: false, create: false, update: false, delete: false },
+        maintenance: {
+          view: true,
+          create: true,
+          update: false,
+          resolve: false,
+          assign: false,
+        },
+        document: { view: true, upload: false, delete: false },
+        organization: {
           view: false,
-          manage: false,
-          record: false,
-          invoice: false,
-          view_limited: true,
+          update: false,
+          delete: false,
+          manage_subscription: false,
+        },
+        member: { invite: false, remove: false, update_role: false },
+        team: {
+          view: false,
+          create: false,
+          update: false,
+          delete: false,
+          assign_properties: false,
         },
       },
     };
+
     return roleMap[role] || {};
   }
 
+  /**
+   * Get team-specific permissions
+   * This would typically be fetched from the database in a real implementation
+   */
   private getTeamPermissions(
     teamId: string
   ): Record<string, Record<string, boolean>> {
-    // In a real implementation, fetch team-specific permissions from database
-    // This would load team permissions from the database based on teamId
-    // For now, we're returning an empty object as a placeholder
+    // In a real implementation, fetch team permissions from database
+    // For now, returning an empty object as a placeholder
 
-    // TODO: Implement proper team permissions fetching
+    // TODO: Implement proper team permissions fetching from database
     return {};
   }
 }

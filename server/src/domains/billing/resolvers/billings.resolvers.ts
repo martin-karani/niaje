@@ -1,4 +1,4 @@
-import { checkPermissions } from "@/infrastructure/auth/permissions";
+import { checkPermissions } from "@/infrastructure/auth/permissions/utils";
 import { GraphQLContext } from "@/infrastructure/graphql/context/types";
 import {
   CreateExpenseDto,
@@ -297,35 +297,3 @@ export const billingResolvers = {
     },
   },
 };
-
-// Placeholder permission check function
-// Replace with your actual permission logic
-function checkPermissions(
-  context: GraphQLContext,
-  permission: string
-): { organizationId: string } {
-  const { organization, user } = context;
-
-  if (!user) {
-    throw new Error("Authentication required");
-  }
-
-  if (!organization) {
-    throw new Error("No active organization selected");
-  }
-
-  // Check appropriate permission - basic implementation
-  if (permission === "viewFinancial") {
-    // All staff can view financial data
-    if (!["admin", "agent_owner", "agent_staff"].includes(user.role)) {
-      throw new Error("You don't have permission to view financial data");
-    }
-  } else if (permission === "manageFinancial") {
-    // Only admins and owners can manage financial data
-    if (!["admin", "agent_owner"].includes(user.role)) {
-      throw new Error("You don't have permission to manage financial data");
-    }
-  }
-
-  return { organizationId: organization.id };
-}

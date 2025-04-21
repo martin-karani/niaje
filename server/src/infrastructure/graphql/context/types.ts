@@ -1,3 +1,5 @@
+import { AC } from "@/infrastructure/auth/better-auth/access-control";
+
 export interface GraphQLContext {
   user?: {
     id: string;
@@ -10,15 +12,11 @@ export interface GraphQLContext {
     name: string;
     subscriptionPlan?: string;
     subscriptionStatus?: string;
+    agentOwnerId?: string;
   } | null;
   team?: {
     id: string;
     name: string;
-  } | null;
-  tenant?: {
-    id: string;
-    firstName: string;
-    lastName: string;
   } | null;
   permissions: {
     canViewProperties: boolean;
@@ -32,6 +30,13 @@ export interface GraphQLContext {
     canManageMaintenance: boolean;
     canManageUsers: boolean;
     canManageSubscription: boolean;
+    canViewFinancial: boolean;
+    canManageFinancial: boolean;
+    canViewDocuments: boolean;
+    canManageDocuments: boolean;
+    canViewReports: boolean;
+    canManageTeams: boolean;
+    canInviteUsers: boolean;
   };
   features: {
     maxProperties: number;
@@ -39,4 +44,5 @@ export interface GraphQLContext {
     advancedReporting: boolean;
     documentStorage: boolean;
   };
+  ac: AC; // Access Control instance
 }

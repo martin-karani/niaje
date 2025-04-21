@@ -4,14 +4,12 @@ import {
 } from "@/domains/organizations/entities/organization.entity";
 import { userEntity } from "@/domains/users/entities";
 import { db } from "@/infrastructure/database";
-import { EmailService } from "@/infrastructure/email/email.service";
+import emailService from "@/infrastructure/email/email.service";
 import { SUBSCRIPTION_PLANS } from "@/shared/constants/subscription-plans";
 import { and, eq } from "drizzle-orm";
 import { paymentGatewayService } from "./payment-gateway.service";
 
 export class SubscriptionService {
-  constructor(private emailService: EmailService) {}
-
   /**
    * Create card payment checkout session
    */
@@ -140,7 +138,7 @@ export class SubscriptionService {
     });
 
     if (orgOwner && orgOwner.user) {
-      await this.emailService.sendSubscriptionConfirmationEmail(
+      await emailService.sendSubscriptionConfirmationEmail(
         orgOwner.user.email,
         orgOwner.user.name,
         org.name,
@@ -252,4 +250,4 @@ export class SubscriptionService {
 }
 
 // Create and export singleton instance
-export const subscriptionService = new SubscriptionService(new EmailService());
+export const subscriptionService = new SubscriptionService();

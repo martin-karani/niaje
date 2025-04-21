@@ -13,7 +13,7 @@ const upload = multer({
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit
   },
-  fileFilter: (req, file, callback) => {
+  fileFilter: (_, file, callback) => {
     // Allow common document and image file types
     const allowedTypes = [
       // Images

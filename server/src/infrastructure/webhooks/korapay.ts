@@ -1,11 +1,8 @@
 import { paymentsService } from "@/domains/billing/services/payments.service";
 import { subscriptionService } from "@/domains/billing/services/subscription.service";
-import { EmailService } from "@/infrastructure/email/email.service";
+import emailService from "@/infrastructure/email/email.service";
 import crypto from "crypto";
 import { Request, Response } from "express";
-
-// Initialize email service for notifications
-const emailService = new EmailService();
 
 /**
  * Handle webhooks from Korapay payment gateway

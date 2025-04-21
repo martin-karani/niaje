@@ -7,7 +7,10 @@ import {
   uploadFile,
   uploadMultipleFiles,
 } from "@/api/controllers/upload.controller";
-import { requireAuth } from "@/infrastructure/auth/middleware";
+import {
+  requireAuth,
+  requirePermission,
+} from "@/infrastructure/auth/middleware";
 import express from "express";
 
 const router = express.Router();
@@ -17,14 +20,19 @@ const router = express.Router();
  * @desc Upload a single file
  * @access Private
  */
-router.post("/file", requireAuth(), uploadFile);
+router.post(
+  "/file",
+  requireAuth(),
+  requirePermission("canViewProperties"),
+  uploadFile
+);
 
 /**
  * @route POST /api/upload/files
  * @desc Upload multiple files
  * @access Private
  */
-router.post("/files", requireAuth(), uploadMultipleFiles);
+router.post("/files", requireAuth(), requirePermission(), uploadMultipleFiles);
 
 /**
  * @route DELETE /api/upload/:filePath
