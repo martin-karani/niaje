@@ -1,27 +1,24 @@
-import { AuthProvider, useAuth } from "@/providers/auth-provider";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { RouterProvider } from "@tanstack/react-router";
-import { Toaster } from "./components/ui/sonner";
-import "./globals.css";
-import { router } from "./router";
-import { queryClient, trpc, trpcClient } from "./utils/trpc";
+import { ApolloProvider } from "@apollo/client";
+import { MantineProvider } from "@mantine/core";
+import "@mantine/core/styles.css";
+import { Notifications } from "@mantine/notifications";
+import "@mantine/notifications/styles.css";
+import { BrowserRouter } from "react-router";
 
-function InnerApp() {
-  const auth = useAuth();
-  return <RouterProvider router={router} context={{ auth }} />;
-}
+import AppRoutes from "./routes/app-routes";
+import { apolloClient } from "./services/api";
 
-function App() {
+import theme from "./styles/theme";
+
+export default function App() {
   return (
-    <trpc.Provider queryClient={queryClient} client={trpcClient}>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <InnerApp />
-          <Toaster />
-        </AuthProvider>
-      </QueryClientProvider>
-    </trpc.Provider>
+    <BrowserRouter>
+      <ApolloProvider client={apolloClient}>
+        <MantineProvider theme={theme} defaultColorScheme="light">
+          <Notifications position="top-right" />
+          <AppRoutes />
+        </MantineProvider>
+      </ApolloProvider>
+    </BrowserRouter>
   );
 }
-
-export default App;
