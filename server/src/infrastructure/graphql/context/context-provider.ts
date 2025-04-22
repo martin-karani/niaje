@@ -38,6 +38,6 @@ export async function createGraphQLContext(
     team,
     permissions,
     features,
-    ac, // Add AC instance for permission checks in resolvers
+    ac,
   };
 }
