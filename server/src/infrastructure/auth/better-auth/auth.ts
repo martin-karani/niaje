@@ -18,11 +18,13 @@ const authOptions: BetterAuthOptions = {
     provider: "pg",
     schema: {
       user: "users",
+      account: "accounts",
       session: "sessions",
       organization: "organizations",
       team: "teams",
       member: "members",
       invitation: "invitations",
+      verification: "verifications",
     },
   }),
 
