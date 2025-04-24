@@ -85,46 +85,51 @@ export const authResolvers = {
     ) => {
       const { email, password, name } = input;
 
-      const { user, sessionToken } = await authService.register({
-        email,
-        password,
-        name,
-        requireEmailVerification: true,
-      });
-
-      // If verification is required, no session token will be returned
-      if (sessionToken) {
-        // Set session token in cookie
-        setCookie(context.req, "auth_token", sessionToken, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "lax",
-          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      try {
+        const { user, sessionToken } = await authService.register({
+          email,
+          password,
+          name,
+          role: "tenant_user",
         });
 
+        // If verification is required, no session token will be returned
+        if (sessionToken) {
+          // Set session token in cookie
+          setCookie(context.res, "auth_token", sessionToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+          });
+
+          return {
+            user: {
+              id: user.id,
+              email: user.email,
+              name: user.name,
+              role: user.role,
+              emailVerified: user.emailVerified,
+            },
+            sessionToken,
+          };
+        }
+
+        // If email verification is required
         return {
           user: {
             id: user.id,
             email: user.email,
             name: user.name,
             role: user.role,
-            emailVerified: user.emailVerified,
+            emailVerified: false,
           },
-          sessionToken,
+          sessionToken: null,
         };
+      } catch (error) {
+        console.error("Registration error:", error);
+        throw error; // Re-throw to be caught by error handler
       }
-
-      // If email verification is required
-      return {
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          emailVerified: false,
-        },
-        sessionToken: null,
-      };
     },
 
     /**
@@ -154,7 +159,7 @@ export const authResolvers = {
         ? 30 * 24 * 60 * 60 * 1000 // 30 days if "remember me"
         : 7 * 24 * 60 * 60 * 1000; // 7 days default
 
-      setCookie(context.req, "auth_token", sessionToken, {
+      setCookie(context.res, "auth_token", sessionToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
@@ -198,10 +203,12 @@ export const authResolvers = {
               }
             } catch (error) {
               // Ignore team errors
+              console.error("Error getting active team:", error);
             }
           }
         } catch (error) {
           // Ignore organization errors
+          console.error("Error getting active organization:", error);
         }
       }
 
@@ -230,7 +237,7 @@ export const authResolvers = {
 
       if (token) {
         await sessionService.deleteSession(token);
-        clearCookie(context.req, "auth_token");
+        clearCookie(context.res, "auth_token");
       }
 
       return true;
@@ -466,7 +473,7 @@ export const authResolvers = {
         });
 
       // Set session token in cookie
-      setCookie(context.req, "auth_token", sessionToken, {
+      setCookie(context.res, "auth_token", sessionToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",

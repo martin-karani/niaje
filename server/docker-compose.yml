@@ -21,5 +21,19 @@ services:
       timeout: 5s
       retries: 5
 
+  # MailHog Email Testing
+  # An email testing tool for capturing and viewing emails sent by the application.
+  # This is especially useful during development to test email functionalities without sending real emails.
+  # http://localhost:5080/ is the web interface
+  # http://localhost:5080/api/v2/messages is the api we will want to use to verify any messages have been sent.
+  mailhog:
+    image: mailhog/mailhog # Using the MailHog image for email testing
+    ports:
+      - "5025:1025" # SMTP port: mapped from 1025 in container to 5025 on host for sending emails
+      - "5080:8025" # Web interface port: mapped from 8025 in container to 5080 on host for viewing emails
+    environment:
+      MH_UI_BIND_ADDR: "0.0.0.0:8025" # Binding the UI to be accessible
+      MH_SMTP_BIND_ADDR: "0.0.0.0:1025" # Binding the SMTP server to be accessible
+
 volumes:
   postgres_data:

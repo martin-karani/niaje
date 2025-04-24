@@ -20,7 +20,6 @@ export class SessionService {
     await db.insert(sessionEntity).values({
       userId: data.userId,
       expiresAt: data.expiresAt,
-      token,
       ipAddress: data.ipAddress || null,
       userAgent: data.userAgent || null,
       data: {},

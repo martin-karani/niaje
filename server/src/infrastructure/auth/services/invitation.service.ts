@@ -373,6 +373,7 @@ export class InvitationService {
     const sessionToken = await sessionService.createSession({
       userId: user.id,
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      data: {},
     });
 
     // Accept invitation

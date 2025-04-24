@@ -43,6 +43,7 @@ export const EMAIL_CONFIG = {
   EMAIL_FROM_NAME: process.env.EMAIL_FROM_NAME || "Property Management",
   EMAIL_FROM_ADDRESS:
     process.env.EMAIL_FROM_ADDRESS || "noreply@yourcompany.com",
+  EMAIL_SERVER: process.env.EMAIL_SERVER || "smtp.yourcompany.com",
 };
 
 // Storage configuration

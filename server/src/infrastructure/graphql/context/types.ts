@@ -47,7 +47,6 @@ export interface GraphQLContext {
     maxUsers: number;
     advancedReporting: boolean;
     documentStorage: boolean;
-    // Add any other feature flags here
   };
 
   /**

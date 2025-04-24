@@ -1,5 +1,6 @@
 import {
   userEntity,
+  UserRole,
   verificationEntity,
   type User,
 } from "@/domains/users/entities/user.entity";
@@ -26,8 +27,7 @@ export class AuthService {
     email: string;
     password: string;
     name: string;
-    role?: string;
-    requireEmailVerification?: boolean;
+    role: UserRole;
   }): Promise<{ user: User; sessionToken?: string }> {
     // Check if email already exists
     const existingUser = await db.query.userEntity.findFirst({
@@ -50,27 +50,23 @@ export class AuthService {
         name: data.name,
         role: data.role,
         isActive: true,
-        emailVerified: data.requireEmailVerification === false, // If verification is not required, mark as verified
+        emailVerified: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       })
       .returning();
 
-    // If email verification is required, send verification email
-    if (data.requireEmailVerification !== false) {
-      await this.sendEmailVerification(user.id, user.email);
-    }
+    // send verification email
+    await this.sendEmailVerification(user.id, user.email);
 
-    // Create session if email verification is not required
     let sessionToken;
-    if (data.requireEmailVerification === false) {
-      sessionToken = await sessionService.createSession({
-        userId: user.id,
-        ipAddress: null,
-        userAgent: null,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-      });
-    }
+    sessionToken = await sessionService.createSession({
+      userId: user.id,
+      ipAddress: null,
+      userAgent: null,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      data: {},
+    });
 
     return { user, sessionToken };
   }
@@ -142,9 +138,10 @@ export class AuthService {
     // Create session
     const sessionToken = await sessionService.createSession({
       userId: user.id,
-      ipAddress: data.ipAddress,
-      userAgent: data.userAgent,
+      ipAddress: data.ipAddress || null,
+      userAgent: data.userAgent || null,
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      data: {},
     });
 
     // Update last login timestamp
@@ -184,9 +181,9 @@ export class AuthService {
 
     // Store verification token
     await db.insert(verificationEntity).values({
-      identifier: "email_verification",
-      value: token,
       userId,
+      token, // Use token instead of 'value'
+      type: "email_verification", // Use type instead of 'identifier'
       expiresAt,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -210,8 +207,8 @@ export class AuthService {
     // Find verification entry
     const verification = await db.query.verificationEntity.findFirst({
       where: and(
-        eq(verificationEntity.identifier, "email_verification"),
-        eq(verificationEntity.value, token)
+        eq(verificationEntity.type, "email_verification"),
+        eq(verificationEntity.token, token)
       ),
     });
 
@@ -270,9 +267,9 @@ export class AuthService {
 
     // Store reset token
     await db.insert(verificationEntity).values({
-      identifier: "password_reset",
-      value: token,
       userId: user.id,
+      token,
+      type: "password_reset",
       expiresAt,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -296,8 +293,8 @@ export class AuthService {
     // Find verification entry
     const verification = await db.query.verificationEntity.findFirst({
       where: and(
-        eq(verificationEntity.identifier, "password_reset"),
-        eq(verificationEntity.value, token)
+        eq(verificationEntity.type, "password_reset"),
+        eq(verificationEntity.token, token)
       ),
     });
 
@@ -413,13 +410,13 @@ export class AuthService {
 
     // Store verification token with new email
     await db.insert(verificationEntity).values({
-      identifier: "email_change",
-      value: token,
       userId,
+      token,
+      type: "email_change",
+      email: newEmail.toLowerCase(),
       expiresAt,
       createdAt: new Date(),
       updatedAt: new Date(),
-      data: { newEmail: newEmail.toLowerCase() },
     });
 
     // Build verification URL
@@ -441,12 +438,12 @@ export class AuthService {
     // Find verification entry
     const verification = await db.query.verificationEntity.findFirst({
       where: and(
-        eq(verificationEntity.identifier, "email_change"),
-        eq(verificationEntity.value, token)
+        eq(verificationEntity.type, "email_change"),
+        eq(verificationEntity.token, token)
       ),
     });
 
-    if (!verification || !verification.data?.newEmail) {
+    if (!verification || !verification.email) {
       throw new ValidationError("Invalid or expired verification token");
     }
 
@@ -460,7 +457,7 @@ export class AuthService {
       throw new ValidationError("Verification token has expired");
     }
 
-    const newEmail = verification.data.newEmail as string;
+    const newEmail = verification.email;
 
     // Check again if email is available (could have been taken since token was generated)
     const existingUser = await db.query.userEntity.findFirst({

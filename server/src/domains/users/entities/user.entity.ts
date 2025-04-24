@@ -65,8 +65,6 @@ export const sessionEntity = pgTable("sessions", {
     .notNull(),
 });
 
-// === OAuth Entities ===
-
 // Account entity for OAuth providers
 export const accountEntity = pgTable("accounts", {
   id: text("id").primaryKey().$defaultFn(createId),
@@ -114,8 +112,6 @@ export const verificationEntity = pgTable("verifications", {
     .defaultNow()
     .notNull(),
 });
-
-// === Token Entities ===
 
 // Token type enum
 export const tokenTypeEnum = pgEnum("token_type", [
@@ -414,3 +410,12 @@ export type Member = typeof memberEntity.$inferSelect;
 export type NewMember = typeof memberEntity.$inferInsert;
 export type Invitation = typeof invitationEntity.$inferSelect;
 export type NewInvitation = typeof invitationEntity.$inferInsert;
+export type UserRole = (typeof userRoleEnum.enumValues)[number];
+export type VerificationType = (typeof verificationTypeEnum.enumValues)[number];
+export type TokenType = (typeof tokenTypeEnum.enumValues)[number];
+export type TrialStatus = (typeof trialStatusEnum.enumValues)[number];
+export type SubscriptionStatus =
+  (typeof subscriptionStatusEnum.enumValues)[number];
+export type MemberRole = (typeof memberRoleEnum.enumValues)[number];
+export type MemberStatus = (typeof memberStatusEnum.enumValues)[number];
+export type InvitationStatus = (typeof invitationStatusEnum.enumValues)[number];
