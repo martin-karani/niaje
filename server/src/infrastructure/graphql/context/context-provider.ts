@@ -1,6 +1,3 @@
-// src/infrastructure/graphql/context/context-provider.ts
-
-import { subscriptionService } from "@/domains/billing/services/subscription.service";
 import { PermissionChecker } from "@/infrastructure/auth/permission-checker";
 import { Request } from "express";
 import { GraphQLContext } from "./types";
@@ -8,6 +5,8 @@ import { GraphQLContext } from "./types";
 /**
  * Create the GraphQL context from the request
  * This provides auth information and permission checks to all resolvers
+ *
+ * The auth middleware has already populated the request with user, organization, and permission data
  */
 export async function createGraphQLContext(
   request: Request
@@ -18,17 +17,19 @@ export async function createGraphQLContext(
   const team = request.activeTeam || null;
 
   // Get subscription features based on organization plan
-  const features = organization
-    ? await subscriptionService.getSubscriptionFeatures(organization.id)
-    : {
-        maxProperties: 0,
-        maxUsers: 0,
-        advancedReporting: false,
-        documentStorage: false,
-      };
+  const features = request.features || {
+    maxProperties: 0,
+    maxUsers: 0,
+    advancedReporting: false,
+    documentStorage: false,
+  };
 
-  // Create permission checker instance
-  const permissionChecker = new PermissionChecker(user, organization, team);
+  // Use permission checker from middleware or create a new one if needed
+  const permissionChecker =
+    request.permissionChecker ||
+    (user && organization
+      ? new PermissionChecker(user, organization, team)
+      : null);
 
   return {
     user,

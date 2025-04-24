@@ -1,7 +1,13 @@
+// src/domains/tenants/resolvers/tenants.resolver.ts
+
 import { leaseEntity } from "@/domains/leases/entities";
-import { checkPermissions } from "@/infrastructure/auth/permissions";
+import {
+  checkPermissions,
+  checkTenantPermissions,
+} from "@/infrastructure/auth/utils/permission-utils";
 import { db } from "@/infrastructure/database";
 import { GraphQLContext } from "@/infrastructure/graphql/context/types";
+import { AuthorizationError } from "@/shared/errors";
 import { eq } from "drizzle-orm";
 import {
   AssignTenantToLeaseDto,
@@ -15,19 +21,19 @@ import { tenantsService } from "../services/tenants.service";
 export const tenantsResolvers = {
   Query: {
     tenants: async (_: any, __: any, context: GraphQLContext) => {
-      const { organizationId } = checkPermissions(context, "viewTenants");
+      const { organizationId } = await checkTenantPermissions(context, "view");
       return tenantsService.getTenantsByOrganization(organizationId);
     },
 
     tenant: async (_: any, { id }: TenantIdDto, context: GraphQLContext) => {
-      // Add permission check: ensure user can view this specific tenant
-      // Might involve checking if tenant belongs to user's org
-      checkPermissions(context, "viewTenants");
-      // Additional check: ensure tenant 'id' belongs to context.organizationId
+      // Check permission and verify tenant belongs to organization
+      const { organizationId } = await checkTenantPermissions(context, "view");
       const tenant = await tenantsService.getTenantById(id);
-      if (tenant.organizationId !== context.organization?.id) {
-        throw new Error("Tenant not found in your organization.");
+
+      if (tenant.organizationId !== organizationId) {
+        throw new AuthorizationError("Tenant not found in your organization");
       }
+
       return tenant;
     },
 
@@ -36,10 +42,18 @@ export const tenantsResolvers = {
       { leaseId }: { leaseId: string },
       context: GraphQLContext
     ) => {
-      // Add permission check: Ensure user can view this lease's tenants
-      checkPermissions(context, "viewLeases"); // Or a more specific permission
-      // Additional check: ensure lease 'leaseId' belongs to context.organizationId
-      // ... (Requires lease service or check)
+      // Check lease permissions and verify lease exists in organization
+      await checkPermissions(context, "viewLeases");
+
+      // Additional check: ensure lease belongs to context.organizationId
+      const lease = await db.query.leaseEntity.findFirst({
+        where: eq(leaseEntity.id, leaseId),
+      });
+
+      if (!lease || lease.organizationId !== context.organization?.id) {
+        throw new AuthorizationError("Lease not found in your organization");
+      }
+
       return tenantsService.getTenantsForLease(leaseId);
     },
   },
@@ -50,9 +64,17 @@ export const tenantsResolvers = {
       { data }: { data: CreateTenantDto },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "manageTenants");
-      // Ensure data includes organizationId or set it from context
-      const tenantData = { ...data, organizationId };
+      const { organizationId } = await checkTenantPermissions(
+        context,
+        "manage"
+      );
+
+      // Ensure data includes organizationId from context
+      const tenantData = {
+        ...data,
+        organizationId,
+      };
+
       return tenantsService.createTenant(tenantData);
     },
 
@@ -61,12 +83,19 @@ export const tenantsResolvers = {
       { data }: { data: UpdateTenantDto },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "manageTenants");
-      // Add check: ensure tenant being updated belongs to the user's org
+      const { organizationId } = await checkTenantPermissions(
+        context,
+        "manage"
+      );
+
+      // Verify tenant being updated belongs to organization
       const existingTenant = await tenantsService.getTenantById(data.id);
       if (existingTenant.organizationId !== organizationId) {
-        throw new Error("Cannot update tenant from another organization.");
+        throw new AuthorizationError(
+          "Cannot update tenant from another organization"
+        );
       }
+
       return tenantsService.updateTenant(data.id, data);
     },
 
@@ -75,14 +104,21 @@ export const tenantsResolvers = {
       { id }: TenantIdDto,
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "manageTenants");
-      // Add check: ensure tenant being deleted belongs to the user's org
+      const { organizationId } = await checkTenantPermissions(
+        context,
+        "manage"
+      );
+
+      // Verify tenant being deleted belongs to organization
       const existingTenant = await tenantsService.getTenantById(id);
       if (existingTenant.organizationId !== organizationId) {
-        throw new Error("Cannot delete tenant from another organization.");
+        throw new AuthorizationError(
+          "Cannot delete tenant from another organization"
+        );
       }
+
       await tenantsService.deleteTenant(id);
-      return true; // Indicate success
+      return true;
     },
 
     assignTenantToLease: async (
@@ -90,9 +126,26 @@ export const tenantsResolvers = {
       { data }: { data: AssignTenantToLeaseDto },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "manageLeases"); // Or specific assignment permission
-      // Add checks: ensure both lease and tenant belong to the user's org
-      // ...
+      // Check lease permissions
+      const { organizationId } = await checkPermissions(
+        context,
+        "manageLeases"
+      );
+
+      // Verify both lease and tenant belong to organization
+      const lease = await db.query.leaseEntity.findFirst({
+        where: eq(leaseEntity.id, data.leaseId),
+      });
+
+      if (!lease || lease.organizationId !== organizationId) {
+        throw new AuthorizationError("Lease not found in your organization");
+      }
+
+      const tenant = await tenantsService.getTenantById(data.tenantId);
+      if (tenant.organizationId !== organizationId) {
+        throw new AuthorizationError("Tenant not found in your organization");
+      }
+
       return tenantsService.assignTenantToLease(data);
     },
 
@@ -101,51 +154,62 @@ export const tenantsResolvers = {
       { leaseId, tenantId }: { leaseId: string; tenantId: string },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "manageLeases"); // Or specific assignment permission
-      // Add checks: ensure both lease and tenant belong to the user's org
-      // ...
+      const { organizationId } = await checkPermissions(
+        context,
+        "manageLeases"
+      );
+
+      // Verify both lease and tenant belong to organization
+      const lease = await db.query.leaseEntity.findFirst({
+        where: eq(leaseEntity.id, leaseId),
+      });
+
+      if (!lease || lease.organizationId !== organizationId) {
+        throw new AuthorizationError("Lease not found in your organization");
+      }
+
+      const tenant = await tenantsService.getTenantById(tenantId);
+      if (tenant.organizationId !== organizationId) {
+        throw new AuthorizationError("Tenant not found in your organization");
+      }
+
       await tenantsService.removeTenantFromLease(leaseId, tenantId);
       return true;
     },
   },
 
-  // Field resolvers for related data if needed
+  // Field resolvers for related data
   Tenant: {
-    // Example: Fetch related user account
     userAccount: async (tenant: Tenant, _: any, context: GraphQLContext) => {
       if (!tenant.userId) return null;
-      // Add permission checks if necessary before fetching user details
-      // Requires UsersService
-      // return usersService.getUserById(tenant.userId);
-      return tenant.userAccount; // Already fetched in service example
+      return tenant.userAccount; // Already fetched in service
     },
-    // Example: Fetch leases associated with the tenant
+
     leases: async (tenant: Tenant, _: any, context: GraphQLContext) => {
-      // Requires LeaseService or use assignments already fetched
       const assignments =
         tenant.leaseAssignments ||
         (await db.query.leaseTenantsEntity.findMany({
           where: eq(leaseTenantsEntity.tenantId, tenant.id),
           with: { lease: true },
         }));
+
       return assignments.map((a) => a.lease);
     },
   },
+
   LeaseTenant: {
-    // Field resolvers for the join table if accessed directly
     lease: async (assignment: LeaseTenant) => {
-      // Fetch lease if not already included
       return (
-        assignment.lease || // Assumes 'with' was used in parent query
+        assignment.lease ||
         (await db.query.leaseEntity.findFirst({
           where: eq(leaseEntity.id, assignment.leaseId),
         }))
       );
     },
+
     tenant: async (assignment: LeaseTenant) => {
-      // Fetch tenant if not already included
       return (
-        assignment.tenant || // Assumes 'with' was used in parent query
+        assignment.tenant ||
         (await db.query.tenantEntity.findFirst({
           where: eq(tenantEntity.id, assignment.tenantId),
         }))
@@ -153,21 +217,3 @@ export const tenantsResolvers = {
     },
   },
 };
-
-// Placeholder permission check function
-// Replace with your actual permission logic
-function checkPermissions(
-  context: GraphQLContext,
-  permission: string
-): { organizationId: string } {
-  const { organization } = context;
-  if (!organization) {
-    throw new Error("No active organization selected");
-  }
-  // TODO: Implement actual permission check logic based on user roles/permissions
-  console.log(`Checking permission: ${permission} for org: ${organization.id}`);
-  if (!context.permissions || !context.permissions[permission]) {
-    // throw new AuthorizationError(`Missing permission: ${permission}`);
-  }
-  return { organizationId: organization.id };
-}

@@ -1,4 +1,6 @@
-import { checkPermissions } from "@/infrastructure/auth/utils/permission-utils";
+// src/domains/billing/resolvers/billings.resolvers.ts
+
+import { checkFinancialPermissions } from "@/infrastructure/auth/utils/permission-utils";
 import { GraphQLContext } from "@/infrastructure/graphql/context/types";
 import {
   CreateExpenseDto,
@@ -24,13 +26,19 @@ export const billingResolvers = {
   Query: {
     // Payment queries
     payments: async (_: any, __: any, context: GraphQLContext) => {
-      const { organizationId } = checkPermissions(context, "viewFinancial");
+      const { organizationId } = await checkFinancialPermissions(
+        context,
+        "view"
+      );
       return paymentsService.getPaymentsByOrganization(organizationId);
     },
 
     payment: async (_: any, { id }: PaymentIdDto, context: GraphQLContext) => {
-      const { organizationId } = checkPermissions(context, "viewFinancial");
-      return paymentsService.getPaymentById(id, organizationId);
+      const { organizationId } = await checkFinancialPermissions(
+        context,
+        "view"
+      );
+      return paymentsService.getPaymentById(id);
     },
 
     paymentsByProperty: async (
@@ -38,7 +46,10 @@ export const billingResolvers = {
       { propertyId }: { propertyId: string },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "viewFinancial");
+      const { organizationId } = await checkFinancialPermissions(
+        context,
+        "view"
+      );
       return paymentsService.getPaymentsByProperty(propertyId, organizationId);
     },
 
@@ -47,7 +58,10 @@ export const billingResolvers = {
       { leaseId }: { leaseId: string },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "viewFinancial");
+      const { organizationId } = await checkFinancialPermissions(
+        context,
+        "view"
+      );
       return paymentsService.getPaymentsByLease(leaseId, organizationId);
     },
 
@@ -56,19 +70,28 @@ export const billingResolvers = {
       { tenantId }: { tenantId: string },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "viewFinancial");
+      const { organizationId } = await checkFinancialPermissions(
+        context,
+        "view"
+      );
       return paymentsService.getPaymentsByTenant(tenantId, organizationId);
     },
 
     // Expense queries
     expenses: async (_: any, __: any, context: GraphQLContext) => {
-      const { organizationId } = checkPermissions(context, "viewFinancial");
+      const { organizationId } = await checkFinancialPermissions(
+        context,
+        "view"
+      );
       return expensesService.getExpensesByOrganization(organizationId);
     },
 
     expense: async (_: any, { id }: ExpenseIdDto, context: GraphQLContext) => {
-      const { organizationId } = checkPermissions(context, "viewFinancial");
-      return expensesService.getExpenseById(id, organizationId);
+      const { organizationId } = await checkFinancialPermissions(
+        context,
+        "view"
+      );
+      return expensesService.getExpenseById(id);
     },
 
     expensesByProperty: async (
@@ -76,13 +99,19 @@ export const billingResolvers = {
       { propertyId }: { propertyId: string },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "viewFinancial");
+      const { organizationId } = await checkFinancialPermissions(
+        context,
+        "view"
+      );
       return expensesService.getExpensesByProperty(propertyId, organizationId);
     },
 
     // Utility bill queries
     utilityBills: async (_: any, __: any, context: GraphQLContext) => {
-      const { organizationId } = checkPermissions(context, "viewFinancial");
+      const { organizationId } = await checkFinancialPermissions(
+        context,
+        "view"
+      );
       return utilityBillsService.getUtilityBillsByOrganization(organizationId);
     },
 
@@ -91,8 +120,11 @@ export const billingResolvers = {
       { id }: UtilityBillIdDto,
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "viewFinancial");
-      return utilityBillsService.getUtilityBillById(id, organizationId);
+      const { organizationId } = await checkFinancialPermissions(
+        context,
+        "view"
+      );
+      return utilityBillsService.getUtilityBillById(id);
     },
 
     utilityBillsByProperty: async (
@@ -100,7 +132,10 @@ export const billingResolvers = {
       { propertyId }: { propertyId: string },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "viewFinancial");
+      const { organizationId } = await checkFinancialPermissions(
+        context,
+        "view"
+      );
       return utilityBillsService.getUtilityBillsByProperty(
         propertyId,
         organizationId
@@ -112,7 +147,10 @@ export const billingResolvers = {
       { unitId }: { unitId: string },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "viewFinancial");
+      const { organizationId } = await checkFinancialPermissions(
+        context,
+        "view"
+      );
       return utilityBillsService.getUtilityBillsByUnit(unitId, organizationId);
     },
 
@@ -132,7 +170,10 @@ export const billingResolvers = {
       },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "viewFinancial");
+      const { organizationId } = await checkFinancialPermissions(
+        context,
+        "view"
+      );
 
       // Default to month if not specified
       const reportPeriod = period || "month";
@@ -165,13 +206,12 @@ export const billingResolvers = {
       { data }: { data: CreatePaymentDto },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "manageFinancial");
-      const userId = context.user?.id;
-      if (!userId) {
-        throw new Error("User context not found for recording payment");
-      }
+      const { organizationId, userId } = await checkFinancialPermissions(
+        context,
+        "manage"
+      );
 
-      return paymentsService.recordPayment({
+      return paymentsService.createPayment({
         ...data,
         organizationId,
         recordedBy: userId,
@@ -183,7 +223,10 @@ export const billingResolvers = {
       { data }: { data: UpdatePaymentDto },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "manageFinancial");
+      const { organizationId } = await checkFinancialPermissions(
+        context,
+        "manage"
+      );
       return paymentsService.updatePayment(data.id, organizationId, data);
     },
 
@@ -192,7 +235,10 @@ export const billingResolvers = {
       { id }: PaymentIdDto,
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "manageFinancial");
+      const { organizationId } = await checkFinancialPermissions(
+        context,
+        "manage"
+      );
       await paymentsService.deletePayment(id, organizationId);
       return true;
     },
@@ -203,17 +249,21 @@ export const billingResolvers = {
       { data }: { data: CreateExpenseDto },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "manageFinancial");
-      const userId = context.user?.id;
-      if (!userId) {
-        throw new Error("User context not found for recording expense");
-      }
+      const { organizationId, userId } = await checkFinancialPermissions(
+        context,
+        "manage"
+      );
 
-      return expensesService.recordExpense({
-        ...data,
+      return expensesService.createExpense(
+        {
+          ...data,
+          organizationId,
+          recordedBy: userId,
+        },
         organizationId,
-        recordedBy: userId,
-      });
+        userId,
+        data.createPayment
+      );
     },
 
     updateExpense: async (
@@ -221,8 +271,11 @@ export const billingResolvers = {
       { data }: { data: UpdateExpenseDto },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "manageFinancial");
-      return expensesService.updateExpense(data.id, organizationId, data);
+      const { organizationId } = await checkFinancialPermissions(
+        context,
+        "manage"
+      );
+      return expensesService.updateExpense(data, organizationId);
     },
 
     deleteExpense: async (
@@ -230,7 +283,10 @@ export const billingResolvers = {
       { id }: ExpenseIdDto,
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "manageFinancial");
+      const { organizationId } = await checkFinancialPermissions(
+        context,
+        "manage"
+      );
       await expensesService.deleteExpense(id, organizationId);
       return true;
     },
@@ -241,7 +297,10 @@ export const billingResolvers = {
       { data }: { data: CreateUtilityBillDto },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "manageFinancial");
+      const { organizationId } = await checkFinancialPermissions(
+        context,
+        "manage"
+      );
       return utilityBillsService.createUtilityBill({
         ...data,
         organizationId,
@@ -253,7 +312,10 @@ export const billingResolvers = {
       { data }: { data: UpdateUtilityBillDto },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "manageFinancial");
+      const { organizationId } = await checkFinancialPermissions(
+        context,
+        "manage"
+      );
       return utilityBillsService.updateUtilityBill(
         data.id,
         organizationId,
@@ -266,7 +328,10 @@ export const billingResolvers = {
       { id }: UtilityBillIdDto,
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "manageFinancial");
+      const { organizationId } = await checkFinancialPermissions(
+        context,
+        "manage"
+      );
       await utilityBillsService.deleteUtilityBill(id, organizationId);
       return true;
     },
@@ -276,24 +341,12 @@ export const billingResolvers = {
       { data }: { data: PayUtilityBillDto },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "manageFinancial");
-      const userId = context.user?.id;
-      if (!userId) {
-        throw new Error("User context not found for recording payment");
-      }
-
-      return utilityBillsService.recordUtilityBillPayment(
-        data.id,
-        organizationId,
-        {
-          amount: data.amount,
-          method: data.paymentMethod,
-          referenceId: data.referenceId,
-          paidDate: data.paidDate ? new Date(data.paidDate) : new Date(),
-          notes: data.notes,
-          recordedBy: userId,
-        }
+      const { organizationId, userId } = await checkFinancialPermissions(
+        context,
+        "manage"
       );
+
+      return utilityBillsService.payUtilityBill(data, organizationId, userId);
     },
   },
 };

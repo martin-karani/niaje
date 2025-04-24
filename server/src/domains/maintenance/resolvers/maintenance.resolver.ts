@@ -1,4 +1,6 @@
-// import { checkPermissions } from "@/infrastructure/auth/permissions";
+// src/domains/maintenance/resolvers/maintenance.resolver.ts
+
+import { checkMaintenancePermissions } from "@/infrastructure/auth/utils/permission-utils";
 import { GraphQLContext } from "@/infrastructure/graphql/context/types";
 import {
   AssignMaintenanceRequestDto,
@@ -12,7 +14,10 @@ import { maintenanceService } from "../services/maintenance.service";
 export const maintenanceResolvers = {
   Query: {
     maintenanceRequests: async (_: any, __: any, context: GraphQLContext) => {
-      const { organizationId } = checkPermissions(context, "viewMaintenance");
+      const { organizationId } = await checkMaintenancePermissions(
+        context,
+        "view"
+      );
       return maintenanceService.getMaintenanceRequestsByOrganization(
         organizationId
       );
@@ -23,7 +28,12 @@ export const maintenanceResolvers = {
       { id }: MaintenanceRequestIdDto,
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "viewMaintenance");
+      const { organizationId } = await checkMaintenancePermissions(
+        context,
+        "view"
+      );
+
+      // Service will verify organization ID matches
       return maintenanceService.getMaintenanceRequestById(id, organizationId);
     },
 
@@ -32,7 +42,12 @@ export const maintenanceResolvers = {
       { propertyId }: { propertyId: string },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "viewMaintenance");
+      const { organizationId } = await checkMaintenancePermissions(
+        context,
+        "view"
+      );
+
+      // Service will verify property belongs to organization
       return maintenanceService.getMaintenanceRequestsByProperty(
         propertyId,
         organizationId
@@ -44,7 +59,12 @@ export const maintenanceResolvers = {
       { unitId }: { unitId: string },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "viewMaintenance");
+      const { organizationId } = await checkMaintenancePermissions(
+        context,
+        "view"
+      );
+
+      // Service will verify unit belongs to organization
       return maintenanceService.getMaintenanceRequestsByUnit(
         unitId,
         organizationId
@@ -56,7 +76,12 @@ export const maintenanceResolvers = {
       { assigneeId }: { assigneeId: string },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "viewMaintenance");
+      const { organizationId } = await checkMaintenancePermissions(
+        context,
+        "view"
+      );
+
+      // Service will filter by organization ID
       return maintenanceService.getMaintenanceRequestsByAssignee(
         assigneeId,
         organizationId
@@ -70,7 +95,12 @@ export const maintenanceResolvers = {
       { data }: { data: CreateMaintenanceRequestDto },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "manageMaintenance");
+      const { organizationId } = await checkMaintenancePermissions(
+        context,
+        "manage"
+      );
+
+      // Ensure data includes organizationId
       return maintenanceService.createMaintenanceRequest({
         ...data,
         organizationId,
@@ -82,7 +112,12 @@ export const maintenanceResolvers = {
       { data }: { data: UpdateMaintenanceRequestDto },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "manageMaintenance");
+      const { organizationId } = await checkMaintenancePermissions(
+        context,
+        "manage"
+      );
+
+      // Service will verify request belongs to organization
       return maintenanceService.updateMaintenanceRequest(
         data.id,
         organizationId,
@@ -95,7 +130,12 @@ export const maintenanceResolvers = {
       { data }: { data: AssignMaintenanceRequestDto },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "manageMaintenance");
+      const { organizationId } = await checkMaintenancePermissions(
+        context,
+        "manage"
+      );
+
+      // Service will verify request belongs to organization
       return maintenanceService.assignMaintenanceRequest(
         data.id,
         organizationId,
@@ -108,7 +148,12 @@ export const maintenanceResolvers = {
       { id }: MaintenanceRequestIdDto,
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "manageMaintenance");
+      const { organizationId } = await checkMaintenancePermissions(
+        context,
+        "manage"
+      );
+
+      // Service will verify request belongs to organization
       await maintenanceService.deleteMaintenanceRequest(id, organizationId);
       return true;
     },
@@ -156,21 +201,3 @@ export const maintenanceResolvers = {
     },
   },
 };
-
-// Placeholder permission check function
-// Replace with your actual permission logic
-function checkPermissions(
-  context: GraphQLContext,
-  permission: string
-): { organizationId: string } {
-  const { organization } = context;
-  if (!organization) {
-    throw new Error("No active organization selected");
-  }
-  // TODO: Implement actual permission check logic based on user roles/permissions
-  console.log(`Checking permission: ${permission} for org: ${organization.id}`);
-  if (!context.permissions || !context.permissions[permission]) {
-    // throw new AuthorizationError(`Missing permission: ${permission}`);
-  }
-  return { organizationId: organization.id };
-}

@@ -1,4 +1,7 @@
+// src/infrastructure/auth/resolvers/auth.resolvers.ts
+
 import { teamsService } from "@/domains/organizations/services";
+import { memberEntity, teamEntity } from "@/domains/users/entities";
 import { db } from "@/infrastructure/database";
 import { GraphQLContext } from "@/infrastructure/graphql/context/types";
 import {

@@ -10,10 +10,10 @@ import { AuthorizationError } from "@/shared/errors";
  */
 export async function checkPermissions(
   context: GraphQLContext,
-  permission: string, // A consistent permission string like "viewFinancial", "manageLeases", etc.
-  resourceType?: string, // Optional resource type for more granular checks
-  action?: string, // Optional action for more granular checks
-  resourceId?: string // Optional specific resource ID
+  permission: string,
+  resourceType?: string,
+  action?: string,
+  resourceId?: string
 ): Promise<{ organizationId: string; userId: string }> {
   const { user, organization, permissionChecker } = context;
 
@@ -27,12 +27,25 @@ export async function checkPermissions(
     throw new AuthorizationError("No active organization selected");
   }
 
-  // If resourceType and action are provided, use permissionChecker with them
+  // Check if permission checker exists
+  if (!permissionChecker) {
+    throw new AuthorizationError("Permission checker not initialized");
+  }
+
+  // If resourceType and action are provided, use them directly
   if (resourceType && action) {
-    await permissionChecker.assertCan(resourceType, action, resourceId);
+    const allowed = await permissionChecker.can(
+      resourceType,
+      action,
+      resourceId
+    );
+    if (!allowed) {
+      throw new AuthorizationError(
+        `You don't have permission to ${action} this ${resourceType}`
+      );
+    }
   } else {
-    // Otherwise use a direct permission check based on the permission string
-    // This maps common permission strings to resource types and actions
+    // Otherwise map the permission string to resource type and action
     const permissionMap: Record<
       string,
       { resourceType: string; action: string }
@@ -75,18 +88,22 @@ export async function checkPermissions(
       manageTeams: { resourceType: "team", action: "manage" },
     };
 
-    // Get the resource type and action from the permission map
     const permissionConfig = permissionMap[permission];
     if (!permissionConfig) {
       throw new Error(`Unknown permission: ${permission}`);
     }
 
-    // Check the permission using the permission checker
-    await permissionChecker.assertCan(
+    const allowed = await permissionChecker.can(
       permissionConfig.resourceType,
       permissionConfig.action,
       resourceId
     );
+
+    if (!allowed) {
+      throw new AuthorizationError(
+        `You don't have permission to ${permissionConfig.action} ${permissionConfig.resourceType}`
+      );
+    }
   }
 
   return { organizationId: organization.id, userId: user.id };
@@ -111,6 +128,10 @@ export async function checkPropertyPermission(
     throw new AuthorizationError("No active organization selected");
   }
 
+  if (!permissionChecker) {
+    throw new AuthorizationError("Permission checker not initialized");
+  }
+
   // Map permission level to action
   const action =
     permissionLevel === "view"
@@ -120,15 +141,17 @@ export async function checkPropertyPermission(
         : "delete";
 
   // Check if user has permission for this property
-  await permissionChecker.assertCan("property", action, propertyId);
+  const allowed = await permissionChecker.can("property", action, propertyId);
+  if (!allowed) {
+    throw new AuthorizationError(
+      `You don't have permission to ${action} this property`
+    );
+  }
 
   return { organizationId: organization.id };
 }
 
-/**
- * A set of standardized domain-specific permission checks
- * These provide clearer semantics for common permission checks
- */
+// Domain-specific permission check helpers
 
 // Financial permissions
 export async function checkFinancialPermissions(
@@ -171,27 +194,5 @@ export async function checkMaintenancePermissions(
   return checkPermissions(
     context,
     permission === "view" ? "viewMaintenance" : "manageMaintenance"
-  );
-}
-
-// Document permissions
-export async function checkDocumentPermissions(
-  context: GraphQLContext,
-  permission: "view" | "manage" = "view"
-): Promise<{ organizationId: string; userId: string }> {
-  return checkPermissions(
-    context,
-    permission === "view" ? "viewDocuments" : "manageDocuments"
-  );
-}
-
-// Inspection permissions
-export async function checkInspectionPermissions(
-  context: GraphQLContext,
-  permission: "view" | "manage" = "view"
-): Promise<{ organizationId: string; userId: string }> {
-  return checkPermissions(
-    context,
-    permission === "view" ? "viewInspections" : "manageInspections"
   );
 }

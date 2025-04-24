@@ -1,3 +1,5 @@
+// src/infrastructure/auth/types/auth.types.ts
+
 export const authTypeDefs = `
   # User types
   type User {
@@ -14,19 +16,10 @@ export const authTypeDefs = `
     updatedAt: String!
   }
 
-  # Session types
-  type Session {
-    id: ID!
-    expiresAt: String!
-    userId: ID!
-    createdAt: String!
-    updatedAt: String!
-  }
-
   # Authentication response types
   type AuthPayload {
     user: User!
-    sessionToken: String!
+    sessionToken: String
   }
 
   # Organization minimal info for auth context
@@ -99,33 +92,6 @@ export const authTypeDefs = `
   type EmailVerificationPayload {
     success: Boolean!
     message: String!
-  }
-
-  # Tenant login response
-  type TenantLoginPayload {
-    user: User!
-    tenant: Tenant!
-    organization: AuthOrganization!
-    properties: [TenantPropertyInfo!]!
-    sessionToken: String!
-  }
-
-  # Tenant property information
-  type TenantPropertyInfo {
-    tenantPropertyId: ID!
-    propertyId: ID!
-    unitId: ID!
-    property: Property!
-    unit: Unit!
-    startDate: String!
-    endDate: String
-  }
-
-  # Tenant login input
-  input TenantLoginInput {
-    email: String!
-    password: String!
-    remember: Boolean
   }
 
   # Input for user registration
@@ -205,7 +171,7 @@ export const authTypeDefs = `
     teamId: ID
   }
 
-  # Extend the main Query type with auth queries
+  # Auth queries
   extend type Query {
     # Get current authenticated user
     me: UserOrganizationsPayload
@@ -214,13 +180,12 @@ export const authTypeDefs = `
     validateInvitation(token: String!): InvitationValidationPayload!
   }
 
-  # Extend the main Mutation type with auth mutations
+  # Auth mutations
   extend type Mutation {
     # User authentication
     register(input: RegisterInput!): AuthPayload!
     login(input: LoginInput!): UserOrganizationsPayload!
     logout: Boolean!
-    tenantLogin(input: TenantLoginInput!): TenantLoginPayload!
 
     # Password management
     forgotPassword(input: ForgotPasswordInput!): PasswordResetPayload!

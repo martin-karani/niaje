@@ -1,14 +1,13 @@
-// src/infrastructure/auth/middleware.ts
-
 import { subscriptionService } from "@/domains/billing/services/subscription.service";
-import { auth } from "@/infrastructure/auth/better-auth/auth";
+import { organizationService } from "@/infrastructure/auth/services/organization.service";
+import { sessionService } from "@/infrastructure/auth/services/session.service";
 import { teamService } from "@/infrastructure/auth/services/team.service";
 import { NextFunction, Request, Response } from "express";
 import { PermissionChecker } from "./permission-checker";
 
 /**
  * Unified middleware to extract user session, organization, team, and permissions
- * This middleware standardizes auth across the application
+ * This middleware standardizes auth across the application for both REST and GraphQL
  */
 export function createAuthMiddleware() {
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -21,12 +20,19 @@ export function createAuthMiddleware() {
       delete req.features;
       delete req.permissionChecker;
 
-      // Get auth session using better-auth
-      try {
-        // Extract session from better-auth
-        const session = await auth.api.getSession(req);
+      // Get auth session from cookie token
+      const sessionToken = req.cookies?.auth_token;
 
-        // If no session, continue as unauthenticated
+      // If no token, continue as unauthenticated
+      if (!sessionToken) {
+        return next();
+      }
+
+      try {
+        // Get session details
+        const session = await sessionService.getSessionByToken(sessionToken);
+
+        // If no session or invalid session, continue as unauthenticated
         if (!session?.user) {
           return next();
         }
@@ -35,12 +41,13 @@ export function createAuthMiddleware() {
         req.user = session.user;
 
         // Get active organization from session data
-        if (session.activeOrganizationId) {
+        if (session.data?.activeOrganizationId) {
           try {
             // Fetch organization details
-            const organization = await auth.api.getOrganization(
-              session.activeOrganizationId
+            const organization = await organizationService.getOrganizationById(
+              session.data.activeOrganizationId
             );
+
             if (organization) {
               req.activeOrganization = organization;
 
@@ -52,10 +59,10 @@ export function createAuthMiddleware() {
               req.features = features;
 
               // Check if session has an active team
-              if (session.activeTeamId) {
+              if (session.data.activeTeamId) {
                 try {
                   const team = await teamService.getTeamById(
-                    session.activeTeamId
+                    session.data.activeTeamId
                   );
                   // Only set active team if it belongs to the active organization
                   if (team.organizationId === organization.id) {
