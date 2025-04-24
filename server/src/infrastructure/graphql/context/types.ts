@@ -1,4 +1,4 @@
-import { PermissionChecker } from "@/infrastructure/auth/permission-checker";
+import { PermissionChecker } from "@/domains/auth/permission-checker";
 import { Request } from "express";
 
 /**

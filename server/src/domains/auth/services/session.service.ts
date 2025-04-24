@@ -22,7 +22,8 @@ export class SessionService {
       expiresAt: data.expiresAt,
       ipAddress: data.ipAddress || null,
       userAgent: data.userAgent || null,
-      data: {},
+      token,
+      data: data.data || {},
       createdAt: new Date(),
       updatedAt: new Date(),
     });

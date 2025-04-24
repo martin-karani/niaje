@@ -1,3 +1,5 @@
+import { authResolvers } from "@/domains/auth/resolvers/auth.resolvers";
+import { authTypeDefs } from "@/domains/auth/types/auth.types";
 import { billingResolvers } from "@/domains/billing/resolvers/billings.resolvers";
 import { subscriptionResolvers } from "@/domains/billing/resolvers/subscription.resolvers";
 import { billingTypeDefs } from "@/domains/billing/types/billing.type";
@@ -18,9 +20,8 @@ import { propertiesResolvers } from "@/domains/properties/resolvers/properties.r
 import { propertiesTypeDefs } from "@/domains/properties/types/properties.types";
 import { tenantsResolvers } from "@/domains/tenants/resolvers/tenants.resolver";
 import { tenantsTypeDefs } from "@/domains/tenants/types/tenants.types";
+import { usersResolvers } from "@/domains/users/resolvers/users.resolver";
 import { usersTypeDefs } from "@/domains/users/types/users.types";
-import { authResolvers } from "@/infrastructure/auth/resolvers/auth.resolvers";
-import { authTypeDefs } from "@/infrastructure/auth/types/auth.types";
 import { makeExecutableSchema } from "@graphql-tools/schema";
 
 // Base types that can be extended
@@ -67,6 +68,7 @@ const resolvers = {
     ...documentsResolvers.Query,
     ...inspectionsResolvers.Query,
     ...authResolvers.Query,
+    ...usersResolvers.Query,
   },
   Mutation: {
     ...propertiesResolvers.Mutation,
@@ -80,6 +82,7 @@ const resolvers = {
     ...documentsResolvers.Mutation,
     ...inspectionsResolvers.Mutation,
     ...authResolvers.Mutation,
+    ...usersResolvers.Mutation,
   },
   // Type resolvers
   Property: propertiesResolvers.Property,
@@ -92,6 +95,7 @@ const resolvers = {
   MaintenanceRequest: maintenanceResolvers.MaintenanceRequest,
   Communication: communicationsResolvers.Communication,
   Document: documentsResolvers.Document,
+  User: usersResolvers.User,
 };
 
 // Create executable schema

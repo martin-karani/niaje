@@ -1,5 +1,4 @@
 export const authTypeDefs = `
-
   # Authentication response types
   type AuthPayload {
     user: User!
@@ -82,6 +81,7 @@ export const authTypeDefs = `
   input RegisterInput {
     email: String!
     password: String!
+    passwordConfirm: String!
     name: String!
   }
 

@@ -1,4 +1,4 @@
-import { sessionService } from "@/infrastructure/auth/services/session.service";
+import { sessionService } from "@/domains/auth/services/session.service";
 import { GraphQLContext } from "@/infrastructure/graphql/context/types";
 import { AuthorizationError } from "@/shared/errors/authorization.error";
 import {

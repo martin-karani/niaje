@@ -9,6 +9,19 @@ import {
 } from "@/shared/errors";
 import { clearCookie, setCookie } from "@/shared/utils/cookie.utils";
 import { and, eq } from "drizzle-orm";
+import {
+  AcceptInvitationDto,
+  ChangeEmailDto,
+  CreateOrganizationDto,
+  ForgotPasswordDto,
+  LoginDto,
+  RegisterDto,
+  ResetPasswordDto,
+  SetActiveTeamDto,
+  SignupFromInvitationDto,
+  SwitchOrganizationDto,
+  VerifyEmailDto,
+} from "../dto/auth.dto";
 import { authService } from "../services/auth.service";
 import { invitationService } from "../services/invitation.service";
 import { organizationService } from "../services/organization.service";
@@ -47,7 +60,7 @@ export const authResolvers = {
      */
     validateInvitation: async (
       _: any,
-      { token }: { token: string },
+      { token }: VerifyEmailDto,
       _context: GraphQLContext
     ) => {
       try {
@@ -80,16 +93,14 @@ export const authResolvers = {
      */
     register: async (
       _: any,
-      { input }: { input: any },
+      { input }: { input: RegisterDto },
       context: GraphQLContext
     ) => {
-      const { email, password, name } = input;
-
       try {
         const { user, sessionToken } = await authService.register({
-          email,
-          password,
-          name,
+          email: input.email,
+          password: input.password,
+          name: input.name,
           role: "tenant_user",
         });
 
@@ -137,25 +148,23 @@ export const authResolvers = {
      */
     login: async (
       _: any,
-      { input }: { input: any },
+      { input }: { input: LoginDto },
       context: GraphQLContext
     ) => {
-      const { email, password, remember } = input;
-
       // Get IP and user agent for additional security
       const ipAddress =
         context.req.ip || context.req.socket.remoteAddress || null;
       const userAgent = context.req.headers["user-agent"] || null;
 
       const { user, sessionToken } = await authService.login({
-        email,
-        password,
+        email: input.email,
+        password: input.password,
         ipAddress,
         userAgent,
       });
 
       // Set session token in cookie
-      const maxAge = remember
+      const maxAge = input.remember
         ? 30 * 24 * 60 * 60 * 1000 // 30 days if "remember me"
         : 7 * 24 * 60 * 60 * 1000; // 7 days default
 
@@ -248,14 +257,12 @@ export const authResolvers = {
      */
     forgotPassword: async (
       _: any,
-      { input }: { input: any },
+      { input }: { input: ForgotPasswordDto },
       _context: GraphQLContext
     ) => {
-      const { email } = input;
-
       // Always return success to prevent email enumeration
       try {
-        await authService.sendPasswordResetEmail(email);
+        await authService.sendPasswordResetEmail(input.email);
       } catch (error) {
         console.error("Error sending password reset email:", error);
       }
@@ -272,16 +279,10 @@ export const authResolvers = {
      */
     resetPassword: async (
       _: any,
-      { input }: { input: any },
+      { input }: { input: ResetPasswordDto },
       _context: GraphQLContext
     ) => {
-      const { token, password, confirmPassword } = input;
-
-      if (password !== confirmPassword) {
-        throw new ValidationError("Passwords do not match");
-      }
-
-      await authService.resetPassword(token, password);
+      await authService.resetPassword(input.token, input.password);
 
       return {
         success: true,
@@ -325,12 +326,10 @@ export const authResolvers = {
      */
     verifyEmail: async (
       _: any,
-      { input }: { input: any },
+      { input }: { input: VerifyEmailDto },
       _context: GraphQLContext
     ) => {
-      const { token } = input;
-
-      await authService.verifyEmail(token);
+      await authService.verifyEmail(input.token);
 
       return {
         success: true,
@@ -343,15 +342,13 @@ export const authResolvers = {
      */
     resendVerificationEmail: async (
       _: any,
-      { input }: { input: any },
+      { input }: { input: ForgotPasswordDto },
       _context: GraphQLContext
     ) => {
-      const { email } = input;
-
       // Always return success to prevent email enumeration
       try {
         const user = await db.query.userEntity.findFirst({
-          where: eq(userEntity.email, email),
+          where: eq(userEntity.email, input.email),
         });
 
         if (user && !user.emailVerified) {
@@ -373,16 +370,14 @@ export const authResolvers = {
      */
     changeEmail: async (
       _: any,
-      { input }: { input: any },
+      { input }: { input: ChangeEmailDto },
       context: GraphQLContext
     ) => {
       if (!context.user) {
         throw new AuthorizationError("Not authenticated");
       }
 
-      const { newEmail } = input;
-
-      await authService.changeEmail(context.user.id, newEmail);
+      await authService.changeEmail(context.user.id, input.newEmail);
 
       return {
         success: true,
@@ -395,12 +390,10 @@ export const authResolvers = {
      */
     verifyEmailChange: async (
       _: any,
-      { input }: { input: any },
+      { input }: { input: VerifyEmailDto },
       _context: GraphQLContext
     ) => {
-      const { token } = input;
-
-      await authService.verifyEmailChange(token);
+      await authService.verifyEmailChange(input.token);
 
       return {
         success: true,
@@ -413,17 +406,15 @@ export const authResolvers = {
      */
     acceptInvitation: async (
       _: any,
-      { input }: { input: any },
+      { input }: { input: AcceptInvitationDto },
       context: GraphQLContext
     ) => {
       if (!context.user) {
         throw new AuthorizationError("Not authenticated");
       }
 
-      const { token } = input;
-
       const { organizationId, teamId } =
-        await invitationService.acceptInvitation(token, context.user.id);
+        await invitationService.acceptInvitation(input.token, context.user.id);
 
       // Update session with new organization
       const authToken = context.req.cookies?.auth_token;
@@ -456,20 +447,14 @@ export const authResolvers = {
      */
     signupFromInvitation: async (
       _: any,
-      { input }: { input: any },
+      { input }: { input: SignupFromInvitationDto },
       context: GraphQLContext
     ) => {
-      const { token, name, password, confirmPassword } = input;
-
-      if (password !== confirmPassword) {
-        throw new ValidationError("Passwords do not match");
-      }
-
       const { user, organizationId, sessionToken } =
         await invitationService.signupFromInvitation({
-          token,
-          name,
-          password,
+          token: input.token,
+          name: input.name,
+          password: input.password,
         });
 
       // Set session token in cookie
@@ -491,14 +476,14 @@ export const authResolvers = {
      */
     createOrganization: async (
       _: any,
-      { input }: { input: any },
+      { input }: { input: CreateOrganizationDto },
       context: GraphQLContext
     ) => {
       if (!context.user) {
         throw new AuthorizationError("Not authenticated");
       }
 
-      const organization = await organizationService.createOrganization({
+      const { organization } = await organizationService.createOrganization({
         ...input,
         userId: context.user.id,
       });
@@ -526,19 +511,17 @@ export const authResolvers = {
      */
     switchOrganization: async (
       _: any,
-      { input }: { input: any },
+      { input }: { input: SwitchOrganizationDto },
       context: GraphQLContext
     ) => {
       if (!context.user) {
         throw new AuthorizationError("Not authenticated");
       }
 
-      const { organizationId } = input;
-
       // Check if user is member of this organization
       const isMember = await organizationService.isUserMemberOfOrganization(
         context.user.id,
-        organizationId
+        input.organizationId
       );
 
       if (!isMember) {
@@ -550,13 +533,14 @@ export const authResolvers = {
       // Update session
       const token = context.req.cookies?.auth_token;
       if (token) {
-        await sessionService.setActiveOrganization(token, organizationId);
+        await sessionService.setActiveOrganization(token, input.organizationId);
         // Clear any active team when switching orgs
         await sessionService.setActiveTeam(token, null);
       }
 
-      const organization =
-        await organizationService.getOrganizationById(organizationId);
+      const organization = await organizationService.getOrganizationById(
+        input.organizationId
+      );
 
       return {
         success: true,
@@ -575,7 +559,7 @@ export const authResolvers = {
      */
     setActiveTeam: async (
       _: any,
-      { input }: { input: any },
+      { input }: { input: SetActiveTeamDto },
       context: GraphQLContext
     ) => {
       if (!context.user) {
@@ -586,10 +570,8 @@ export const authResolvers = {
         throw new ValidationError("No active organization selected");
       }
 
-      const { teamId } = input;
-
       // If setting to null, that's always allowed (removing active team)
-      if (teamId === null) {
+      if (input.teamId === null) {
         // Update session
         const token = context.req.cookies?.auth_token;
         if (token) {
@@ -606,7 +588,7 @@ export const authResolvers = {
       // Check if team exists and belongs to active organization
       const team = await db.query.teamEntity.findFirst({
         where: and(
-          eq(teamEntity.id, teamId),
+          eq(teamEntity.id, input.teamId),
           eq(teamEntity.organizationId, context.organization.id)
         ),
       });
@@ -620,7 +602,7 @@ export const authResolvers = {
         where: and(
           eq(memberEntity.userId, context.user.id),
           eq(memberEntity.organizationId, context.organization.id),
-          eq(memberEntity.teamId, teamId)
+          eq(memberEntity.teamId, input.teamId)
         ),
       });
 
@@ -631,7 +613,7 @@ export const authResolvers = {
       // Update session
       const token = context.req.cookies?.auth_token;
       if (token) {
-        await sessionService.setActiveTeam(token, teamId);
+        await sessionService.setActiveTeam(token, input.teamId);
       }
 
       return {

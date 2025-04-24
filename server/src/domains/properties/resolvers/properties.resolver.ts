@@ -1,10 +1,10 @@
 // src/domains/properties/resolvers/properties.resolver.ts
 
-import { teamsService } from "@/domains/organizations/services";
 import {
   checkPermissions,
   checkPropertyPermission,
-} from "@/infrastructure/auth/utils/permission-utils";
+} from "@/domains/auth/utils/permission-utils";
+import { teamsService } from "@/domains/organizations/services";
 import { GraphQLContext } from "@/infrastructure/graphql/context/types";
 import { SubscriptionLimitError } from "@/shared/errors/subscription-limit.error";
 import { propertiesService } from "../services/properties.service";

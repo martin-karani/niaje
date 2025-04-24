@@ -1,4 +1,4 @@
-import { checkPermissions } from "@/infrastructure/auth/utils/permission-utils";
+import { checkPermissions } from "@/domains/auth/utils/permission-utils";
 import { GraphQLContext } from "@/infrastructure/graphql/context/types";
 import {
   CreateExpenseDto,

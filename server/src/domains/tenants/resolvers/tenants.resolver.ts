@@ -1,8 +1,8 @@
-import { leaseEntity } from "@/domains/leases/entities";
 import {
   checkPermissions,
   checkTenantPermissions,
-} from "@/infrastructure/auth/utils/permission-utils";
+} from "@/domains/auth/utils/permission-utils";
+import { leaseEntity } from "@/domains/leases/entities";
 import { db } from "@/infrastructure/database";
 import { GraphQLContext } from "@/infrastructure/graphql/context/types";
 import { AuthorizationError } from "@/shared/errors";

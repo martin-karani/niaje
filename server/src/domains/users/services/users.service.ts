@@ -1,8 +1,8 @@
 import { tenantEntity } from "@/domains/tenants/entities/tenant.entity";
 import { db } from "@/infrastructure/database";
+import emailService from "@/infrastructure/email/email.service";
 import { NotFoundError } from "@/shared/errors/not-found.error";
 import { ValidationError } from "@/shared/errors/validation.error";
-import { emailService } from "@/shared/services/email.service";
 import {
   generateTemporaryPassword,
   hashPassword,

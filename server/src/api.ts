@@ -5,7 +5,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import { createYoga, useErrorHandler } from "graphql-yoga";
-import { createAuthMiddleware } from "./infrastructure/auth/middleware";
+import { createAuthMiddleware } from "./domains/auth/middleware";
 
 /**
  * Set up the Express API with authentication and GraphQL

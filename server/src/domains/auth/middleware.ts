@@ -1,9 +1,8 @@
 import { subscriptionService } from "@/domains/billing/services/subscription.service";
-import { organizationService } from "@/infrastructure/auth/services/organization.service";
-import { sessionService } from "@/infrastructure/auth/services/session.service";
-import { teamService } from "@/infrastructure/auth/services/team.service";
+import { teamsService } from "@/domains/organizations/services";
 import { NextFunction, Request, Response } from "express";
 import { PermissionChecker } from "./permission-checker";
+import { organizationService, sessionService } from "./services";
 
 /**
  * Unified middleware to extract user session, organization, team, and permissions
@@ -61,7 +60,7 @@ export function createAuthMiddleware() {
               // Check if session has an active team
               if (session.data.activeTeamId) {
                 try {
-                  const team = await teamService.getTeamById(
+                  const team = await teamsService.getTeamById(
                     session.data.activeTeamId
                   );
                   // Only set active team if it belongs to the active organization

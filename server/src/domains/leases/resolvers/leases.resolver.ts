@@ -1,5 +1,5 @@
+import { checkPermissions } from "@/domains/auth/utils/permission-utils";
 import { tenantsService } from "@/domains/tenants/services/tenants.service";
-import { checkPermissions } from "@/infrastructure/auth/utils/permission-utils";
 import { GraphQLContext } from "@/infrastructure/graphql/context/types";
 import { CreateLeaseDto, LeaseIdDto, UpdateLeaseDto } from "../dto/lease.dto";
 import { Lease } from "../entities/lease.entity";

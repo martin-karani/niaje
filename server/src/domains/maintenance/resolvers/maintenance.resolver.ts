@@ -1,6 +1,6 @@
 // src/domains/maintenance/resolvers/maintenance.resolver.ts
 
-import { checkMaintenancePermissions } from "@/infrastructure/auth/utils/permission-utils";
+import { checkMaintenancePermissions } from "@/domains/auth/utils/permission-utils";
 import { GraphQLContext } from "@/infrastructure/graphql/context/types";
 import {
   AssignMaintenanceRequestDto,

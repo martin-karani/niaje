@@ -7,10 +7,7 @@ import {
   uploadFile,
   uploadMultipleFiles,
 } from "@/api/controllers/upload.controller";
-import {
-  requireAuth,
-  requirePermission,
-} from "@/infrastructure/auth/middleware";
+import { requireAuth, requirePermission } from "@/domains/auth/middleware";
 import express from "express";
 
 const router = express.Router();

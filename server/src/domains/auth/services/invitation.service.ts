@@ -365,7 +365,7 @@ export class InvitationService {
       email: invitation.email,
       name: data.name,
       password: data.password,
-      role: invitation.role === "owner" ? "agent_owner" : invitation.role,
+      role: invitation.role === "owner" ? "agent_owner" : "agent_staff",
       requireEmailVerification: false, // Skip email verification for invited users
     });
 
@@ -378,6 +378,9 @@ export class InvitationService {
 
     // Accept invitation
     const { organizationId } = await this.acceptInvitation(data.token, user.id);
+
+    // Update session with organization
+    await sessionService.setActiveOrganization(sessionToken, organizationId);
 
     return { user, organizationId, sessionToken };
   }
