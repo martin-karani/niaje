@@ -1,5 +1,3 @@
-// src/infrastructure/auth/services/team.service.ts
-
 import {
   memberEntity,
   teamEntity,

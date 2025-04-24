@@ -1,5 +1,3 @@
-// src/domains/tenants/resolvers/tenants.resolver.ts
-
 import { leaseEntity } from "@/domains/leases/entities";
 import {
   checkPermissions,
@@ -15,7 +13,7 @@ import {
   TenantIdDto,
   UpdateTenantDto,
 } from "../dto/tenant.dto";
-import { LeaseTenant, Tenant } from "../entities";
+import { LeaseTenant, Tenant, leaseTenantsEntity } from "../entities";
 import { tenantsService } from "../services/tenants.service";
 
 export const tenantsResolvers = {
@@ -43,7 +41,7 @@ export const tenantsResolvers = {
       context: GraphQLContext
     ) => {
       // Check lease permissions and verify lease exists in organization
-      await checkPermissions(context, "viewLeases");
+      await checkPermissions(context, "viewLeases", "lease", "view");
 
       // Additional check: ensure lease belongs to context.organizationId
       const lease = await db.query.leaseEntity.findFirst({
@@ -129,7 +127,9 @@ export const tenantsResolvers = {
       // Check lease permissions
       const { organizationId } = await checkPermissions(
         context,
-        "manageLeases"
+        "manageLeases",
+        "lease",
+        "manage"
       );
 
       // Verify both lease and tenant belong to organization
@@ -156,7 +156,9 @@ export const tenantsResolvers = {
     ) => {
       const { organizationId } = await checkPermissions(
         context,
-        "manageLeases"
+        "manageLeases",
+        "lease",
+        "manage"
       );
 
       // Verify both lease and tenant belong to organization

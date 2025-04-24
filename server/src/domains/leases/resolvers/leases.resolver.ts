@@ -1,5 +1,5 @@
 import { tenantsService } from "@/domains/tenants/services/tenants.service";
-import { checkPermissions } from "@/infrastructure/auth/permissions";
+import { checkPermissions } from "@/infrastructure/auth/utils/permission-utils";
 import { GraphQLContext } from "@/infrastructure/graphql/context/types";
 import { CreateLeaseDto, LeaseIdDto, UpdateLeaseDto } from "../dto/lease.dto";
 import { Lease } from "../entities/lease.entity";
@@ -8,12 +8,22 @@ import { leasesService } from "../services/leases.service";
 export const leasesResolvers = {
   Query: {
     leases: async (_: any, __: any, context: GraphQLContext) => {
-      const { organizationId } = checkPermissions(context, "viewLeases");
+      const { organizationId } = await checkPermissions(
+        context,
+        "viewLeases",
+        "lease",
+        "view"
+      );
       return leasesService.getLeasesByOrganization(organizationId);
     },
 
     lease: async (_: any, { id }: LeaseIdDto, context: GraphQLContext) => {
-      const { organizationId } = checkPermissions(context, "viewLeases");
+      const { organizationId } = await checkPermissions(
+        context,
+        "viewLeases",
+        "lease",
+        "view"
+      );
       // Service method checkLeaseOrg ensures it belongs to the org
       return leasesService.getLeaseById(id);
     },
@@ -23,9 +33,12 @@ export const leasesResolvers = {
       { propertyId }: { propertyId: string },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "viewLeases");
-      // Need to verify property belongs to org first
-      // Add check here... (Requires PropertiesService)
+      const { organizationId } = await checkPermissions(
+        context,
+        "viewLeases",
+        "lease",
+        "view"
+      );
       return leasesService.getLeasesByProperty(propertyId, organizationId);
     },
 
@@ -34,9 +47,12 @@ export const leasesResolvers = {
       { unitId }: { unitId: string },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "viewLeases");
-      // Need to verify unit belongs to org first
-      // Add check here... (Requires PropertiesService)
+      const { organizationId } = await checkPermissions(
+        context,
+        "viewLeases",
+        "lease",
+        "view"
+      );
       return leasesService.getLeasesByUnit(unitId, organizationId);
     },
 
@@ -45,9 +61,12 @@ export const leasesResolvers = {
       { tenantId }: { tenantId: string },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "viewLeases");
-      // Need to verify tenant belongs to org first
-      // Add check here... (Requires TenantsService)
+      const { organizationId } = await checkPermissions(
+        context,
+        "viewLeases",
+        "lease",
+        "view"
+      );
       return leasesService.getLeasesByTenant(tenantId, organizationId);
     },
   },
@@ -58,7 +77,12 @@ export const leasesResolvers = {
       { data }: { data: CreateLeaseDto },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "manageLeases");
+      const { organizationId } = await checkPermissions(
+        context,
+        "manageLeases",
+        "lease",
+        "create"
+      );
       const userId = context.user?.id;
       if (!userId) {
         throw new Error("User context not found for creating lease.");
@@ -77,7 +101,12 @@ export const leasesResolvers = {
       { data }: { data: UpdateLeaseDto },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "manageLeases");
+      const { organizationId } = await checkPermissions(
+        context,
+        "manageLeases",
+        "lease",
+        "update"
+      );
       // Service method checkLeaseOrg ensures it belongs to the org before update
       return leasesService.updateLease(data.id, organizationId, data);
     },
@@ -87,7 +116,12 @@ export const leasesResolvers = {
       { id }: LeaseIdDto,
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "manageLeases");
+      const { organizationId } = await checkPermissions(
+        context,
+        "manageLeases",
+        "lease",
+        "delete"
+      );
       // Service method checkLeaseOrg ensures it belongs to the org before delete
       await leasesService.deleteLease(id, organizationId);
       return true; // Indicate success
@@ -112,8 +146,10 @@ export const leasesResolvers = {
       // Requires PropertiesService or use pre-fetched data
       if (lease.unit) return lease.unit;
       // Fallback fetch
-      // return propertiesService.getUnitById(lease.unitId); // Assuming PropertiesService exists
-      return null; // Placeholder
+      const { propertiesService } = await import(
+        "@/domains/properties/services/properties.service"
+      );
+      return propertiesService.getUnitById(lease.unitId);
     },
     // Example: Fetch the property associated with the lease
     property: async (lease: Lease, _: any, context: GraphQLContext) => {
@@ -121,55 +157,53 @@ export const leasesResolvers = {
       if (lease.property) return lease.property;
       if (lease.unit?.property) return lease.unit.property;
       // Fallback fetch
-      // return propertiesService.getPropertyById(lease.propertyId); // Assuming PropertiesService exists
-      return null; // Placeholder
+      const { propertiesService } = await import(
+        "@/domains/properties/services/properties.service"
+      );
+      return propertiesService.getPropertyById(lease.propertyId);
     },
     creator: async (lease: Lease, _: any, context: GraphQLContext) => {
       // Requires UsersService or use pre-fetched data
       if (lease.creator) return lease.creator;
       if (!lease.createdBy) return null;
       // Fallback fetch
-      // return usersService.getUserById(lease.createdBy); // Assuming UsersService exists
-      return null; // Placeholder
+      const { usersService } = await import(
+        "@/domains/users/services/users.service"
+      );
+      return usersService.getUserById(lease.createdBy);
     },
     payments: async (lease: Lease, _: any, context: GraphQLContext) => {
       // Requires BillingService or use pre-fetched data
       if (lease.payments) return lease.payments;
       // Fallback fetch
-      // return billingService.getPaymentsByLease(lease.id); // Assuming BillingService exists
-      return []; // Placeholder
+      const { paymentsService } = await import(
+        "@/domains/billing/services/payments.service"
+      );
+      return paymentsService.getPaymentsByLease(lease.id, lease.organizationId);
     },
     utilityBills: async (lease: Lease, _: any, context: GraphQLContext) => {
       // Requires BillingService or use pre-fetched data
       if (lease.utilityBills) return lease.utilityBills;
       // Fallback fetch
-      // return billingService.getUtilityBillsByLease(lease.id); // Assuming BillingService exists
-      return []; // Placeholder
+      const { utilityBillsService } = await import(
+        "@/domains/billing/services/utility-bill.service"
+      );
+      return utilityBillsService.getUtilityBillsByLease(
+        lease.id,
+        lease.organizationId
+      );
     },
     documents: async (lease: Lease, _: any, context: GraphQLContext) => {
       // Requires DocumentsService or use pre-fetched data
       if (lease.documents) return lease.documents;
       // Fallback fetch
-      // return documentsService.getDocumentsByLease(lease.id); // Assuming DocumentsService exists
-      return []; // Placeholder
+      const { documentsService } = await import(
+        "@/domains/documents/services/documents.services"
+      );
+      return documentsService.getDocumentsByLease(
+        lease.id,
+        lease.organizationId
+      );
     },
   },
 };
-
-// Placeholder permission check function
-// Replace with your actual permission logic
-function checkPermissions(
-  context: GraphQLContext,
-  permission: string
-): { organizationId: string } {
-  const { organization } = context;
-  if (!organization) {
-    throw new Error("No active organization selected");
-  }
-  // TODO: Implement actual permission check logic based on user roles/permissions
-  console.log(`Checking permission: ${permission} for org: ${organization.id}`);
-  if (!context.permissions || !context.permissions[permission]) {
-    // throw new AuthorizationError(`Missing permission: ${permission}`);
-  }
-  return { organizationId: organization.id };
-}

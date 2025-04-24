@@ -1,4 +1,4 @@
-import { checkPermissions } from "@/infrastructure/auth/permissions";
+import { checkPermissions } from "@/infrastructure/auth/utils/permission-utils";
 import { GraphQLContext } from "@/infrastructure/graphql/context/types";
 import {
   CompleteInspectionDto,
@@ -12,7 +12,10 @@ import { inspectionsService } from "../services/inspections.service";
 export const inspectionsResolvers = {
   Query: {
     inspections: async (_: any, __: any, context: GraphQLContext) => {
-      const { organizationId } = checkPermissions(context, "viewInspections");
+      const { organizationId } = await checkPermissions(
+        context,
+        "viewInspections"
+      );
       return inspectionsService.getInspectionsByOrganization(organizationId);
     },
 
@@ -21,7 +24,10 @@ export const inspectionsResolvers = {
       { id }: InspectionIdDto,
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "viewInspections");
+      const { organizationId } = await checkPermissions(
+        context,
+        "viewInspections"
+      );
       return inspectionsService.getInspectionById(id, organizationId);
     },
 
@@ -30,7 +36,10 @@ export const inspectionsResolvers = {
       { propertyId }: { propertyId: string },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "viewInspections");
+      const { organizationId } = await checkPermissions(
+        context,
+        "viewInspections"
+      );
       return inspectionsService.getInspectionsByProperty(
         propertyId,
         organizationId
@@ -42,7 +51,10 @@ export const inspectionsResolvers = {
       { unitId }: { unitId: string },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "viewInspections");
+      const { organizationId } = await checkPermissions(
+        context,
+        "viewInspections"
+      );
       return inspectionsService.getInspectionsByUnit(unitId, organizationId);
     },
 
@@ -51,7 +63,10 @@ export const inspectionsResolvers = {
       { leaseId }: { leaseId: string },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "viewInspections");
+      const { organizationId } = await checkPermissions(
+        context,
+        "viewInspections"
+      );
       return inspectionsService.getInspectionsByLease(leaseId, organizationId);
     },
 
@@ -60,7 +75,10 @@ export const inspectionsResolvers = {
       { limit }: { limit?: number },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "viewInspections");
+      const { organizationId } = await checkPermissions(
+        context,
+        "viewInspections"
+      );
       return inspectionsService.getUpcomingInspections(organizationId, limit);
     },
   },
@@ -71,7 +89,10 @@ export const inspectionsResolvers = {
       { data }: { data: CreateInspectionDto },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "manageInspections");
+      const { organizationId } = await checkPermissions(
+        context,
+        "manageInspections"
+      );
       return inspectionsService.createInspection({
         ...data,
         organizationId,
@@ -83,7 +104,10 @@ export const inspectionsResolvers = {
       { data }: { data: UpdateInspectionDto },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "manageInspections");
+      const { organizationId } = await checkPermissions(
+        context,
+        "manageInspections"
+      );
       return inspectionsService.updateInspection(data.id, organizationId, data);
     },
 
@@ -92,7 +116,10 @@ export const inspectionsResolvers = {
       { data }: { data: CompleteInspectionDto },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "manageInspections");
+      const { organizationId } = await checkPermissions(
+        context,
+        "manageInspections"
+      );
       return inspectionsService.completeInspection(
         data.id,
         organizationId,
@@ -105,7 +132,10 @@ export const inspectionsResolvers = {
       { id, reason }: { id: string; reason: string },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "manageInspections");
+      const { organizationId } = await checkPermissions(
+        context,
+        "manageInspections"
+      );
       return inspectionsService.cancelInspection(id, organizationId, reason);
     },
 
@@ -114,7 +144,10 @@ export const inspectionsResolvers = {
       { id }: InspectionIdDto,
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "manageInspections");
+      const { organizationId } = await checkPermissions(
+        context,
+        "manageInspections"
+      );
       await inspectionsService.deleteInspection(id, organizationId);
       return true;
     },
@@ -128,7 +161,10 @@ export const inspectionsResolvers = {
       }: { leaseId: string; scheduledDate: string; inspectorId?: string },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "manageInspections");
+      const { organizationId } = await checkPermissions(
+        context,
+        "manageInspections"
+      );
       return inspectionsService.createMoveInInspection(
         leaseId,
         organizationId,
@@ -146,7 +182,10 @@ export const inspectionsResolvers = {
       }: { leaseId: string; scheduledDate: string; inspectorId?: string },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkPermissions(context, "manageInspections");
+      const { organizationId } = await checkPermissions(
+        context,
+        "manageInspections"
+      );
       return inspectionsService.createMoveOutInspection(
         leaseId,
         organizationId,
@@ -167,7 +206,7 @@ export const inspectionsResolvers = {
 
       // Import dynamically to avoid circular dependencies
       const { propertiesService } = await import(
-        "@domains/properties/services/properties.service"
+        "@/domains/properties/services/properties.service"
       );
       return propertiesService.getPropertyById(inspection.propertyId);
     },
@@ -178,7 +217,7 @@ export const inspectionsResolvers = {
 
       // Import dynamically to avoid circular dependencies
       const { propertiesService } = await import(
-        "@domains/properties/services/properties.service"
+        "@/domains/properties/services/properties.service"
       );
       return propertiesService.getUnitById(inspection.unitId);
     },
@@ -189,7 +228,7 @@ export const inspectionsResolvers = {
 
       // Import dynamically to avoid circular dependencies
       const { leasesService } = await import(
-        "@domains/leases/services/leases.service"
+        "@/domains/leases/services/leases.service"
       );
       return leasesService.getLeaseById(inspection.leaseId);
     },
@@ -204,7 +243,7 @@ export const inspectionsResolvers = {
 
       // Import dynamically to avoid circular dependencies
       const { usersService } = await import(
-        "@domains/users/services/users.service"
+        "@/domains/users/services/users.service"
       );
       return usersService.getUserById(inspection.inspectorId);
     },
@@ -218,7 +257,7 @@ export const inspectionsResolvers = {
 
       // Import dynamically to avoid circular dependencies
       const { documentsService } = await import(
-        "@domains/documents/services/documents.service"
+        "@/domains/documents/services/documents.services"
       );
       return documentsService.getDocumentsByEntity(
         "inspection",
@@ -228,43 +267,3 @@ export const inspectionsResolvers = {
     },
   },
 };
-
-// Placeholder permission check function
-// Replace with your actual permission logic
-function checkPermissions(
-  context: GraphQLContext,
-  permission: string
-): { organizationId: string } {
-  const { organization, user } = context;
-
-  if (!user) {
-    throw new Error("Authentication required");
-  }
-
-  if (!organization) {
-    throw new Error("No active organization selected");
-  }
-
-  // Check appropriate permission
-  if (permission === "viewInspections") {
-    // All agents, caretakers, and owners can view inspections
-    if (
-      ![
-        "admin",
-        "agent_owner",
-        "agent_staff",
-        "caretaker",
-        "property_owner",
-      ].includes(user.role)
-    ) {
-      throw new Error("You don't have permission to view inspections");
-    }
-  } else if (permission === "manageInspections") {
-    // Only agents and admins can manage inspections
-    if (!["admin", "agent_owner", "agent_staff"].includes(user.role)) {
-      throw new Error("You don't have permission to manage inspections");
-    }
-  }
-
-  return { organizationId: organization.id };
-}

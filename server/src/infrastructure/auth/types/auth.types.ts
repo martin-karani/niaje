@@ -1,5 +1,3 @@
-// src/infrastructure/auth/types/auth.types.ts
-
 export const authTypeDefs = `
   # User types
   type User {

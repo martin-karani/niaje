@@ -1,6 +1,4 @@
-// src/domains/billing/resolvers/billings.resolvers.ts
-
-import { checkFinancialPermissions } from "@/infrastructure/auth/utils/permission-utils";
+import { checkPermissions } from "@/infrastructure/auth/utils/permission-utils";
 import { GraphQLContext } from "@/infrastructure/graphql/context/types";
 import {
   CreateExpenseDto,
@@ -26,16 +24,20 @@ export const billingResolvers = {
   Query: {
     // Payment queries
     payments: async (_: any, __: any, context: GraphQLContext) => {
-      const { organizationId } = await checkFinancialPermissions(
+      const { organizationId } = await checkPermissions(
         context,
+        "viewFinancial",
+        "financial",
         "view"
       );
       return paymentsService.getPaymentsByOrganization(organizationId);
     },
 
     payment: async (_: any, { id }: PaymentIdDto, context: GraphQLContext) => {
-      const { organizationId } = await checkFinancialPermissions(
+      const { organizationId } = await checkPermissions(
         context,
+        "viewFinancial",
+        "financial",
         "view"
       );
       return paymentsService.getPaymentById(id);
@@ -46,8 +48,10 @@ export const billingResolvers = {
       { propertyId }: { propertyId: string },
       context: GraphQLContext
     ) => {
-      const { organizationId } = await checkFinancialPermissions(
+      const { organizationId } = await checkPermissions(
         context,
+        "viewFinancial",
+        "financial",
         "view"
       );
       return paymentsService.getPaymentsByProperty(propertyId, organizationId);
@@ -58,8 +62,10 @@ export const billingResolvers = {
       { leaseId }: { leaseId: string },
       context: GraphQLContext
     ) => {
-      const { organizationId } = await checkFinancialPermissions(
+      const { organizationId } = await checkPermissions(
         context,
+        "viewFinancial",
+        "financial",
         "view"
       );
       return paymentsService.getPaymentsByLease(leaseId, organizationId);
@@ -70,8 +76,10 @@ export const billingResolvers = {
       { tenantId }: { tenantId: string },
       context: GraphQLContext
     ) => {
-      const { organizationId } = await checkFinancialPermissions(
+      const { organizationId } = await checkPermissions(
         context,
+        "viewFinancial",
+        "financial",
         "view"
       );
       return paymentsService.getPaymentsByTenant(tenantId, organizationId);
@@ -79,16 +87,20 @@ export const billingResolvers = {
 
     // Expense queries
     expenses: async (_: any, __: any, context: GraphQLContext) => {
-      const { organizationId } = await checkFinancialPermissions(
+      const { organizationId } = await checkPermissions(
         context,
+        "viewFinancial",
+        "financial",
         "view"
       );
       return expensesService.getExpensesByOrganization(organizationId);
     },
 
     expense: async (_: any, { id }: ExpenseIdDto, context: GraphQLContext) => {
-      const { organizationId } = await checkFinancialPermissions(
+      const { organizationId } = await checkPermissions(
         context,
+        "viewFinancial",
+        "financial",
         "view"
       );
       return expensesService.getExpenseById(id);
@@ -99,8 +111,10 @@ export const billingResolvers = {
       { propertyId }: { propertyId: string },
       context: GraphQLContext
     ) => {
-      const { organizationId } = await checkFinancialPermissions(
+      const { organizationId } = await checkPermissions(
         context,
+        "viewFinancial",
+        "financial",
         "view"
       );
       return expensesService.getExpensesByProperty(propertyId, organizationId);
@@ -108,8 +122,10 @@ export const billingResolvers = {
 
     // Utility bill queries
     utilityBills: async (_: any, __: any, context: GraphQLContext) => {
-      const { organizationId } = await checkFinancialPermissions(
+      const { organizationId } = await checkPermissions(
         context,
+        "viewFinancial",
+        "financial",
         "view"
       );
       return utilityBillsService.getUtilityBillsByOrganization(organizationId);
@@ -120,8 +136,10 @@ export const billingResolvers = {
       { id }: UtilityBillIdDto,
       context: GraphQLContext
     ) => {
-      const { organizationId } = await checkFinancialPermissions(
+      const { organizationId } = await checkPermissions(
         context,
+        "viewFinancial",
+        "financial",
         "view"
       );
       return utilityBillsService.getUtilityBillById(id);
@@ -132,8 +150,10 @@ export const billingResolvers = {
       { propertyId }: { propertyId: string },
       context: GraphQLContext
     ) => {
-      const { organizationId } = await checkFinancialPermissions(
+      const { organizationId } = await checkPermissions(
         context,
+        "viewFinancial",
+        "financial",
         "view"
       );
       return utilityBillsService.getUtilityBillsByProperty(
@@ -147,8 +167,10 @@ export const billingResolvers = {
       { unitId }: { unitId: string },
       context: GraphQLContext
     ) => {
-      const { organizationId } = await checkFinancialPermissions(
+      const { organizationId } = await checkPermissions(
         context,
+        "viewFinancial",
+        "financial",
         "view"
       );
       return utilityBillsService.getUtilityBillsByUnit(unitId, organizationId);
@@ -170,8 +192,10 @@ export const billingResolvers = {
       },
       context: GraphQLContext
     ) => {
-      const { organizationId } = await checkFinancialPermissions(
+      const { organizationId } = await checkPermissions(
         context,
+        "viewFinancial",
+        "financial",
         "view"
       );
 
@@ -206,8 +230,10 @@ export const billingResolvers = {
       { data }: { data: CreatePaymentDto },
       context: GraphQLContext
     ) => {
-      const { organizationId, userId } = await checkFinancialPermissions(
+      const { organizationId, userId } = await checkPermissions(
         context,
+        "manageFinancial",
+        "financial",
         "manage"
       );
 
@@ -223,8 +249,10 @@ export const billingResolvers = {
       { data }: { data: UpdatePaymentDto },
       context: GraphQLContext
     ) => {
-      const { organizationId } = await checkFinancialPermissions(
+      const { organizationId } = await checkPermissions(
         context,
+        "manageFinancial",
+        "financial",
         "manage"
       );
       return paymentsService.updatePayment(data.id, organizationId, data);
@@ -235,8 +263,10 @@ export const billingResolvers = {
       { id }: PaymentIdDto,
       context: GraphQLContext
     ) => {
-      const { organizationId } = await checkFinancialPermissions(
+      const { organizationId } = await checkPermissions(
         context,
+        "manageFinancial",
+        "financial",
         "manage"
       );
       await paymentsService.deletePayment(id, organizationId);
@@ -249,8 +279,10 @@ export const billingResolvers = {
       { data }: { data: CreateExpenseDto },
       context: GraphQLContext
     ) => {
-      const { organizationId, userId } = await checkFinancialPermissions(
+      const { organizationId, userId } = await checkPermissions(
         context,
+        "manageFinancial",
+        "financial",
         "manage"
       );
 
@@ -271,8 +303,10 @@ export const billingResolvers = {
       { data }: { data: UpdateExpenseDto },
       context: GraphQLContext
     ) => {
-      const { organizationId } = await checkFinancialPermissions(
+      const { organizationId } = await checkPermissions(
         context,
+        "manageFinancial",
+        "financial",
         "manage"
       );
       return expensesService.updateExpense(data, organizationId);
@@ -283,8 +317,10 @@ export const billingResolvers = {
       { id }: ExpenseIdDto,
       context: GraphQLContext
     ) => {
-      const { organizationId } = await checkFinancialPermissions(
+      const { organizationId } = await checkPermissions(
         context,
+        "manageFinancial",
+        "financial",
         "manage"
       );
       await expensesService.deleteExpense(id, organizationId);
@@ -297,8 +333,10 @@ export const billingResolvers = {
       { data }: { data: CreateUtilityBillDto },
       context: GraphQLContext
     ) => {
-      const { organizationId } = await checkFinancialPermissions(
+      const { organizationId } = await checkPermissions(
         context,
+        "manageFinancial",
+        "financial",
         "manage"
       );
       return utilityBillsService.createUtilityBill({
@@ -312,8 +350,10 @@ export const billingResolvers = {
       { data }: { data: UpdateUtilityBillDto },
       context: GraphQLContext
     ) => {
-      const { organizationId } = await checkFinancialPermissions(
+      const { organizationId } = await checkPermissions(
         context,
+        "manageFinancial",
+        "financial",
         "manage"
       );
       return utilityBillsService.updateUtilityBill(
@@ -328,8 +368,10 @@ export const billingResolvers = {
       { id }: UtilityBillIdDto,
       context: GraphQLContext
     ) => {
-      const { organizationId } = await checkFinancialPermissions(
+      const { organizationId } = await checkPermissions(
         context,
+        "manageFinancial",
+        "financial",
         "manage"
       );
       await utilityBillsService.deleteUtilityBill(id, organizationId);
@@ -341,8 +383,10 @@ export const billingResolvers = {
       { data }: { data: PayUtilityBillDto },
       context: GraphQLContext
     ) => {
-      const { organizationId, userId } = await checkFinancialPermissions(
+      const { organizationId, userId } = await checkPermissions(
         context,
+        "manageFinancial",
+        "financial",
         "manage"
       );
 

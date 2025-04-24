@@ -1,4 +1,4 @@
-import { auth } from "@/infrastructure/auth/better-auth/auth";
+import { sessionService } from "@/infrastructure/auth/services/session.service";
 import { GraphQLContext } from "@/infrastructure/graphql/context/types";
 import { AuthorizationError } from "@/shared/errors/authorization.error";
 import {
@@ -10,65 +10,15 @@ import {
 import {
   invitationsService,
   membersService,
-  organizationsService,
+  organizationService,
   teamsService,
 } from "../services";
-
-/**
- * Helper function to check organization permissions
- */
-function checkOrganizationPermissions(
-  context: GraphQLContext,
-  action: "view" | "manage" | "admin"
-): { userId: string; organizationId?: string } {
-  const { user, organization } = context;
-
-  if (!user) {
-    throw new AuthorizationError("Authentication required");
-  }
-
-  const userId = user.id;
-  const organizationId = organization?.id;
-
-  // For view, any authenticated user can view their organizations
-  if (action === "view") {
-    return { userId };
-  }
-
-  // For manage or admin, need an active organization
-  if (!organization) {
-    throw new AuthorizationError("No active organization selected");
-  }
-
-  // Check appropriate permissions based on action
-  if (action === "admin") {
-    // Only owners can perform admin actions
-    const isOwner = user.role === "agent_owner" || user.role === "admin";
-    if (!isOwner) {
-      throw new AuthorizationError(
-        "Only organization owners can perform this action"
-      );
-    }
-  } else if (action === "manage") {
-    // Owners and admins can manage
-    const canManage = ["agent_owner", "admin", "agent_staff"].includes(
-      user.role
-    );
-    if (!canManage) {
-      throw new AuthorizationError(
-        "You don't have permission to manage this organization"
-      );
-    }
-  }
-
-  return { userId, organizationId };
-}
 
 export const organizationsResolvers = {
   Query: {
     myOrganizations: async (_: any, __: any, context: GraphQLContext) => {
       const { userId } = checkOrganizationPermissions(context, "view");
-      return organizationsService.getUserOrganizations(userId);
+      return organizationService.getUserOrganizations(userId);
     },
 
     organization: async (
@@ -77,7 +27,7 @@ export const organizationsResolvers = {
       context: GraphQLContext
     ) => {
       checkOrganizationPermissions(context, "view");
-      return organizationsService.getOrganizationById(id);
+      return organizationService.getOrganizationById(id);
     },
 
     organizationBySlug: async (
@@ -86,7 +36,7 @@ export const organizationsResolvers = {
       context: GraphQLContext
     ) => {
       checkOrganizationPermissions(context, "view");
-      return organizationsService.getOrganizationBySlug(slug);
+      return organizationService.getOrganizationBySlug(slug);
     },
 
     organizationMembers: async (
@@ -160,7 +110,7 @@ export const organizationsResolvers = {
       context: GraphQLContext
     ) => {
       const { userId } = checkOrganizationPermissions(context, "view");
-      return organizationsService.createOrganization({ ...data, userId });
+      return organizationService.createOrganization({ ...data, userId });
     },
 
     updateOrganization: async (
@@ -180,7 +130,7 @@ export const organizationsResolvers = {
         );
       }
 
-      return organizationsService.updateOrganization(data.id, data);
+      return organizationService.updateOrganization(data.id, data);
     },
 
     deleteOrganization: async (
@@ -197,7 +147,7 @@ export const organizationsResolvers = {
         );
       }
 
-      await organizationsService.deleteOrganization(id);
+      await organizationService.deleteOrganization(id);
       return true;
     },
 
@@ -209,7 +159,7 @@ export const organizationsResolvers = {
       const { userId } = checkOrganizationPermissions(context, "view");
 
       // Check if user is a member of the organization
-      const isMember = await organizationsService.isUserMemberOfOrganization(
+      const isMember = await organizationService.isUserMemberOfOrganization(
         userId,
         id
       );
@@ -221,12 +171,10 @@ export const organizationsResolvers = {
       }
 
       // Set active organization in session
-      await auth.api.updateSession(
-        {
-          activeOrganizationId: id,
-        },
-        context.req
-      );
+      const token = context.req.cookies?.auth_token;
+      if (token) {
+        await sessionService.setActiveOrganization(token, id);
+      }
 
       return organizationsService.getOrganizationById(id);
     },
@@ -295,22 +243,24 @@ export const organizationsResolvers = {
       context: GraphQLContext
     ) => {
       const { userId } = checkOrganizationPermissions(context, "view");
-      await invitationsService.acceptInvitation(token, userId);
-
-      // Get invitation details
-      const invitation = await invitationsService.getInvitationByToken(token);
+      const { organizationId, teamId } =
+        await invitationsService.acceptInvitation(token, userId);
 
       // Switch to the new organization
-      await auth.api.updateSession(
-        {
-          activeOrganizationId: invitation.organizationId,
-        },
-        context.req
-      );
+      const sessionToken = context.req.cookies?.auth_token;
+      if (sessionToken) {
+        await sessionService.setActiveOrganization(
+          sessionToken,
+          organizationId
+        );
 
-      return organizationsService.getOrganizationById(
-        invitation.organizationId
-      );
+        // If team was specified, set it as active too
+        if (teamId) {
+          await sessionService.setActiveTeam(sessionToken, teamId);
+        }
+      }
+
+      return organizationService.getOrganizationById(organizationId);
     },
 
     updateMember: async (
@@ -519,9 +469,10 @@ export const organizationsResolvers = {
       if (organization.agentOwner) return organization.agentOwner;
 
       if (organization.agentOwnerId) {
-        // Get user details from auth service
-        const user = await auth.api.getUser(organization.agentOwnerId);
-        return user;
+        const { usersService } = await import(
+          "@/domains/users/services/users.service"
+        );
+        return usersService.getUserById(organization.agentOwnerId);
       }
 
       return null;

@@ -1,5 +1,3 @@
-// src/infrastructure/graphql/context/types.ts
-
 import { PermissionChecker } from "@/infrastructure/auth/permission-checker";
 import { Request } from "express";
 

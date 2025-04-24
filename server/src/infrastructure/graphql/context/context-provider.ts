@@ -27,9 +27,7 @@ export async function createGraphQLContext(
   // Use permission checker from middleware or create a new one if needed
   const permissionChecker =
     request.permissionChecker ||
-    (user && organization
-      ? new PermissionChecker(user, organization, team)
-      : null);
+    new PermissionChecker(user || null, organization || null, team || null);
 
   return {
     user,

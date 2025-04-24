@@ -19,6 +19,8 @@ import { propertiesTypeDefs } from "@/domains/properties/types/properties.types"
 import { tenantsResolvers } from "@/domains/tenants/resolvers/tenants.resolver";
 import { tenantsTypeDefs } from "@/domains/tenants/types/tenants.types";
 import { usersTypeDefs } from "@/domains/users/types/users.types";
+import { authResolvers } from "@/infrastructure/auth/resolvers/auth.resolvers";
+import { authTypeDefs } from "@/infrastructure/auth/types/auth.types";
 import { makeExecutableSchema } from "@graphql-tools/schema";
 
 // Base types that can be extended
@@ -36,6 +38,7 @@ const baseTypeDefs = `
 // Combine all typeDefs
 const typeDefs = [
   baseTypeDefs,
+  authTypeDefs,
   propertiesTypeDefs,
   tenantsTypeDefs,
   leasesTypeDefs,
@@ -63,6 +66,7 @@ const resolvers = {
     ...communicationsResolvers.Query,
     ...documentsResolvers.Query,
     ...inspectionsResolvers.Query,
+    ...authResolvers.Query,
   },
   Mutation: {
     ...propertiesResolvers.Mutation,
@@ -75,6 +79,7 @@ const resolvers = {
     ...communicationsResolvers.Mutation,
     ...documentsResolvers.Mutation,
     ...inspectionsResolvers.Mutation,
+    ...authResolvers.Mutation,
   },
   // Type resolvers
   Property: propertiesResolvers.Property,

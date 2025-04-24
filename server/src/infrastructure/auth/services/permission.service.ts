@@ -1,5 +1,3 @@
-// src/infrastructure/auth/services/permission.service.ts
-
 import { leaseEntity } from "@/domains/leases/entities";
 import { maintenanceRequestsEntity } from "@/domains/maintenance/entities";
 import { memberEntity, teamEntity } from "@/domains/organizations/entities";

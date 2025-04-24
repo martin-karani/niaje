@@ -1,9 +1,10 @@
 // src/domains/properties/resolvers/properties.resolver.ts
+
 import { teamsService } from "@/domains/organizations/services";
 import {
   checkPermissions,
   checkPropertyPermission,
-} from "@/infrastructure/auth/permissions";
+} from "@/infrastructure/auth/utils/permission-utils";
 import { GraphQLContext } from "@/infrastructure/graphql/context/types";
 import { SubscriptionLimitError } from "@/shared/errors/subscription-limit.error";
 import { propertiesService } from "../services/properties.service";
@@ -17,7 +18,7 @@ export const propertiesResolvers = {
       // Check if user has permission to view properties
       const { organizationId } = await checkPermissions(
         context,
-        "canViewProperties",
+        "viewProperties",
         "property",
         "view"
       );
@@ -59,7 +60,7 @@ export const propertiesResolvers = {
       context: GraphQLContext
     ) => {
       // Check if user has permission to view properties
-      await checkPermissions(context, "canViewProperties");
+      await checkPermissions(context, "viewProperties", "property", "view");
 
       const properties = await propertiesService.getPropertiesByOwner(ownerId);
 
@@ -118,7 +119,7 @@ export const propertiesResolvers = {
       // Check if user has permission to manage properties
       const { organizationId } = await checkPermissions(
         context,
-        "canManageProperties",
+        "manageProperties",
         "property",
         "create"
       );
@@ -241,13 +242,8 @@ export const propertiesResolvers = {
       context: GraphQLContext
     ) => {
       // Check if user has permission to manage this property
-      await checkPermissions(context, "canManageProperties");
+      await checkPermissions(context, "manageProperties", "property", "manage");
       await checkPropertyPermission(context, propertyId, "manage");
-
-      // Use the AC instance for fine-grained permission check
-      if (!context.ac.can("property", "assign_caretaker")) {
-        throw new Error("You don't have permission to assign caretakers");
-      }
 
       return propertiesService.updateProperty(propertyId, { caretakerId });
     },
@@ -286,7 +282,7 @@ export const propertiesResolvers = {
       context: GraphQLContext
     ) => {
       // Check if user has permission to manage teams
-      await checkPermissions(context, "canManageTeams");
+      await checkPermissions(context, "manageTeams", "team", "manage");
 
       // Check if user has permission to manage this property
       await checkPropertyPermission(context, propertyId, "manage");

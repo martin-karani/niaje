@@ -1,5 +1,3 @@
-// src/infrastructure/auth/services/invitation.service.ts
-
 import {
   invitationEntity,
   memberEntity,

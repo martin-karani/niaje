@@ -1,5 +1,3 @@
-// src/infrastructure/auth/services/session.service.ts
-
 import {
   sessionEntity,
   type NewSession,

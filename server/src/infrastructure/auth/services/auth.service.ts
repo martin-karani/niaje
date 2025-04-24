@@ -1,5 +1,3 @@
-// src/infrastructure/auth/services/auth.service.ts
-
 import {
   userEntity,
   verificationEntity,

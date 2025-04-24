@@ -1,5 +1,3 @@
-// src/infrastructure/auth/services/organization.service.ts
-
 import {
   memberEntity,
   organizationEntity,
