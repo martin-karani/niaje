@@ -21,7 +21,6 @@ async function startServer() {
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
       console.log(`GraphQL endpoint: http://localhost:${PORT}/api/graphql`);
-      console.log(`Auth endpoint: http://localhost:${PORT}/api/auth`);
     });
   } catch (error) {
     console.error("Failed to start server:", error);

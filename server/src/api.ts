@@ -1,4 +1,3 @@
-import { uploadRoutes } from "@/api/routes/upload.routes";
 import { createGraphQLContext } from "@/infrastructure/graphql/context/context-provider";
 import { schema } from "@/infrastructure/graphql/schema";
 import { handleWebhooks } from "@/infrastructure/webhooks";
@@ -42,7 +41,7 @@ export function setupApi() {
   // Mount auth routes
 
   // Mount file upload routes
-  app.use("/api/upload", uploadRoutes);
+  // app.use("/api/upload", uploadRoutes);
 
   // GraphQL endpoint
   const yoga = createYoga({

@@ -1,5 +1,3 @@
-// src/infrastructure/auth/utils/permission-utils.ts
-
 import { GraphQLContext } from "@/infrastructure/graphql/context/types";
 import { AuthorizationError } from "@/shared/errors";
 
