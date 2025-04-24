@@ -112,7 +112,6 @@ export const usersTypeDefs = `
   }
 
   extend type Mutation {
-    createUser(data: CreateUserInput!): User!
     updateUser(data: UpdateUserInput!): User!
     deleteUser(id: ID!): Boolean!
     createTenantUser(data: CreateTenantUserInput!): User!

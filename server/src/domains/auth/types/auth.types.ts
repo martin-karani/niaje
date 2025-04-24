@@ -172,14 +172,14 @@ export const authTypeDefs = `
     logout: Boolean!
 
     # Password management
-    forgotPassword(input: ForgotPasswordInput!): PasswordResetPayload!
+    requestPasswordReset(input: ForgotPasswordInput!): PasswordResetPayload!
     resetPassword(input: ResetPasswordInput!): PasswordResetPayload!
     changePassword(input: ChangePasswordInput!): PasswordResetPayload!
 
     # Email management
     verifyEmail(input: VerifyEmailInput!): EmailVerificationPayload!
     resendVerificationEmail(input: ForgotPasswordInput!): EmailVerificationPayload!
-    changeEmail(input: ChangeEmailInput!): EmailVerificationPayload!
+    requestEmailChange(input: ChangeEmailInput!): EmailVerificationPayload!
     verifyEmailChange(input: VerifyEmailInput!): EmailVerificationPayload!
 
     # Invitation handling

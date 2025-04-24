@@ -3,7 +3,6 @@ import { GraphQLContext } from "@/infrastructure/graphql/context/types";
 import { AuthorizationError } from "@/shared/errors";
 import {
   CreateTenantUserDto,
-  CreateUserDto,
   UpdateUserDto,
   UserIdDto,
 } from "../dto/users.dto";
@@ -49,37 +48,6 @@ export const usersResolvers = {
   },
 
   Mutation: {
-    /**
-     * Create a new user
-     */
-    createUser: async (
-      _: any,
-      { data }: { data: CreateUserDto },
-      context: GraphQLContext
-    ) => {
-      // Check permissions
-      await checkPermissions(context, "manageOrganization", "user", "create");
-
-      // Ensure passwords match
-      if (data.password !== data.passwordConfirm) {
-        throw new Error("Passwords do not match");
-      }
-
-      return usersService.createUser({
-        name: data.name,
-        email: data.email,
-        password: data.password,
-        role: data.role,
-        phone: data.phone,
-        image: data.image,
-        address: data.address,
-        city: data.city,
-        country: data.country,
-        bio: data.bio,
-        isActive: data.isActive,
-      });
-    },
-
     /**
      * Update a user
      */

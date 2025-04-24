@@ -6,19 +6,16 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import {
   generateTemporaryPassword,
   hashPassword,
-  verifyPassword,
 } from "@/shared/utils/auth.utils";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNotNull } from "drizzle-orm";
 import {
-  accountEntity,
-  NewSession,
+  memberEntity,
   NewUser,
-  sessionEntity,
   User,
   userEntity,
 } from "../entities/user.entity";
 
-export class UsersService {
+export class UserService {
   /**
    * Get all users
    */
@@ -47,9 +44,15 @@ export class UsersService {
    * Get user by email
    */
   async getUserByEmail(email: string): Promise<User | null> {
-    return db.query.userEntity.findFirst({
+    const user = await db.query.userEntity.findFirst({
       where: eq(userEntity.email, email),
     });
+
+    if (!user) {
+      throw new NotFoundError(`User with email ${email} not found`);
+    }
+
+    return user;
   }
 
   /**
@@ -129,53 +132,8 @@ export class UsersService {
     // Verify user exists
     await this.getUserById(id);
 
-    // Delete all related sessions
-    await db.delete(sessionEntity).where(eq(sessionEntity.userId, id));
-
-    // Delete all related accounts
-    await db.delete(accountEntity).where(eq(accountEntity.userId, id));
-
-    // Delete the user
+    // Delete the user (let the DB handle cascading deletes)
     await db.delete(userEntity).where(eq(userEntity.id, id));
-  }
-
-  /**
-   * Change user password
-   */
-  async changePassword(
-    userId: string,
-    currentPassword: string,
-    newPassword: string
-  ): Promise<boolean> {
-    // Get user with password hash
-    const user = await this.getUserById(userId);
-
-    // Verify current password
-    if (!user.passwordHash) {
-      throw new ValidationError("Cannot change password for this user");
-    }
-
-    const isPasswordValid = await verifyPassword(
-      currentPassword,
-      user.passwordHash
-    );
-    if (!isPasswordValid) {
-      throw new ValidationError("Current password is incorrect");
-    }
-
-    // Hash new password
-    const newPasswordHash = await hashPassword(newPassword);
-
-    // Update user
-    await db
-      .update(userEntity)
-      .set({
-        passwordHash: newPasswordHash,
-        updatedAt: new Date(),
-      })
-      .where(eq(userEntity.id, userId));
-
-    return true;
   }
 
   /**
@@ -289,46 +247,18 @@ export class UsersService {
   }
 
   /**
-   * Create session for user
+   * Get organizations for a user
    */
-  async createSession(data: NewSession): Promise<string> {
-    // Create session token
-    const token = crypto.randomBytes(32).toString("hex");
-
-    await db.insert(sessionEntity).values({
-      userId: data.userId,
-      expiresAt: data.expiresAt,
-      token,
-      ipAddress: data.ipAddress,
-      userAgent: data.userAgent,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      data: data.data || {},
-    });
-
-    return token;
-  }
-
-  /**
-   * Get session by token
-   */
-  async getSessionByToken(token: string) {
-    const session = await db.query.sessionEntity.findFirst({
-      where: eq(sessionEntity.token, token),
+  async getUserOrganizations(userId: string) {
+    const members = await db.query.memberEntity.findMany({
+      where: eq(memberEntity.userId, userId),
       with: {
-        user: true,
+        organization: true,
       },
     });
 
-    return session;
-  }
-
-  /**
-   * Delete session
-   */
-  async deleteSession(token: string): Promise<void> {
-    await db.delete(sessionEntity).where(eq(sessionEntity.token, token));
+    return members.map((member) => member.organization);
   }
 }
 
-export const usersService = new UsersService();
+export const userService = new UserService();
