@@ -1,6 +1,7 @@
+// src/infrastructure/graphql/context/context-provider.ts
+
 import { subscriptionService } from "@/domains/billing/services/subscription.service";
-import { AC } from "@/infrastructure/auth/better-auth/access-control";
-import { determinePermissions } from "@/infrastructure/auth/middleware";
+import { PermissionChecker } from "@/infrastructure/auth/permission-checker";
 import { Request } from "express";
 import { GraphQLContext } from "./types";
 
@@ -16,9 +17,6 @@ export async function createGraphQLContext(
   const organization = request.activeOrganization || null;
   const team = request.activeTeam || null;
 
-  // Get permissions based on user role, organization, and team
-  const permissions = await determinePermissions(user, organization, team);
-
   // Get subscription features based on organization plan
   const features = organization
     ? await subscriptionService.getSubscriptionFeatures(organization.id)
@@ -29,15 +27,15 @@ export async function createGraphQLContext(
         documentStorage: false,
       };
 
-  // Create access control instance for fine-grained permission checks
-  const ac = new AC(user, organization, team);
+  // Create permission checker instance
+  const permissionChecker = new PermissionChecker(user, organization, team);
 
   return {
     user,
     organization,
     team,
-    permissions,
     features,
-    ac,
+    permissionChecker,
+    req: request,
   };
 }

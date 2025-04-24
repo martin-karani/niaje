@@ -1,48 +1,64 @@
-import { AC } from "@/infrastructure/auth/better-auth/access-control";
+// src/infrastructure/graphql/context/types.ts
 
+import { PermissionChecker } from "@/infrastructure/auth/permission-checker";
+import { Request } from "express";
+
+/**
+ * GraphQL Context Type Definition
+ * This is passed to all resolvers
+ */
 export interface GraphQLContext {
+  /**
+   * The current authenticated user
+   */
   user?: {
     id: string;
     email: string;
     role: string;
     name: string;
   } | null;
+
+  /**
+   * The active organization
+   */
   organization?: {
     id: string;
     name: string;
+    slug: string;
     subscriptionPlan?: string;
     subscriptionStatus?: string;
     agentOwnerId?: string;
+    trialStatus?: string;
+    trialExpiresAt?: Date;
   } | null;
+
+  /**
+   * The active team (if any)
+   */
   team?: {
     id: string;
     name: string;
+    organizationId: string;
   } | null;
-  permissions: {
-    canViewProperties: boolean;
-    canManageProperties: boolean;
-    canDeleteProperties: boolean;
-    canViewTenants: boolean;
-    canManageTenants: boolean;
-    canViewLeases: boolean;
-    canManageLeases: boolean;
-    canViewMaintenance: boolean;
-    canManageMaintenance: boolean;
-    canManageUsers: boolean;
-    canManageSubscription: boolean;
-    canViewFinancial: boolean;
-    canManageFinancial: boolean;
-    canViewDocuments: boolean;
-    canManageDocuments: boolean;
-    canViewReports: boolean;
-    canManageTeams: boolean;
-    canInviteUsers: boolean;
-  };
+
+  /**
+   * Subscription features based on the organization's plan
+   */
   features: {
     maxProperties: number;
     maxUsers: number;
     advancedReporting: boolean;
     documentStorage: boolean;
+    // Add any other feature flags here
   };
-  ac: AC; // Access Control instance
+
+  /**
+   * Permission checker for authorization
+   */
+  permissionChecker: PermissionChecker;
+
+  /**
+   * The original Express request
+   */
+  req: Request;
 }

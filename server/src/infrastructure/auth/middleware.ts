@@ -1,13 +1,10 @@
-import {
-  organizationEntity,
-  teamEntity,
-} from "@/domains/organizations/entities";
-import { teamsService } from "@/domains/organizations/services";
-import { db } from "@/infrastructure/database";
-import { fromNodeHeaders } from "better-auth/node";
-import { eq } from "drizzle-orm";
+// src/infrastructure/auth/middleware.ts
+
 import { NextFunction, Request, Response } from "express";
-import { auth } from "./better-auth/auth";
+import { organizationService } from "./services/organization.service";
+import { permissionService } from "./services/permission.service";
+import { sessionService } from "./services/session.service";
+import { teamService } from "./services/team.service";
 
 /**
  * Middleware to extract user session, organization, and permissions
@@ -15,253 +12,84 @@ import { auth } from "./better-auth/auth";
 export function createAuthMiddleware() {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      // Get session from auth headers
-      const session = await auth.api.getSession({
-        headers: fromNodeHeaders(req.headers),
-      });
+      // Clear previously set auth data
+      delete req.user;
+      delete req.activeOrganization;
+      delete req.activeTeam;
+      delete req.permissions;
 
-      if (session) {
+      // Get auth token from cookies or authorization header
+      const token = extractToken(req);
+
+      if (!token) {
+        // No token, continue as unauthenticated
+        return next();
+      }
+
+      // Verify session and get user
+      try {
+        const session = await sessionService.getSessionByToken(token);
+
         // Attach user to request
         req.user = session.user;
 
-        // Get active organization if available
-        if (session.activeOrganizationId) {
-          const activeOrg = await db.query.organizationEntity.findFirst({
-            where: eq(organizationEntity.id, session.activeOrganizationId),
-          });
+        // Get active organization and team from session data
+        if (session.data?.activeOrganizationId) {
+          try {
+            const org = await organizationService.getOrganizationById(
+              session.data.activeOrganizationId
+            );
+            req.activeOrganization = org;
 
-          if (activeOrg) {
-            req.activeOrganization = activeOrg;
+            // Check if session has an active team
+            if (session.data?.activeTeamId) {
+              try {
+                const team = await teamService.getTeamById(
+                  session.data.activeTeamId
+                );
+                // Only set active team if it belongs to the active organization
+                if (team.organizationId === org.id) {
+                  req.activeTeam = team;
+                }
+              } catch (error) {
+                // Team not found or error fetching it, ignore and continue without active team
+                console.warn("Error fetching active team:", error);
+              }
+            }
+          } catch (error) {
+            // Organization not found or error fetching it, ignore and continue without active org
+            console.warn("Error fetching active organization:", error);
           }
         }
 
-        // Get user's active team if available
-        if (req.activeOrganization && session.activeTeamId) {
-          const activeTeam = await db.query.teamEntity.findFirst({
-            where: eq(teamEntity.id, session.activeTeamId),
-          });
+        // Extend session expiration if it's about to expire
+        const expiryTime = session.expiresAt.getTime();
+        const now = Date.now();
+        const oneDay = 24 * 60 * 60 * 1000; // 1 day in ms
 
-          if (activeTeam) {
-            req.activeTeam = activeTeam;
-          }
+        if (expiryTime - now < oneDay) {
+          await sessionService.extendSession(token);
         }
 
-        // Determine permissions
-        req.permissions = await determinePermissions(
-          session.user,
-          req.activeOrganization,
-          req.activeTeam
-        );
+        // Set session token in response cookie for persistence
+        res.cookie("auth_token", token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+          path: "/",
+        });
+      } catch (error) {
+        // Session invalid or expired, clear cookie and continue as unauthenticated
+        res.clearCookie("auth_token");
+        return next();
       }
 
       next();
     } catch (error) {
       console.error("Auth middleware error:", error);
-      next(); // Continue even on error to allow routes to handle auth requirements
+      next();
     }
-  };
-}
-
-/**
- * Determine user permissions based on their role, organization, and team
- */
-export async function determinePermissions(
-  user: any,
-  organization: any,
-  team: any
-): Promise<Record<string, boolean>> {
-  if (!user) {
-    return {}; // No permissions for unauthenticated users
-  }
-
-  // Admin users get all permissions
-  if (user.role === "admin") {
-    return {
-      canViewProperties: true,
-      canManageProperties: true,
-      canDeleteProperties: true,
-      canViewTenants: true,
-      canManageTenants: true,
-      canViewLeases: true,
-      canManageLeases: true,
-      canViewMaintenance: true,
-      canManageMaintenance: true,
-      canManageUsers: true,
-      canManageSubscription: true,
-      canViewFinancial: true,
-      canManageFinancial: true,
-      canViewDocuments: true,
-      canManageDocuments: true,
-      canViewReports: true,
-      canManageTeams: true,
-      canInviteUsers: true,
-    };
-  }
-
-  // If no organization, limited permissions
-  if (!organization) {
-    return {
-      canViewProperties: false,
-      canManageProperties: false,
-      canDeleteProperties: false,
-      canViewTenants: false,
-      canManageTenants: false,
-      canViewLeases: false,
-      canManageLeases: false,
-      canViewMaintenance: false,
-      canManageMaintenance: false,
-      canManageUsers: false,
-      canManageSubscription: false,
-      canViewFinancial: false,
-      canManageFinancial: false,
-      canViewDocuments: false,
-      canManageDocuments: false,
-      canViewReports: false,
-      canManageTeams: false,
-      canInviteUsers: false,
-    };
-  }
-
-  // For organization owners
-  if (user.role === "agent_owner" && organization.agentOwnerId === user.id) {
-    return {
-      canViewProperties: true,
-      canManageProperties: true,
-      canDeleteProperties: true,
-      canViewTenants: true,
-      canManageTenants: true,
-      canViewLeases: true,
-      canManageLeases: true,
-      canViewMaintenance: true,
-      canManageMaintenance: true,
-      canManageUsers: true,
-      canManageSubscription: true,
-      canViewFinancial: true,
-      canManageFinancial: true,
-      canViewDocuments: true,
-      canManageDocuments: true,
-      canViewReports: true,
-      canManageTeams: true,
-      canInviteUsers: true,
-    };
-  }
-
-  // For agent staff
-  if (user.role === "agent_staff") {
-    return {
-      canViewProperties: true,
-      canManageProperties: true,
-      canDeleteProperties: false,
-      canViewTenants: true,
-      canManageTenants: true,
-      canViewLeases: true,
-      canManageLeases: true,
-      canViewMaintenance: true,
-      canManageMaintenance: true,
-      canManageUsers: false,
-      canManageSubscription: false,
-      canViewFinancial: true,
-      canManageFinancial: false,
-      canViewDocuments: true,
-      canManageDocuments: true,
-      canViewReports: true,
-      canManageTeams: false,
-      canInviteUsers: true,
-    };
-  }
-
-  // For property owners (can only view their own properties)
-  if (user.role === "property_owner") {
-    return {
-      canViewProperties: true,
-      canManageProperties: false,
-      canDeleteProperties: false,
-      canViewTenants: true,
-      canManageTenants: false,
-      canViewLeases: true,
-      canManageLeases: false,
-      canViewMaintenance: true,
-      canManageMaintenance: false,
-      canManageUsers: false,
-      canManageSubscription: false,
-      canViewFinancial: true,
-      canManageFinancial: false,
-      canViewDocuments: true,
-      canManageDocuments: false,
-      canViewReports: true,
-      canManageTeams: false,
-      canInviteUsers: false,
-    };
-  }
-
-  // For caretakers (focused on maintenance)
-  if (user.role === "caretaker") {
-    return {
-      canViewProperties: true,
-      canManageProperties: false,
-      canDeleteProperties: false,
-      canViewTenants: true,
-      canManageTenants: false,
-      canViewLeases: true,
-      canManageLeases: false,
-      canViewMaintenance: true,
-      canManageMaintenance: true,
-      canManageUsers: false,
-      canManageSubscription: false,
-      canViewFinancial: false,
-      canManageFinancial: false,
-      canViewDocuments: true,
-      canManageDocuments: false,
-      canViewReports: false,
-      canManageTeams: false,
-      canInviteUsers: false,
-    };
-  }
-
-  // For tenant users (very limited access)
-  if (user.role === "tenant_user") {
-    return {
-      canViewProperties: false,
-      canManageProperties: false,
-      canDeleteProperties: false,
-      canViewTenants: false,
-      canManageTenants: false,
-      canViewLeases: true,
-      canManageLeases: false,
-      canViewMaintenance: true,
-      canManageMaintenance: false,
-      canManageUsers: false,
-      canManageSubscription: false,
-      canViewFinancial: false,
-      canManageFinancial: false,
-      canViewDocuments: true,
-      canManageDocuments: false,
-      canViewReports: false,
-      canManageTeams: false,
-      canInviteUsers: false,
-    };
-  }
-
-  // Default permissions (minimal access)
-  return {
-    canViewProperties: false,
-    canManageProperties: false,
-    canDeleteProperties: false,
-    canViewTenants: false,
-    canManageTenants: false,
-    canViewLeases: false,
-    canManageLeases: false,
-    canViewMaintenance: false,
-    canManageMaintenance: false,
-    canManageUsers: false,
-    canManageSubscription: false,
-    canViewFinancial: false,
-    canManageFinancial: false,
-    canViewDocuments: false,
-    canManageDocuments: false,
-    canViewReports: false,
-    canManageTeams: false,
-    canInviteUsers: false,
   };
 }
 
@@ -281,9 +109,9 @@ export function requireAuth() {
 }
 
 /**
- * Middleware to require specific permission
+ * Middleware to require active organization
  */
-export function requirePermission(permission: string) {
+export function requireOrganization() {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({
@@ -292,10 +120,10 @@ export function requirePermission(permission: string) {
       });
     }
 
-    if (!req.permissions || !req.permissions[permission]) {
-      return res.status(403).json({
-        error: "Forbidden",
-        message: "You don't have permission to perform this action",
+    if (!req.activeOrganization) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "No active organization selected",
       });
     }
 
@@ -304,7 +132,48 @@ export function requirePermission(permission: string) {
 }
 
 /**
- * Middleware to check property access for a team
+ * Middleware to require specific permission
+ */
+export function requirePermission(resourceType: string, action: string) {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({
+        error: "Unauthorized",
+        message: "Authentication required",
+      });
+    }
+
+    if (!req.activeOrganization) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "No active organization selected",
+      });
+    }
+
+    try {
+      const hasPermission = await permissionService.hasPermission({
+        userId: req.user.id,
+        organizationId: req.activeOrganization.id,
+        resourceType,
+        action,
+      });
+
+      if (!hasPermission) {
+        return res.status(403).json({
+          error: "Forbidden",
+          message: `You don't have permission to ${action} ${resourceType}`,
+        });
+      }
+
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+}
+
+/**
+ * Middleware to require property access
  */
 export function requirePropertyAccess(propertyIdParam: string = "propertyId") {
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -315,44 +184,57 @@ export function requirePropertyAccess(propertyIdParam: string = "propertyId") {
       });
     }
 
-    // Skip check for admins and organization owners
-    if (
-      req.user.role === "admin" ||
-      (req.activeOrganization &&
-        req.user.role === "agent_owner" &&
-        req.activeOrganization.agentOwnerId === req.user.id)
-    ) {
-      return next();
+    if (!req.activeOrganization) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "No active organization selected",
+      });
     }
 
-    const propertyId = req.params[propertyIdParam] || req.body[propertyIdParam];
+    try {
+      const propertyId =
+        req.params[propertyIdParam] || req.body[propertyIdParam];
 
-    if (!propertyId) {
-      return next(); // No property ID to check
-    }
-
-    // For users in teams, check if they have access to this property
-    if (req.activeTeam) {
-      try {
-        const hasAccess = await teamsService.isPropertyInTeam(
-          req.activeTeam.id,
-          propertyId
-        );
-
-        if (!hasAccess) {
-          return res.status(403).json({
-            error: "Forbidden",
-            message: "You don't have access to this property",
-          });
-        }
-      } catch (error) {
-        console.error("Property access check error:", error);
-        // Continue even on error to avoid blocking legitimate requests
+      if (!propertyId) {
+        return next(); // No property ID to check
       }
-    }
 
-    next();
+      const hasAccess = await permissionService.canAccessProperty(
+        req.user.id,
+        req.activeOrganization.id,
+        propertyId
+      );
+
+      if (!hasAccess) {
+        return res.status(403).json({
+          error: "Forbidden",
+          message: "You don't have access to this property",
+        });
+      }
+
+      next();
+    } catch (error) {
+      next(error);
+    }
   };
+}
+
+/**
+ * Extract token from request
+ */
+function extractToken(req: Request): string | null {
+  // First check for cookie
+  if (req.cookies && req.cookies.auth_token) {
+    return req.cookies.auth_token;
+  }
+
+  // Then check for Authorization header
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    return authHeader.substring(7); // Remove "Bearer " prefix
+  }
+
+  return null;
 }
 
 // Add to Express Request type

@@ -1,12 +1,12 @@
-import { auth } from "@/infrastructure/auth/better-auth/auth";
-import { createAuthMiddleware } from "@/infrastructure/auth/middleware";
+import { uploadRoutes } from "@/api/routes/upload.routes";
 import { createGraphQLContext } from "@/infrastructure/graphql/context/context-provider";
 import { schema } from "@/infrastructure/graphql/schema";
 import { handleWebhooks } from "@/infrastructure/webhooks";
-import { toNodeHandler } from "better-auth/node";
+import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
-import { createYoga } from "graphql-yoga";
+import { createYoga, useErrorHandler } from "graphql-yoga";
+import { createAuthMiddleware } from "./infrastructure/auth/middleware";
 
 /**
  * Set up the Express API with authentication and GraphQL
@@ -14,6 +14,7 @@ import { createYoga } from "graphql-yoga";
 export function setupApi() {
   const app = express();
 
+  // CORS configuration
   app.use(
     cors({
       origin: process.env.FRONTEND_URL || "*",
@@ -22,13 +23,8 @@ export function setupApi() {
     })
   );
 
-  // app.use(cookieParser());
-
-  // Mount Better-Auth routes
-  app.use("/api/auth/*splat", toNodeHandler(auth));
-
-  // Serve static files from uploads directory
-  // app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+  // Parse cookies - needed for auth
+  app.use(cookieParser());
 
   // Handle webhooks (raw body for signature verification)
   app.post(
@@ -43,33 +39,25 @@ export function setupApi() {
   // Apply authentication middleware to attach user and permissions
   app.use(createAuthMiddleware());
 
-  // File upload route
-  // app.post("/api/upload/*splat", uploadRoutes);
+  // Mount auth routes
+
+  // Mount file upload routes
+  app.use("/api/upload", uploadRoutes);
 
   // GraphQL endpoint
   const yoga = createYoga({
     schema,
     graphqlEndpoint: "/api/graphql",
     context: async ({ request }) => createGraphQLContext(request as any),
+    plugins: [
+      useErrorHandler((error) => {
+        console.error("GraphQL Error:", error);
+        return error;
+      }),
+    ],
   });
 
   app.use("/api/graphql", yoga);
-
-  // Error handling middleware
-  app.use(
-    (
-      err: any,
-      req: express.Request,
-      res: express.Response,
-      next: express.NextFunction
-    ) => {
-      console.error("API Error:", err);
-      res.status(err.statusCode || 500).json({
-        error: err.name || "Internal Server Error",
-        message: err.message || "An unexpected error occurred",
-      });
-    }
-  );
 
   return app;
 }
