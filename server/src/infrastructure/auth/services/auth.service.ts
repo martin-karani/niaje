@@ -48,7 +48,7 @@ export class AuthService {
         email: data.email.toLowerCase(),
         passwordHash,
         name: data.name,
-        role: data.role || "agent_staff", // Default role
+        role: data.role,
         isActive: true,
         emailVerified: data.requireEmailVerification === false, // If verification is not required, mark as verified
         createdAt: new Date(),

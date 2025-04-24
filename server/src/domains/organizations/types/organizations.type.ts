@@ -90,12 +90,7 @@ export const organizationsTypeDefs = `
     updatedAt: String!
   }
   
-  # Invitation validation response
-  type InvitationValidation {
-    valid: Boolean!
-    message: String!
-    invitation: Invitation
-  }
+
   
   # Inputs for mutations
   input CreateOrganizationInput {
@@ -127,22 +122,18 @@ export const organizationsTypeDefs = `
     organizationMembers(organizationId: ID!): [Member!]!
     organizationTeams(organizationId: ID!): [Team!]!
     organizationInvitations(organizationId: ID!): [Invitation!]!
-    validateInvitation(token: String!): InvitationValidation!
   }
   
   # Extend Mutation with organization mutations
   extend type Mutation {
     # Organization management
-    createOrganization(data: CreateOrganizationInput!): Organization!
     updateOrganization(data: UpdateOrganizationInput!): Organization!
     deleteOrganization(id: ID!): Boolean!
-    switchOrganization(id: ID!): Organization!
     
     # Invitation management
     inviteToOrganization(organizationId: ID!, email: String!, role: String!, teamId: ID): Invitation!
     revokeInvitation(id: ID!): Invitation!
     resendInvitation(id: ID!): Invitation!
-    acceptInvitation(token: String!): Organization!
     
     # Member management
     updateMember(id: ID!, role: String, status: String, teamId: ID): Member!

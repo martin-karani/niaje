@@ -1,18 +1,4 @@
 export const authTypeDefs = `
-  # User types
-  type User {
-    id: ID!
-    email: String!
-    name: String!
-    role: String!
-    emailVerified: Boolean!
-    phone: String
-    image: String
-    isActive: Boolean!
-    lastLoginAt: String
-    createdAt: String!
-    updatedAt: String!
-  }
 
   # Authentication response types
   type AuthPayload {

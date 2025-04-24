@@ -106,7 +106,6 @@ export const usersTypeDefs = `
   }
 
   extend type Query {
-    me: User
     users: [User!]!
     user(id: ID!): User
     tenantUsers: [Tenant!]!
@@ -116,7 +115,6 @@ export const usersTypeDefs = `
     createUser(data: CreateUserInput!): User!
     updateUser(data: UpdateUserInput!): User!
     deleteUser(id: ID!): Boolean!
-    changePassword(data: ChangePasswordInput!): Boolean!
     createTenantUser(data: CreateTenantUserInput!): User!
   }
 `;
