@@ -13,7 +13,6 @@ import AppLayout from "../components/layouts/app-layout";
 import AuthLayout from "../components/layouts/auth-layout";
 
 // Auth pages
-import OrganizationSelection from "../components/organisation/organisation-select";
 import ForgotPassword from "../pages/auth/forgot-password";
 import ResetPassword from "../pages/auth/reset-password";
 import SignIn from "../pages/auth/sign-in";
@@ -22,6 +21,8 @@ import SignUp from "../pages/auth/sign-up";
 // App pages
 import VerifyEmail from "../pages/auth/verify-email";
 import Dashboard from "../pages/dashboard";
+import OrganizationSelect from "../pages/organisations";
+import OrganizationCreate from "../pages/organisations/create";
 import { ProtectedRoute } from "./protected-routes";
 
 // Placeholder components for routes
@@ -94,12 +95,21 @@ export default function AppRoutes() {
         <Route path="verify-email" element={<VerifyEmail />} />
       </Route>
 
-      {/* Organization selection route - outside the main app layout */}
       <Route
-        path="/organization-selection"
+        path="/organizations"
         element={
           <ProtectedRoute>
-            <OrganizationSelection />
+            <OrganizationSelect />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Organization creation route */}
+      <Route
+        path="/organizations/create"
+        element={
+          <ProtectedRoute>
+            <OrganizationCreate />
           </ProtectedRoute>
         }
       />

@@ -52,21 +52,9 @@ export default function SignIn() {
     try {
       await login(values.email, values.password);
 
-      // Check if we have an organization already active
-      if (organization) {
-        navigate("/dashboard");
-        return;
-      }
-
-      // Check if we need to show organization selection
-      if (organizations.length > 1) {
-        navigate("/auth/organization-select");
-        return;
-      }
-
       // If we have exactly one organization, we'll be redirected to the dashboard
       // automatically by the organization-select page
-      navigate("/auth/organization-select");
+      navigate("/auth/organizations");
     } catch (err) {
       // Error is already set in auth store
       console.error("Login error:", err);

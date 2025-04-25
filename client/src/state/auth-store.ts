@@ -127,6 +127,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           isAuthenticated: true,
         });
       }
+      return { success: true, redirectTo: "/organizations" };
     } catch (error: any) {
       // Handle specific authentication errors
       if (error.includes && error.includes("verify your email")) {
