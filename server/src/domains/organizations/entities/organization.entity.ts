@@ -69,6 +69,24 @@ export const organizationEntity = pgTable("organizations", {
     .notNull(),
 });
 
+// Member role enum
+export const memberRoleEnum = pgEnum("member_role", [
+  "owner",
+  "staff",
+  "admin",
+  "member",
+  "caretaker",
+  "tenant",
+]);
+
+// Member status enum
+export const memberStatusEnum = pgEnum("member_status", [
+  "active",
+  "inactive",
+  "pending",
+  "rejected",
+]);
+
 // Organization member entity - junction table for users and organizations
 export const memberEntity = pgTable("members", {
   id: text("id").primaryKey().$defaultFn(createId),
@@ -81,8 +99,8 @@ export const memberEntity = pgTable("members", {
   teamId: text("team_id").references(() => teamEntity.id, {
     onDelete: "set null",
   }),
-  role: text("role").notNull(), // 'owner', 'admin', 'member', etc.
-  status: text("status").default("active").notNull(), // 'active', 'inactive', 'pending', etc.
+  role: memberRoleEnum("role").default("member").notNull(),
+  status: memberStatusEnum("status").default("active").notNull(),
   joinedAt: timestamp("joined_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
@@ -109,6 +127,14 @@ export const teamEntity = pgTable("teams", {
     .notNull(),
 });
 
+// Invitation status enum
+export const invitationStatusEnum = pgEnum("invitation_status", [
+  "pending",
+  "accepted",
+  "expired",
+  "revoked",
+]);
+
 // Invitation entity for inviting users to an organization
 export const invitationEntity = pgTable("invitations", {
   id: text("id").primaryKey().$defaultFn(createId),
@@ -116,9 +142,12 @@ export const invitationEntity = pgTable("invitations", {
     .notNull()
     .references(() => organizationEntity.id, { onDelete: "cascade" }),
   email: text("email").notNull(),
-  role: text("role").notNull(),
-  status: text("status").default("pending").notNull(), // 'pending', 'accepted', 'expired', 'revoked'
-  token: text("token").notNull(),
+  role: memberRoleEnum("role").default("member").notNull(),
+  status: invitationStatusEnum("status").default("pending").notNull(),
+  token: text("token").notNull().unique(),
+  teamId: text("team_id").references(() => teamEntity.id, {
+    onDelete: "set null",
+  }),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   inviterId: text("inviter_id").references(() => userEntity.id, {
     onDelete: "set null",
@@ -188,3 +217,6 @@ export type Team = typeof teamEntity.$inferSelect;
 export type NewTeam = typeof teamEntity.$inferInsert;
 export type Invitation = typeof invitationEntity.$inferSelect;
 export type NewInvitation = typeof invitationEntity.$inferInsert;
+export type MemberRole = (typeof memberRoleEnum.enumValues)[number];
+export type MemberStatus = (typeof memberStatusEnum.enumValues)[number];
+export type InvitationStatus = (typeof invitationStatusEnum.enumValues)[number];

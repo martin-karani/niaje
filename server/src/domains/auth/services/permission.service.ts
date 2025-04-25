@@ -2,6 +2,7 @@ import { leaseEntity } from "@/domains/leases/entities";
 import { maintenanceRequestsEntity } from "@/domains/maintenance/entities";
 import {
   memberEntity,
+  organizationEntity,
   resourcePermissionEntity,
   teamEntity,
 } from "@/domains/organizations/entities";
@@ -11,11 +12,12 @@ import { db } from "@/infrastructure/database";
 import { and, eq } from "drizzle-orm";
 import { teamService } from "./team.service";
 
-// Default permissions for different roles
+// Default permissions for different organization member roles
 export const DEFAULT_ROLE_PERMISSIONS: Record<
   string,
   Record<string, string[]>
 > = {
+  // Admin role permissions
   admin: {
     property: [
       "view",
@@ -35,11 +37,12 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<
     report: ["view", "generate", "export"],
     team: ["view", "create", "update", "delete", "assign_members"],
     member: ["view", "invite", "update", "remove"],
-    organization: ["view", "update", "delete"],
+    organization: ["view", "update", "delete", "admin"],
     billing: ["view", "update", "manage_subscription"],
   },
 
-  agent_owner: {
+  // Owner role permissions (same as admin)
+  owner: {
     property: [
       "view",
       "create",
@@ -58,11 +61,12 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<
     report: ["view", "generate", "export"],
     team: ["view", "create", "update", "delete", "assign_members"],
     member: ["view", "invite", "update", "remove"],
-    organization: ["view", "update", "delete"],
+    organization: ["view", "update", "delete", "admin"],
     billing: ["view", "update", "manage_subscription"],
   },
 
-  agent_staff: {
+  // Staff role permissions (previously agent_staff)
+  staff: {
     property: ["view", "create", "update", "manage_utility"],
     unit: ["view", "create", "update", "list"],
     tenant: ["view", "create", "update", "contact"],
@@ -78,6 +82,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<
     billing: ["view"],
   },
 
+  // Property owner role permissions
   property_owner: {
     property: ["view"],
     unit: ["view", "list"],
@@ -90,6 +95,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<
     report: ["view"],
   },
 
+  // Caretaker role permissions
   caretaker: {
     property: ["view"],
     unit: ["view", "list"],
@@ -99,9 +105,20 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<
     document: ["view"],
   },
 
-  tenant_user: {
+  // Tenant role permissions
+  tenant: {
     lease: ["view"],
     payment: ["view", "record"],
+    maintenance: ["view", "create"],
+    document: ["view"],
+  },
+
+  // Regular member role (limited permissions)
+  member: {
+    property: ["view"],
+    unit: ["view"],
+    tenant: ["view"],
+    lease: ["view"],
     maintenance: ["view", "create"],
     document: ["view"],
   },
@@ -120,15 +137,26 @@ export class PermissionService {
   }): Promise<boolean> {
     const { userId, organizationId, resourceType, action, resourceId } = data;
 
-    // Get user's role and team in the organization
+    // Get organization
+    const organization = await db.query.organizationEntity.findFirst({
+      where: eq(organizationEntity.id, organizationId),
+    });
+
+    if (!organization) {
+      return false;
+    }
+
+    // If user is the organization owner, they have full permissions
+    if (organization.agentOwnerId === userId) {
+      return true;
+    }
+
+    // Get user's role in the organization
     const member = await db.query.memberEntity.findFirst({
       where: and(
         eq(memberEntity.userId, userId),
         eq(memberEntity.organizationId, organizationId)
       ),
-      with: {
-        user: true,
-      },
     });
 
     if (!member) {
@@ -136,12 +164,12 @@ export class PermissionService {
     }
 
     // Admin and owner roles have full permissions
-    if (member.user.role === "admin" || member.role === "owner") {
+    if (member.role === "admin" || member.role === "owner") {
       return true;
     }
 
     // Check role-based permissions
-    const rolePermissions = DEFAULT_ROLE_PERMISSIONS[member.user.role];
+    const rolePermissions = DEFAULT_ROLE_PERMISSIONS[member.role] || {};
     if (!rolePermissions) {
       return false; // Role not found
     }
@@ -364,15 +392,29 @@ export class PermissionService {
     userId: string,
     organizationId: string
   ): Promise<string[]> {
-    // Get user's role and team in the organization
+    // Get organization
+    const organization = await db.query.organizationEntity.findFirst({
+      where: eq(organizationEntity.id, organizationId),
+    });
+
+    if (!organization) {
+      return [];
+    }
+
+    // If user is the organization owner, they have access to all properties
+    if (organization.agentOwnerId === userId) {
+      const allProperties = await db.query.propertyEntity.findMany({
+        where: eq(propertyEntity.organizationId, organizationId),
+      });
+      return allProperties.map((p) => p.id);
+    }
+
+    // Get user's membership in the organization
     const member = await db.query.memberEntity.findFirst({
       where: and(
         eq(memberEntity.userId, userId),
         eq(memberEntity.organizationId, organizationId)
       ),
-      with: {
-        user: true,
-      },
     });
 
     if (!member) {
@@ -380,7 +422,7 @@ export class PermissionService {
     }
 
     // Admin and owner roles have access to all properties
-    if (member.user.role === "admin" || member.role === "owner") {
+    if (member.role === "admin" || member.role === "owner") {
       const allProperties = await db.query.propertyEntity.findMany({
         where: eq(propertyEntity.organizationId, organizationId),
       });
@@ -393,7 +435,7 @@ export class PermissionService {
     }
 
     // For property owners, get their own properties
-    if (member.user.role === "property_owner") {
+    if (member.role === "property_owner") {
       const ownedProperties = await db.query.propertyEntity.findMany({
         where: and(
           eq(propertyEntity.organizationId, organizationId),
@@ -404,7 +446,7 @@ export class PermissionService {
     }
 
     // For caretakers, get properties they're assigned to
-    if (member.user.role === "caretaker") {
+    if (member.role === "caretaker") {
       const assignedProperties = await db.query.propertyEntity.findMany({
         where: and(
           eq(propertyEntity.organizationId, organizationId),
@@ -415,7 +457,7 @@ export class PermissionService {
     }
 
     // For tenant users, get properties they're leasing
-    if (member.user.role === "tenant_user") {
+    if (member.role === "tenant") {
       // Find tenant profile for this user
       const tenant = await db.query.tenantEntity.findFirst({
         where: and(
@@ -443,6 +485,58 @@ export class PermissionService {
     }
 
     return []; // Default empty list
+  }
+
+  /**
+   * Get user's role in an organization
+   */
+  async getUserOrganizationRole(
+    userId: string,
+    organizationId: string
+  ): Promise<string | null> {
+    // Check if user is org owner
+    const organization = await db.query.organizationEntity.findFirst({
+      where: eq(organizationEntity.id, organizationId),
+    });
+
+    if (organization && organization.agentOwnerId === userId) {
+      return "owner"; // Organization owner has owner role
+    }
+
+    // Get user's membership
+    const member = await db.query.memberEntity.findFirst({
+      where: and(
+        eq(memberEntity.userId, userId),
+        eq(memberEntity.organizationId, organizationId)
+      ),
+    });
+
+    return member ? member.role : null;
+  }
+
+  /**
+   * Check if user is an organization admin
+   */
+  async isOrganizationAdmin(
+    userId: string,
+    organizationId: string
+  ): Promise<boolean> {
+    const role = await this.getUserOrganizationRole(userId, organizationId);
+    return role === "admin" || role === "owner";
+  }
+
+  /**
+   * Check if user is an organization owner
+   */
+  async isOrganizationOwner(
+    userId: string,
+    organizationId: string
+  ): Promise<boolean> {
+    const organization = await db.query.organizationEntity.findFirst({
+      where: eq(organizationEntity.id, organizationId),
+    });
+
+    return organization ? organization.agentOwnerId === userId : false;
   }
 }
 

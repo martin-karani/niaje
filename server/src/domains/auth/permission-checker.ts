@@ -15,7 +15,6 @@ export class PermissionChecker {
   private user: any;
   private organization: any;
   private team: any;
-  private userRole: string | null = null;
   private memberRole: string | null = null;
   private cachedChecks: Record<string, boolean> = {};
 
@@ -23,10 +22,6 @@ export class PermissionChecker {
     this.user = user;
     this.organization = organization;
     this.team = team;
-
-    if (user) {
-      this.userRole = user.role;
-    }
   }
 
   /**
@@ -51,24 +46,15 @@ export class PermissionChecker {
       return false;
     }
 
-    // Admin users can do everything
-    if (this.userRole === "admin") {
-      this.cachedChecks[cacheKey] = true;
-      return true;
-    }
-
     // Organization owners can do everything in their organization
-    if (
-      this.userRole === "agent_owner" &&
-      this.organization.agentOwnerId === this.user.id
-    ) {
+    if (this.organization.agentOwnerId === this.user.id) {
       this.cachedChecks[cacheKey] = true;
       return true;
     }
 
-    // Get role-based permissions
+    // Get member role if not already cached
     if (!this.memberRole) {
-      // Fetch member role from database if not already cached
+      // Fetch member role from database
       const member = await db.query.memberEntity.findFirst({
         where: and(
           eq(memberEntity.userId, this.user.id),
@@ -79,8 +65,15 @@ export class PermissionChecker {
       this.memberRole = member?.role || null;
     }
 
+    // Organization admins can do everything in their organization
+    if (this.memberRole === "admin" || this.memberRole === "owner") {
+      this.cachedChecks[cacheKey] = true;
+      return true;
+    }
+
     // Check role-based permissions
-    const rolePermissions = DEFAULT_ROLE_PERMISSIONS[this.userRole || ""] || {};
+    const rolePermissions =
+      DEFAULT_ROLE_PERMISSIONS[this.memberRole || ""] || {};
     const resourcePermissions = rolePermissions[resourceType] || [];
 
     if (!resourcePermissions.includes(action)) {
@@ -148,9 +141,9 @@ export class PermissionChecker {
   async getAccessiblePropertyIds(): Promise<string[]> {
     // Admin and owner have access to all properties
     if (
-      this.userRole === "admin" ||
-      (this.userRole === "agent_owner" &&
-        this.organization.agentOwnerId === this.user.id)
+      this.memberRole === "admin" ||
+      this.memberRole === "owner" ||
+      this.organization.agentOwnerId === this.user.id
     ) {
       // Return all org properties (would fetch from DB in real implementation)
       return []; // Placeholder, would need to fetch all property IDs

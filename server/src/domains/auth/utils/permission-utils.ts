@@ -195,12 +195,80 @@ export async function checkMaintenancePermissions(
   );
 }
 
+// Organization permissions
 export async function checkOrganizationPermissions(
+  context: GraphQLContext,
+  permission: "view" | "manage" | "admin" = "view"
+): Promise<{ organizationId: string; userId: string }> {
+  if (permission === "admin") {
+    // For admin-level permissions, check if user is organization owner or has admin role
+    if (!context.user) {
+      throw new AuthorizationError("Authentication required");
+    }
+
+    if (!context.organization) {
+      throw new AuthorizationError("No active organization selected");
+    }
+
+    // Check if user is organization owner
+    if (context.organization.agentOwnerId === context.user.id) {
+      return {
+        organizationId: context.organization.id,
+        userId: context.user.id,
+      };
+    }
+
+    // Otherwise check admin permission through permissionChecker
+    const adminAllowed = await context.permissionChecker.can(
+      "organization",
+      "admin"
+    );
+    if (!adminAllowed) {
+      throw new AuthorizationError("Administrator permission required");
+    }
+
+    return {
+      organizationId: context.organization.id,
+      userId: context.user.id,
+    };
+  }
+
+  // For view/manage, use standard permission checks
+  return checkPermissions(
+    context,
+    permission === "view" ? "viewOrganization" : "manageOrganization"
+  );
+}
+
+// Team permissions
+export async function checkTeamPermissions(
   context: GraphQLContext,
   permission: "view" | "manage" = "view"
 ): Promise<{ organizationId: string; userId: string }> {
   return checkPermissions(
     context,
-    permission === "view" ? "viewOrganization" : "manageOrganization"
+    permission === "view" ? "viewTeams" : "manageTeams"
+  );
+}
+
+// Document permissions
+export async function checkDocumentPermissions(
+  context: GraphQLContext,
+  permission: "view" | "manage" = "view"
+): Promise<{ organizationId: string; userId: string }> {
+  return checkPermissions(
+    context,
+    permission === "view" ? "viewDocuments" : "manageDocuments"
+  );
+}
+
+// Inspection permissions
+export async function checkInspectionPermissions(
+  context: GraphQLContext,
+  permission: "view" | "manage" = "view"
+): Promise<{ organizationId: string; userId: string }> {
+  return checkPermissions(
+    context,
+    permission === "view" ? "viewInspections" : "manageInspections"
   );
 }

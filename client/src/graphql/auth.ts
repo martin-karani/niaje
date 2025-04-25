@@ -8,7 +8,7 @@ export const LOGIN = gql`
         id
         name
         email
-        role
+        emailVerified
         image
       }
       organizations {
@@ -46,7 +46,8 @@ export const REGISTER = gql`
         id
         name
         email
-        role
+        image
+        emailVerified
       }
       token
     }

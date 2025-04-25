@@ -136,6 +136,68 @@ export function requireOrganization() {
   };
 }
 
+/**
+ * Middleware to require specific permission
+ */
+export function requirePermission(permission?: string) {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    // First check authentication and organization
+    if (!req.user) {
+      return res.status(401).json({
+        error: "Unauthorized",
+        message: "Authentication required",
+      });
+    }
+
+    if (!req.activeOrganization) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "No active organization selected",
+      });
+    }
+
+    // If no specific permission required, proceed
+    if (!permission) {
+      return next();
+    }
+
+    // Use permission checker to verify access
+    try {
+      // Map permission string to resource type and action
+      // This is a simplified example - you would need to expand this based on your permission model
+      const [resourceType, action] = permission.split(":");
+
+      if (!req.permissionChecker) {
+        return res.status(500).json({
+          error: "Server Error",
+          message: "Permission checker not initialized",
+        });
+      }
+
+      // Check if user has permission
+      const hasPermission = await req.permissionChecker.can(
+        resourceType || "global",
+        action || permission
+      );
+
+      if (!hasPermission) {
+        return res.status(403).json({
+          error: "Forbidden",
+          message: `You don't have permission to access this resource`,
+        });
+      }
+
+      next();
+    } catch (error) {
+      console.error("Permission check error:", error);
+      return res.status(403).json({
+        error: "Forbidden",
+        message: "Permission denied",
+      });
+    }
+  };
+}
+
 // Add to Express Request type to standardize auth properties
 declare global {
   namespace Express {

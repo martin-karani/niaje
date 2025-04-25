@@ -1,5 +1,5 @@
 {
-  "id": "630d1587-b4aa-4390-8b8a-b8a25158bd5a",
+  "id": "a54c0df6-78d9-459f-b16f-a401984e3114",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -2113,17 +2113,17 @@
         },
         "max_properties": {
           "name": "max_properties",
-          "type": "text",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
-          "default": "'5'"
+          "default": 5
         },
         "max_users": {
           "name": "max_users",
-          "type": "text",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
-          "default": "'3'"
+          "default": 3
         },
         "logo": {
           "name": "logo",
@@ -2254,6 +2254,81 @@
         }
       },
       "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.resource_permissions": {
+      "name": "resource_permissions",
+      "schema": "",
+      "columns": {
+        "team_id": {
+          "name": "team_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "resource_type": {
+          "name": "resource_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "resource_id": {
+          "name": "resource_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "action": {
+          "name": "action",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "resource_permissions_team_id_teams_id_fk": {
+          "name": "resource_permissions_team_id_teams_id_fk",
+          "tableFrom": "resource_permissions",
+          "tableTo": "teams",
+          "columnsFrom": [
+            "team_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "resource_permissions_team_id_resource_type_resource_id_action_pk": {
+          "name": "resource_permissions_team_id_resource_type_resource_id_action_pk",
+          "columns": [
+            "team_id",
+            "resource_type",
+            "resource_id",
+            "action"
+          ]
+        }
+      },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
@@ -3066,6 +3141,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "token": {
+          "name": "token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "expires_at": {
           "name": "expires_at",
           "type": "timestamp with time zone",
@@ -3128,7 +3209,15 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "sessions_token_unique": {
+          "name": "sessions_token_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "token"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -3258,14 +3347,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
-        },
-        "role": {
-          "name": "role",
-          "type": "user_role",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'agent_staff'"
         },
         "is_active": {
           "name": "is_active",
@@ -3697,6 +3778,38 @@
         "requires_owner_approval"
       ]
     },
+    "public.invitation_status": {
+      "name": "invitation_status",
+      "schema": "public",
+      "values": [
+        "pending",
+        "accepted",
+        "expired",
+        "revoked"
+      ]
+    },
+    "public.member_role": {
+      "name": "member_role",
+      "schema": "public",
+      "values": [
+        "owner",
+        "staff",
+        "admin",
+        "member",
+        "caretaker",
+        "tenant"
+      ]
+    },
+    "public.member_status": {
+      "name": "member_status",
+      "schema": "public",
+      "values": [
+        "active",
+        "inactive",
+        "pending",
+        "rejected"
+      ]
+    },
     "public.subscription_status": {
       "name": "subscription_status",
       "schema": "public",
@@ -3777,38 +3890,6 @@
         "blacklisted"
       ]
     },
-    "public.invitation_status": {
-      "name": "invitation_status",
-      "schema": "public",
-      "values": [
-        "pending",
-        "accepted",
-        "expired",
-        "revoked"
-      ]
-    },
-    "public.member_role": {
-      "name": "member_role",
-      "schema": "public",
-      "values": [
-        "owner",
-        "admin",
-        "member",
-        "caretaker",
-        "property_owner",
-        "tenant"
-      ]
-    },
-    "public.member_status": {
-      "name": "member_status",
-      "schema": "public",
-      "values": [
-        "active",
-        "inactive",
-        "pending",
-        "rejected"
-      ]
-    },
     "public.token_type": {
       "name": "token_type",
       "schema": "public",
@@ -3816,18 +3897,6 @@
         "access",
         "refresh",
         "api_key"
-      ]
-    },
-    "public.user_role": {
-      "name": "user_role",
-      "schema": "public",
-      "values": [
-        "agent_owner",
-        "agent_staff",
-        "property_owner",
-        "caretaker",
-        "tenant_user",
-        "admin"
       ]
     },
     "public.verification_type": {

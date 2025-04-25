@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { userRoleEnum } from "../entities";
 
 // Base user input schema
 const userBaseSchema = z.object({
@@ -18,7 +17,6 @@ export const createUserDto = userBaseSchema
   .extend({
     password: z.string().min(8, "Password must be at least 8 characters"),
     passwordConfirm: z.string(),
-    role: z.enum(userRoleEnum.enumValues).default("agent_staff"),
     isActive: z.boolean().default(true),
     emailVerified: z.boolean().default(false),
 
@@ -35,7 +33,6 @@ export const createUserDto = userBaseSchema
 // DTO for updating a user
 export const updateUserDto = userBaseSchema.partial().extend({
   id: z.string(),
-  role: z.enum(userRoleEnum.enumValues).optional(),
   isActive: z.boolean().optional(),
 });
 

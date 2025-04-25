@@ -84,7 +84,7 @@ export const signUp = async (userData: {
   name: string;
   email: string;
   password: string;
-  role?: string;
+  passwordConfirm: string;
 }) => {
   try {
     const { data } = await apolloClient.mutate({
@@ -95,7 +95,6 @@ export const signUp = async (userData: {
           email: userData.email,
           password: userData.password,
           passwordConfirm: userData.password,
-          role: userData.role || "agent_staff",
         },
       },
     });

@@ -13,7 +13,6 @@ import {
 import { useForm } from "@mantine/form";
 import { IconDots, IconEdit, IconPlus, IconTrash } from "@tabler/icons-react";
 import React, { useState } from "react";
-import { useAuth } from "../../auth/AuthProvider";
 
 const OrganizationList: React.FC = () => {
   const {
@@ -734,6 +733,7 @@ export default TeamManagement;
 // src/components/organization/MemberManagement.tsx
 import { MultiSelect, Select } from "@mantine/core";
 import { IconMail } from "@tabler/icons-react";
+import { useAuth } from "../../state/auth-proc";
 
 const MemberManagement: React.FC = () => {
   const {

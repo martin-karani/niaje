@@ -18,6 +18,9 @@ CREATE TYPE "public"."utility_billing_type" AS ENUM('tenant_pays_provider', 'ten
 CREATE TYPE "public"."maintenance_category" AS ENUM('plumbing', 'electrical', 'hvac', 'appliances', 'structural', 'landscaping', 'pest_control', 'cleaning', 'other');--> statement-breakpoint
 CREATE TYPE "public"."maintenance_priority" AS ENUM('low', 'medium', 'high', 'urgent');--> statement-breakpoint
 CREATE TYPE "public"."maintenance_status" AS ENUM('reported', 'scheduled', 'in_progress', 'on_hold', 'completed', 'canceled', 'requires_owner_approval');--> statement-breakpoint
+CREATE TYPE "public"."invitation_status" AS ENUM('pending', 'accepted', 'expired', 'revoked');--> statement-breakpoint
+CREATE TYPE "public"."member_role" AS ENUM('owner', 'staff', 'admin', 'member', 'caretaker', 'tenant');--> statement-breakpoint
+CREATE TYPE "public"."member_status" AS ENUM('active', 'inactive', 'pending', 'rejected');--> statement-breakpoint
 CREATE TYPE "public"."subscription_status" AS ENUM('none', 'trialing', 'active', 'past_due', 'canceled', 'unpaid');--> statement-breakpoint
 CREATE TYPE "public"."trial_status" AS ENUM('active', 'expired', 'converted', 'not_started');--> statement-breakpoint
 CREATE TYPE "public"."property_status" AS ENUM('active', 'inactive', 'under_construction', 'sold');--> statement-breakpoint
@@ -25,11 +28,7 @@ CREATE TYPE "public"."property_type" AS ENUM('residential', 'commercial', 'mixed
 CREATE TYPE "public"."unit_status" AS ENUM('vacant', 'occupied', 'notice_given', 'under_maintenance', 'archived');--> statement-breakpoint
 CREATE TYPE "public"."unit_type" AS ENUM('studio', 'one_br', 'two_br', 'three_br', 'four_br_plus', 'penthouse', 'commercial_office', 'commercial_retail', 'commercial_warehouse', 'other');--> statement-breakpoint
 CREATE TYPE "public"."tenant_status" AS ENUM('prospect', 'active', 'past', 'rejected', 'blacklisted');--> statement-breakpoint
-CREATE TYPE "public"."invitation_status" AS ENUM('pending', 'accepted', 'expired', 'revoked');--> statement-breakpoint
-CREATE TYPE "public"."member_role" AS ENUM('owner', 'admin', 'member', 'caretaker', 'property_owner', 'tenant');--> statement-breakpoint
-CREATE TYPE "public"."member_status" AS ENUM('active', 'inactive', 'pending', 'rejected');--> statement-breakpoint
 CREATE TYPE "public"."token_type" AS ENUM('access', 'refresh', 'api_key');--> statement-breakpoint
-CREATE TYPE "public"."user_role" AS ENUM('agent_owner', 'agent_staff', 'property_owner', 'caretaker', 'tenant_user', 'admin');--> statement-breakpoint
 CREATE TYPE "public"."verification_type" AS ENUM('email_verification', 'password_reset', 'email_change', 'account_deletion');--> statement-breakpoint
 CREATE TABLE "expenses" (
 	"id" text PRIMARY KEY NOT NULL,
@@ -265,8 +264,8 @@ CREATE TABLE "organizations" (
 	"subscription_plan" text,
 	"subscription_id" text,
 	"customer_id" text,
-	"max_properties" text DEFAULT '5',
-	"max_users" text DEFAULT '3',
+	"max_properties" integer DEFAULT 5,
+	"max_users" integer DEFAULT 3,
 	"logo" text,
 	"address" text,
 	"metadata" json,
@@ -283,6 +282,16 @@ CREATE TABLE "teams" (
 	"metadata" json,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "resource_permissions" (
+	"team_id" text,
+	"resource_type" text NOT NULL,
+	"resource_id" text NOT NULL,
+	"action" text NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "resource_permissions_team_id_resource_type_resource_id_action_pk" PRIMARY KEY("team_id","resource_type","resource_id","action")
 );
 --> statement-breakpoint
 CREATE TABLE "team_properties" (
@@ -394,13 +403,15 @@ CREATE TABLE "accounts" (
 CREATE TABLE "sessions" (
 	"id" text PRIMARY KEY NOT NULL,
 	"user_id" text,
+	"token" text NOT NULL,
 	"expires_at" timestamp with time zone NOT NULL,
 	"ip_address" text,
 	"user_agent" text,
 	"impersonated_by" text,
 	"data" json,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "sessions_token_unique" UNIQUE("token")
 );
 --> statement-breakpoint
 CREATE TABLE "tokens" (
@@ -422,7 +433,6 @@ CREATE TABLE "users" (
 	"email" text NOT NULL,
 	"password_hash" text,
 	"phone" text,
-	"role" "user_role" DEFAULT 'agent_staff' NOT NULL,
 	"is_active" boolean DEFAULT true,
 	"email_verified" boolean DEFAULT false,
 	"image" text,
@@ -504,6 +514,7 @@ ALTER TABLE "members" ADD CONSTRAINT "members_user_id_users_id_fk" FOREIGN KEY (
 ALTER TABLE "members" ADD CONSTRAINT "members_team_id_teams_id_fk" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "organizations" ADD CONSTRAINT "organizations_agent_owner_id_users_id_fk" FOREIGN KEY ("agent_owner_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "teams" ADD CONSTRAINT "teams_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "resource_permissions" ADD CONSTRAINT "resource_permissions_team_id_teams_id_fk" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "team_properties" ADD CONSTRAINT "team_properties_team_id_teams_id_fk" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "team_properties" ADD CONSTRAINT "team_properties_property_id_properties_id_fk" FOREIGN KEY ("property_id") REFERENCES "public"."properties"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "properties" ADD CONSTRAINT "properties_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint

@@ -1,12 +1,4 @@
 export const usersTypeDefs = `
-  enum UserRole {
-    agent_owner
-    agent_staff
-    property_owner
-    caretaker
-    tenant_user
-    admin
-  }
 
   type User {
     id: ID!
@@ -15,7 +7,6 @@ export const usersTypeDefs = `
     emailVerified: Boolean!
     image: String
     phone: String
-    role: UserRole!
     isActive: Boolean!
     address: String
     city: String
@@ -65,7 +56,6 @@ export const usersTypeDefs = `
     email: String!
     password: String!
     passwordConfirm: String!
-    role: UserRole!
     phone: String
     image: String
     address: String
@@ -79,7 +69,6 @@ export const usersTypeDefs = `
     id: ID!
     name: String
     email: String
-    role: UserRole
     phone: String
     image: String
     address: String

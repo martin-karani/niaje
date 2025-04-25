@@ -136,7 +136,6 @@ async function seedDatabase(resetFirst: boolean = false) {
       email: `user${i}@example.com`,
       passwordHash: await authUtils.hashPassword("password123"),
       phone: await generatePhoneNumber(),
-      role: role,
       isActive: true,
       emailVerified: true,
       city: await generateCity(),
