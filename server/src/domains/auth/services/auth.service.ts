@@ -28,7 +28,6 @@ export class AuthService {
     password: string;
     name: string;
     role: UserRole;
-    requireEmailVerification?: boolean;
   }): Promise<{ user: User; sessionToken?: string }> {
     // Check if email already exists
     const existingUser = await db.query.userEntity.findFirst({
@@ -51,28 +50,26 @@ export class AuthService {
         name: data.name,
         role: data.role,
         isActive: true,
-        emailVerified: data.requireEmailVerification === false ? true : false,
+        emailVerified: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       })
       .returning();
 
     // Send verification email if required
-    if (data.requireEmailVerification !== false) {
-      await this.sendEmailVerification(user.id, user.email);
-    }
+    await this.sendEmailVerification(user.id, user.email);
 
     let sessionToken;
     // Create session if email verification not required
-    if (data.requireEmailVerification === false) {
-      sessionToken = await sessionService.createSession({
-        userId: user.id,
-        ipAddress: null,
-        userAgent: null,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-        data: {},
-      });
-    }
+    sessionToken = await sessionService.createSession({
+      userId: user.id,
+      ipAddress: null,
+      userAgent: null,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      data: {},
+    });
+
+    console.log("Session created:", sessionToken);
 
     return { user, sessionToken };
   }

@@ -1,3 +1,4 @@
+import { userRoleEnum } from "@/domains/users/entities";
 import { z } from "zod";
 
 // DTO for user login
@@ -6,6 +7,20 @@ export const loginDto = z.object({
   password: z.string().min(1, "Password is required"),
   remember: z.boolean().optional(),
 });
+
+// DTO for user registration
+export const registerDto = z
+  .object({
+    email: z.string().email("Invalid email address"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    passwordConfirm: z.string().min(1, "Password confirmation is required"),
+    name: z.string().min(2, "Name must be at least 2 characters"),
+    role: z.enum(userRoleEnum.enumValues).optional(),
+  })
+  .refine((data) => data.password === data.passwordConfirm, {
+    message: "Passwords do not match",
+    path: ["passwordConfirm"],
+  });
 
 // DTO for password reset request
 export const passwordResetRequestDto = z.object({
@@ -71,3 +86,4 @@ export type EmailChangeDto = z.infer<typeof emailChangeDto>;
 export type AcceptInvitationDto = z.infer<typeof acceptInvitationDto>;
 export type SwitchOrganizationDto = z.infer<typeof switchOrganizationDto>;
 export type SetActiveTeamDto = z.infer<typeof setActiveTeamDto>;
+export type RegisterDto = z.infer<typeof registerDto>;

@@ -1,12 +1,8 @@
 import { checkPermissions } from "@/domains/auth/utils/permission-utils";
 import { GraphQLContext } from "@/infrastructure/graphql/context/types";
 import { AuthorizationError } from "@/shared/errors";
-import {
-  CreateTenantUserDto,
-  UpdateUserDto,
-  UserIdDto,
-} from "../dto/users.dto";
-import { usersService } from "../services/users.service";
+import { UpdateUserDto, UserIdDto } from "../dto/users.dto";
+import { userService } from "../services/users.service";
 
 export const usersResolvers = {
   Query: {
@@ -17,7 +13,7 @@ export const usersResolvers = {
       // Check permissions
       await checkPermissions(context, "viewOrganization", "user", "view");
 
-      return usersService.getAllUsers();
+      return userService.getAllUsers();
     },
 
     /**
@@ -27,7 +23,7 @@ export const usersResolvers = {
       // Check permissions
       await checkPermissions(context, "viewOrganization", "user", "view");
 
-      return usersService.getUserById(id);
+      return userService.getUserById(id);
     },
 
     /**
@@ -43,7 +39,7 @@ export const usersResolvers = {
         throw new AuthorizationError("No active organization selected");
       }
 
-      return usersService.getTenantUsersByOrganization(organizationId);
+      return userService.getTenantUsersByOrganization(organizationId);
     },
   },
 
@@ -64,7 +60,7 @@ export const usersResolvers = {
         await checkPermissions(context, "manageOrganization", "user", "update");
       }
 
-      return usersService.updateUser(data.id, {
+      return userService.updateUser(data.id, {
         name: data.name,
         email: data.email,
         role: data.role,
@@ -90,7 +86,7 @@ export const usersResolvers = {
         throw new Error("You cannot delete your own account");
       }
 
-      await usersService.deleteUser(id);
+      await userService.deleteUser(id);
       return true;
     },
 
@@ -105,7 +101,7 @@ export const usersResolvers = {
       // Check permissions
       await checkPermissions(context, "manageTenants", "tenant", "update");
 
-      return usersService.createTenantUser({
+      return userService.createTenantUser({
         email: data.email,
         name: data.name,
         phone: data.phone,

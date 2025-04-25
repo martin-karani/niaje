@@ -2,7 +2,7 @@ export const authTypeDefs = `
   # Authentication response types
   type AuthPayload {
     user: User!
-    sessionToken: String
+    token: String
   }
 
   # Organization minimal info for auth context

@@ -2,6 +2,7 @@ import { teamsService } from "@/domains/organizations/services";
 import { userEntity } from "@/domains/users/entities";
 import { db } from "@/infrastructure/database";
 import { GraphQLContext } from "@/infrastructure/graphql/context/types";
+import { SERVER_CONFIG } from "@/shared/constants/enviroment";
 import { AuthorizationError, ValidationError } from "@/shared/errors";
 import { clearCookie, setCookie } from "@/shared/utils/cookie.utils";
 import { eq } from "drizzle-orm";
@@ -11,6 +12,7 @@ import {
   PasswordChangeDto,
   PasswordResetDto,
   PasswordResetRequestDto,
+  RegisterDto,
   VerificationDto,
 } from "../dto/auth.dto";
 import { authService } from "../services/auth.service";
@@ -53,6 +55,49 @@ export const authResolvers = {
 
   Mutation: {
     /**
+     * Register a new user
+     */
+    register: async (
+      _: any,
+      { input }: { input: RegisterDto },
+      context: GraphQLContext
+    ) => {
+      try {
+        const { user, sessionToken } = await authService.register({
+          email: input.email,
+          password: input.password,
+          name: input.name,
+          role: "tenant_user",
+        });
+
+        // If verification is required, no session token will be returned
+        if (sessionToken) {
+          // Set session token in cookie
+          setCookie(context.res, "auth_token", sessionToken, {
+            httpOnly: true,
+            secure: SERVER_CONFIG.NODE_ENV === "production",
+            sameSite: "lax",
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+          });
+
+          return {
+            user: user,
+            token: sessionToken,
+          };
+        }
+
+        // If email verification is required
+        return {
+          user: user,
+          token: null,
+        };
+      } catch (error) {
+        console.error("Registration error:", error);
+        throw error; // Re-throw to be caught by error handler
+      }
+    },
+
+    /**
      * Login a user
      */
     login: async (
@@ -61,8 +106,7 @@ export const authResolvers = {
       context: GraphQLContext
     ) => {
       // Get IP and user agent for additional security
-      const ipAddress =
-        context.req.ip || context.req.socket.remoteAddress || null;
+      const ipAddress = context.req.ip || null;
       const userAgent = context.req.headers["user-agent"] || null;
 
       const { user, sessionToken } = await authService.login({
