@@ -128,7 +128,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         });
       }
     } catch (error: any) {
-      set({ error: error.message || "Login failed" });
+      // Handle specific authentication errors
+      if (error.includes && error.includes("verify your email")) {
+        set({
+          error:
+            "Please verify your email before logging in. Check your inbox for a verification link.",
+        });
+      } else if (
+        error.includes &&
+        error.includes("Invalid email or password")
+      ) {
+        set({ error: "Invalid email or password. Please try again." });
+      } else {
+        set({ error: error.message || "Login failed" });
+      }
       throw error;
     } finally {
       set({ isLoading: false });

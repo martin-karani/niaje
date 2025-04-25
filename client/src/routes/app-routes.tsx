@@ -20,6 +20,7 @@ import SignIn from "../pages/auth/sign-in";
 import SignUp from "../pages/auth/sign-up";
 
 // App pages
+import VerifyEmail from "../pages/auth/verify-email";
 import Dashboard from "../pages/dashboard";
 import { ProtectedRoute } from "./protected-routes";
 
@@ -89,6 +90,8 @@ export default function AppRoutes() {
         <Route path="sign-up" element={<SignUp />} />
         <Route path="forgot-password" element={<ForgotPassword />} />
         <Route path="reset-password" element={<ResetPassword />} />
+        <Route path="sign-up" element={<SignUp />} />
+        <Route path="verify-email" element={<VerifyEmail />} />
       </Route>
 
       {/* Organization selection route - outside the main app layout */}

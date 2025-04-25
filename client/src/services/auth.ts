@@ -5,8 +5,10 @@ import {
   LOGOUT,
   REGISTER,
   REQUEST_PASSWORD_RESET,
+  RESEND_VERIFICATION_EMAIL,
   RESET_PASSWORD,
   SWITCH_ORGANIZATION,
+  VERIFY_EMAIL,
 } from "../graphql/auth";
 import { apolloClient } from "./api";
 
@@ -147,27 +149,6 @@ export const requestPasswordReset = async (email: string) => {
   }
 };
 
-// Reset password with token
-export const resetPassword = async (token: string, password: string) => {
-  try {
-    const { data } = await apolloClient.mutate({
-      mutation: RESET_PASSWORD,
-      variables: {
-        input: {
-          token,
-          password,
-          confirmPassword: password,
-        },
-      },
-    });
-
-    return data.resetPassword;
-  } catch (error: any) {
-    console.error("Password reset error:", error);
-    throw error.message || "Failed to reset password";
-  }
-};
-
 // Get user's organizations
 export const getUserOrganizations = async () => {
   try {
@@ -210,6 +191,68 @@ export const switchOrganization = async (organizationId: string) => {
   }
 };
 
+export const resetPassword = async (token: string, password: string) => {
+  try {
+    const { data } = await apolloClient.mutate({
+      mutation: RESET_PASSWORD,
+      variables: {
+        input: {
+          token,
+          password,
+          confirmPassword: password,
+        },
+      },
+    });
+
+    return data.resetPassword;
+  } catch (error: any) {
+    console.error("Password reset error:", error);
+    throw error.message || "Failed to reset password";
+  }
+};
+
+/**
+ * Verify email with token
+ */
+export const verifyEmail = async (token: string) => {
+  try {
+    const { data } = await apolloClient.mutate({
+      mutation: VERIFY_EMAIL,
+      variables: {
+        input: {
+          token,
+        },
+      },
+    });
+
+    return data.verifyEmail;
+  } catch (error: any) {
+    console.error("Email verification error:", error);
+    throw error.message || "Failed to verify email";
+  }
+};
+
+/**
+ * Resend verification email
+ */
+export const resendVerificationEmail = async (email: string) => {
+  try {
+    const { data } = await apolloClient.mutate({
+      mutation: RESEND_VERIFICATION_EMAIL,
+      variables: {
+        input: {
+          email,
+        },
+      },
+    });
+
+    return data.resendVerificationEmail;
+  } catch (error: any) {
+    console.error("Resend verification email error:", error);
+    throw error.message || "Failed to resend verification email";
+  }
+};
+
 export default {
   getSession,
   signIn,
@@ -219,4 +262,6 @@ export default {
   resetPassword,
   getUserOrganizations,
   switchOrganization,
+  verifyEmail,
+  resendVerificationEmail,
 };

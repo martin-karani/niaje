@@ -50,19 +50,29 @@ export default function SignUp() {
     setError(null);
 
     try {
-      await signUp({
+      const result = await signUp({
         name: values.name,
         email: values.email,
         password: values.password,
         passwordConfirm: values.confirmPassword,
       });
 
-      // Redirect to login page after successful registration
-      navigate("/auth/sign-in", {
-        state: {
-          message: "Account created successfully! Please sign in.",
-        },
-      });
+      // Check if email verification is required
+      if (result && !result.user.emailVerified) {
+        navigate("/auth/sign-in", {
+          state: {
+            message:
+              "Account created successfully! Please check your email to verify your account before signing in.",
+          },
+        });
+      } else {
+        // Direct sign-in if email verification not required
+        navigate("/auth/sign-in", {
+          state: {
+            message: "Account created successfully! Please sign in.",
+          },
+        });
+      }
     } catch (err: any) {
       setError(err.message || "An error occurred during registration");
       console.error("Registration error:", err);

@@ -112,7 +112,7 @@ export const GET_CURRENT_USER = gql`
         id
         name
         email
-        role
+
         image
       }
       organizations {
@@ -131,6 +131,26 @@ export const GET_CURRENT_USER = gql`
         id
         name
       }
+    }
+  }
+`;
+
+// Verify email
+export const VERIFY_EMAIL = gql`
+  mutation VerifyEmail($input: VerifyEmailInput!) {
+    verifyEmail(input: $input) {
+      success
+      message
+    }
+  }
+`;
+
+// Resend verification email
+export const RESEND_VERIFICATION_EMAIL = gql`
+  mutation ResendVerificationEmail($input: ForgotPasswordInput!) {
+    resendVerificationEmail(input: $input) {
+      success
+      message
     }
   }
 `;

@@ -16,6 +16,7 @@ import { IconAlertCircle } from "@tabler/icons-react";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { useAuthStore } from "../../state/auth-store";
+import ResendVerificationEmailModal from "./resend-verification";
 
 export default function SignIn() {
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ export default function SignIn() {
   const { login, error, clearError, organization, organizations } =
     useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
+  const [verificationModalOpen, setVerificationModalOpen] = useState(false);
 
   // Extract message from location state (if redirected from another page)
   const message = location.state?.message;
@@ -94,18 +96,7 @@ export default function SignIn() {
         </Alert>
       )}
 
-      {error && (
-        <Alert
-          icon={<IconAlertCircle size="1rem" />}
-          title="Authentication Error"
-          color="red"
-          mb="md"
-          withCloseButton
-          onClose={clearError}
-        >
-          {error}
-        </Alert>
-      )}
+      {/* <Error message error={error} onClose={clearError} /> */}
 
       <Stack>
         <TextInput
@@ -144,7 +135,19 @@ export default function SignIn() {
             Create account
           </Anchor>
         </Text>
+
+        <Text c="dimmed" size="sm" ta="center">
+          Didn't receive verification email?{" "}
+          <Anchor onClick={() => setVerificationModalOpen(true)} size="sm">
+            Resend email
+          </Anchor>
+        </Text>
       </Stack>
+
+      <ResendVerificationEmailModal
+        opened={verificationModalOpen}
+        onClose={() => setVerificationModalOpen(false)}
+      />
     </form>
   );
 }
