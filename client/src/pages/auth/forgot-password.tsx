@@ -35,8 +35,13 @@ export default function ForgotPassword() {
     setError(null);
 
     try {
-      await requestPasswordReset(values.email);
-      setSubmitted(true);
+      const result = await requestPasswordReset(values.email);
+
+      if (result.success) {
+        setSubmitted(true);
+      } else {
+        setError(result.message || "An error occurred");
+      }
     } catch (err: any) {
       setError(err.message || "An error occurred");
       console.error("Password reset request error:", err);

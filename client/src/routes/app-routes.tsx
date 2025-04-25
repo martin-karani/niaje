@@ -13,15 +13,16 @@ import AppLayout from "../components/layouts/app-layout";
 import AuthLayout from "../components/layouts/auth-layout";
 
 // Auth pages
+import OrganizationSelection from "../components/organisation/organisation-select";
 import ForgotPassword from "../pages/auth/forgot-password";
 import ResetPassword from "../pages/auth/reset-password";
 import SignIn from "../pages/auth/sign-in";
 import SignUp from "../pages/auth/sign-up";
 
 // App pages
-// Import other pages as they're created
 import Dashboard from "../pages/dashboard";
 import { ProtectedRoute } from "./protected-routes";
+
 // Placeholder components for routes
 const Properties = () => <div>Properties Page</div>;
 const PropertyDetail = () => <div>Property Detail Page</div>;
@@ -36,7 +37,13 @@ const Reports = () => <div>Reports Page</div>;
 const Settings = () => <div>Settings Page</div>;
 
 export default function AppRoutes() {
-  const { initialize, isAuthenticated, isLoading } = useAuthStore();
+  const {
+    initialize,
+    isAuthenticated,
+    isLoading,
+    organizations,
+    organization,
+  } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -49,11 +56,30 @@ export default function AppRoutes() {
   useEffect(() => {
     if (isLoading) return;
 
-    // If authenticated and on auth route, redirect to dashboard
-    if (!isAuthenticated && location.pathname.startsWith("/auth")) {
-      navigate("/dashboard");
+    // If authenticated
+    if (isAuthenticated) {
+      // If user is on auth route, redirect to dashboard or org selection
+      if (location.pathname.startsWith("/auth")) {
+        // Check if user needs to select organization
+        if (!organization && organizations && organizations.length > 0) {
+          navigate("/organization-selection");
+        } else {
+          navigate("/dashboard");
+        }
+      }
     }
-  }, [isAuthenticated, isLoading, location.pathname, navigate]);
+    // If not authenticated and not on auth route, redirect to login
+    else if (!location.pathname.startsWith("/auth")) {
+      navigate("/auth/sign-in");
+    }
+  }, [
+    isAuthenticated,
+    isLoading,
+    location.pathname,
+    navigate,
+    organization,
+    organizations,
+  ]);
 
   return (
     <Routes>
@@ -64,6 +90,16 @@ export default function AppRoutes() {
         <Route path="forgot-password" element={<ForgotPassword />} />
         <Route path="reset-password" element={<ResetPassword />} />
       </Route>
+
+      {/* Organization selection route - outside the main app layout */}
+      <Route
+        path="/organization-selection"
+        element={
+          <ProtectedRoute>
+            <OrganizationSelection />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Protected app routes */}
       <Route

@@ -6,6 +6,7 @@ import cors from "cors";
 import express from "express";
 import { createYoga, useErrorHandler } from "graphql-yoga";
 import { createAuthMiddleware } from "./domains/auth/middleware";
+import { SERVER_CONFIG } from "./shared/constants/enviroment";
 
 /**
  * Set up the Express API with authentication and GraphQL
@@ -16,7 +17,7 @@ export function setupApi() {
   // CORS configuration
   app.use(
     cors({
-      origin: process.env.FRONTEND_URL || "*",
+      origin: SERVER_CONFIG.FRONTEND_URL,
       credentials: true,
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     })

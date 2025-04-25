@@ -14,13 +14,18 @@ import {
 import { useForm } from "@mantine/form";
 import { IconAlertCircle } from "@tabler/icons-react";
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { useAuthStore } from "../../state/auth-store";
 
 export default function SignIn() {
   const navigate = useNavigate();
-  const { login, error, clearError } = useAuthStore();
+  const location = useLocation();
+  const { login, error, clearError, organization, organizations } =
+    useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
+
+  // Extract message from location state (if redirected from another page)
+  const message = location.state?.message;
 
   // Form validation
   const form = useForm({
@@ -44,7 +49,22 @@ export default function SignIn() {
 
     try {
       await login(values.email, values.password);
-      // Redirect to dashboard will happen automatically after successful login
+
+      // Check if we have an organization already active
+      if (organization) {
+        navigate("/dashboard");
+        return;
+      }
+
+      // Check if we need to show organization selection
+      if (organizations.length > 1) {
+        navigate("/auth/organization-select");
+        return;
+      }
+
+      // If we have exactly one organization, we'll be redirected to the dashboard
+      // automatically by the organization-select page
+      navigate("/auth/organization-select");
     } catch (err) {
       // Error is already set in auth store
       console.error("Login error:", err);
@@ -58,6 +78,21 @@ export default function SignIn() {
       <Title order={3} ta="center" mt="md" mb="xl">
         Welcome back!
       </Title>
+
+      {message && (
+        <Alert
+          icon={<IconAlertCircle size="1rem" />}
+          title="Information"
+          color="blue"
+          mb="md"
+          withCloseButton
+          onClose={() =>
+            navigate(location.pathname, { replace: true, state: {} })
+          }
+        >
+          {message}
+        </Alert>
+      )}
 
       {error && (
         <Alert

@@ -1,11 +1,14 @@
-import { createAuthClient } from "better-auth/client";
 import {
-  adminClient,
-  emailOTPClient,
-  organizationClient,
-  phoneNumberClient,
-} from "better-auth/client/plugins";
-import { BetterAuthOptions } from "better-auth/types";
+  GET_CURRENT_USER,
+  GET_MY_ORGANIZATIONS,
+  LOGIN,
+  LOGOUT,
+  REGISTER,
+  REQUEST_PASSWORD_RESET,
+  RESET_PASSWORD,
+  SWITCH_ORGANIZATION,
+} from "../graphql/auth";
+import { apolloClient } from "./api";
 
 // Define available roles to match server configuration
 export const availableRoles = [
@@ -17,40 +20,23 @@ export const availableRoles = [
   "tenant_user", // Tenant portal user
 ];
 
-// Configure better-auth client
-const authOptions: BetterAuthOptions = {
-  appName: "Property Management System", // Match server appName
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:3001",
-  basePath: "/api/auth",
-
-  plugins: [
-    adminClient(),
-    organizationClient({
-      // roles: availableRoles,
-      teams: {
-        enabled: true, // Enable teams to match server configuration
-      },
-    }),
-    phoneNumberClient(),
-    emailOTPClient(),
-  ],
-
-  // Set client-side session settings to match server
-  session: {
-    cookieCache: {
-      enabled: true,
-      maxAge: 300,
-    },
-  },
-};
-
-// Initialize better-auth client
-export const authClient = createAuthClient(authOptions);
-
 // Get current session
 export const getSession = async () => {
   try {
-    return await authClient.getSession();
+    const { data } = await apolloClient.query({
+      query: GET_CURRENT_USER,
+      fetchPolicy: "network-only",
+    });
+
+    if (data?.me) {
+      return {
+        user: data.me.user,
+        activeOrganization: data.me.activeOrganization,
+        organizations: data.me.organizations,
+        activeTeam: data.me.activeTeam,
+      };
+    }
+    return null;
   } catch (error) {
     console.error("Error getting session:", error);
     return null;
@@ -59,26 +45,37 @@ export const getSession = async () => {
 
 // Get auth token (for Apollo)
 export const getToken = async () => {
-  const session = await getSession();
-  return session?.accessToken || null;
+  // The token is now handled via cookies, so we don't need to return it
+  // This is kept for API compatibility
+  return null;
 };
 
 // Sign in with email and password
 export const signIn = async (email: string, password: string) => {
   try {
-    const result = await authClient.signIn({
-      email,
-      password,
+    const { data } = await apolloClient.mutate({
+      mutation: LOGIN,
+      variables: {
+        input: {
+          email,
+          password,
+        },
+      },
     });
 
-    if (result.error) {
-      throw new Error(result.error);
+    if (!data?.login) {
+      throw new Error("Login failed");
     }
 
-    return result;
-  } catch (error) {
+    return {
+      user: data.login.user,
+      organizations: data.login.organizations,
+      activeOrganization: data.login.activeOrganization,
+      activeTeam: data.login.activeTeam,
+    };
+  } catch (error: any) {
     console.error("Sign in error:", error);
-    throw error;
+    throw error.message || "Authentication failed";
   }
 };
 
@@ -90,33 +87,42 @@ export const signUp = async (userData: {
   role?: string;
 }) => {
   try {
-    const result = await authClient.signUp({
-      name: userData.name,
-      email: userData.email,
-      password: userData.password,
-      role: userData.role || "agent_staff",
-      additionalFields: {
-        isActive: true,
-        emailVerified: false,
+    const { data } = await apolloClient.mutate({
+      mutation: REGISTER,
+      variables: {
+        input: {
+          name: userData.name,
+          email: userData.email,
+          password: userData.password,
+          passwordConfirm: userData.password,
+          role: userData.role || "agent_staff",
+        },
       },
     });
 
-    if (result.error) {
-      throw new Error(result.error);
+    if (!data?.register) {
+      throw new Error("Registration failed");
     }
 
-    return result;
-  } catch (error) {
+    return data.register;
+  } catch (error: any) {
     console.error("Sign up error:", error);
-    throw error;
+    throw error.message || "Registration failed";
   }
 };
 
 // Sign out
 export const signOut = async () => {
   try {
-    await authClient.signOut();
-    window.location.href = "/auth/sign-in"; // Changed from signin to sign-in
+    await apolloClient.mutate({
+      mutation: LOGOUT,
+    });
+
+    // Clear Apollo Client cache
+    await apolloClient.clearStore();
+
+    // Redirect to login page
+    window.location.href = "/auth/sign-in";
   } catch (error) {
     console.error("Sign out error:", error);
     throw error;
@@ -126,149 +132,92 @@ export const signOut = async () => {
 // Request password reset
 export const requestPasswordReset = async (email: string) => {
   try {
-    const { data, error } = await authClient.forgetPassword({
-      email,
-      redirectTo: `${window.location.origin}/auth/reset-password`,
+    const { data } = await apolloClient.mutate({
+      mutation: REQUEST_PASSWORD_RESET,
+      variables: {
+        input: {
+          email,
+        },
+      },
     });
 
-    if (error) {
-      throw new Error(error);
-    }
-
-    return data;
-  } catch (error) {
+    return data.requestPasswordReset;
+  } catch (error: any) {
     console.error("Password reset request error:", error);
-    throw error;
+    throw error.message || "Failed to request password reset";
   }
 };
 
 // Reset password with token
 export const resetPassword = async (token: string, password: string) => {
   try {
-    const result = await authClient.resetPassword({
-      token,
-      password,
+    const { data } = await apolloClient.mutate({
+      mutation: RESET_PASSWORD,
+      variables: {
+        input: {
+          token,
+          password,
+          confirmPassword: password,
+        },
+      },
     });
 
-    if (result.error) {
-      throw new Error(result.error);
-    }
-
-    return result;
-  } catch (error) {
+    return data.resetPassword;
+  } catch (error: any) {
     console.error("Password reset error:", error);
-    throw error;
+    throw error.message || "Failed to reset password";
+  }
+};
+
+// Get user's organizations
+export const getUserOrganizations = async () => {
+  try {
+    const { data } = await apolloClient.query({
+      query: GET_MY_ORGANIZATIONS,
+      fetchPolicy: "network-only",
+    });
+
+    return data.myOrganizations || [];
+  } catch (error) {
+    console.error("Get organizations error:", error);
+    return [];
   }
 };
 
 // Switch active organization
 export const switchOrganization = async (organizationId: string) => {
   try {
-    await authClient.switchOrganization(organizationId);
-    // Refresh the page to update context
-    window.location.reload();
-  } catch (error) {
+    const { data } = await apolloClient.mutate({
+      mutation: SWITCH_ORGANIZATION,
+      variables: {
+        input: {
+          organizationId,
+        },
+      },
+    });
+
+    if (data?.switchOrganization?.success) {
+      // Refetch the session to update the active organization
+      await apolloClient.resetStore();
+      return data.switchOrganization.organization;
+    }
+
+    throw new Error(
+      data?.switchOrganization?.message || "Failed to switch organization"
+    );
+  } catch (error: any) {
     console.error("Switch organization error:", error);
-    throw error;
+    throw error.message || "Failed to switch organization";
   }
 };
 
-// Switch active team
-export const switchTeam = async (teamId: string) => {
-  try {
-    await authClient.switchTeam(teamId);
-    // Don't reload page to allow for smoother UX
-    return true;
-  } catch (error) {
-    console.error("Switch team error:", error);
-    throw error;
-  }
+export default {
+  getSession,
+  signIn,
+  signUp,
+  signOut,
+  requestPasswordReset,
+  resetPassword,
+  getUserOrganizations,
+  switchOrganization,
 };
-
-// Accept organization invitation
-export const acceptInvitation = async (token: string) => {
-  try {
-    const result = await authClient.acceptInvitation({
-      token,
-    });
-
-    if (result.error) {
-      throw new Error(result.error);
-    }
-
-    return result;
-  } catch (error) {
-    console.error("Accept invitation error:", error);
-    throw error;
-  }
-};
-
-// Create organization
-export const createOrganization = async (orgData: {
-  name: string;
-  slug?: string;
-}) => {
-  try {
-    const result = await authClient.createOrganization({
-      name: orgData.name,
-      slug: orgData.slug || undefined,
-    });
-
-    if (result.error) {
-      throw new Error(result.error);
-    }
-
-    return result;
-  } catch (error) {
-    console.error("Create organization error:", error);
-    throw error;
-  }
-};
-
-// Invite user to organization
-export const inviteToOrganization = async (inviteData: {
-  email: string;
-  role: string;
-  teamId?: string;
-}) => {
-  try {
-    const result = await authClient.inviteToOrganization({
-      email: inviteData.email,
-      role: inviteData.role,
-      teamId: inviteData.teamId,
-    });
-
-    if (result.error) {
-      throw new Error(result.error);
-    }
-
-    return result;
-  } catch (error) {
-    console.error("Invite to organization error:", error);
-    throw error;
-  }
-};
-
-// Create team
-export const createTeam = async (teamData: {
-  name: string;
-  description?: string;
-}) => {
-  try {
-    const result = await authClient.createTeam({
-      name: teamData.name,
-      description: teamData.description,
-    });
-
-    if (result.error) {
-      throw new Error(result.error);
-    }
-
-    return result;
-  } catch (error) {
-    console.error("Create team error:", error);
-    throw error;
-  }
-};
-
-export default authClient;

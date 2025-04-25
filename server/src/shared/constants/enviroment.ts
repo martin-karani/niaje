@@ -6,7 +6,7 @@ dotenv.config();
 export const SERVER_CONFIG = {
   PORT: process.env.PORT || 3001,
   NODE_ENV: process.env.NODE_ENV || "development",
-  FRONTEND_URL: process.env.FRONTEND_URL || "http://localhost:3000",
+  FRONTEND_URL: process.env.FRONTEND_URL || "http://localhost:5173/",
   BASE_URL: process.env.BASE_URL || "http://localhost:3001",
 };
 
@@ -19,8 +19,6 @@ export const DB_CONFIG = {
 
 // Auth configuration
 export const AUTH_CONFIG = {
-  BETTER_AUTH_SECRET:
-    process.env.BETTER_AUTH_SECRET || "better-auth-secret-123456789",
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
 };

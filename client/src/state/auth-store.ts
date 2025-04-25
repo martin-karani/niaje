@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import {
   getSession,
+  getUserOrganizations,
   signIn,
   signOut,
   switchOrganization,
@@ -20,7 +21,7 @@ interface Organization {
   id: string;
   name: string;
   slug: string;
-  role?: string;
+  logo?: string;
   subscriptionStatus?: string;
   subscriptionPlan?: string;
 }
@@ -49,6 +50,9 @@ interface AuthState {
   setOrganization: (organizationId: string) => Promise<void>;
   setTeam: (teamId: string) => void;
   clearError: () => void;
+
+  // New actions for organization selection
+  fetchOrganizations: () => Promise<Organization[]>;
 }
 
 // Create auth store
@@ -95,15 +99,36 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
+  // Fetch organizations for the current user
+  fetchOrganizations: async () => {
+    try {
+      const organizations = await getUserOrganizations();
+      set({ organizations });
+      return organizations;
+    } catch (error: any) {
+      set({ error: error.message });
+      console.error("Error fetching organizations:", error);
+      return [];
+    }
+  },
+
   // Login
   login: async (email: string, password: string) => {
     set({ isLoading: true, error: null });
     try {
-      await signIn(email, password);
-      // Re-initialize after login to get the session data
-      await get().initialize();
+      const result = await signIn(email, password);
+
+      if (result.user) {
+        set({
+          user: result.user,
+          organizations: result.organizations || [],
+          organization: result.activeOrganization || null,
+          team: result.activeTeam || null,
+          isAuthenticated: true,
+        });
+      }
     } catch (error: any) {
-      set({ error: error.message });
+      set({ error: error.message || "Login failed" });
       throw error;
     } finally {
       set({ isLoading: false });
@@ -134,11 +159,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setOrganization: async (organizationId: string) => {
     set({ isLoading: true, error: null });
     try {
-      await switchOrganization(organizationId);
-      // Organization switching reloads the page in the auth service
-      // No need to update state as the page will refresh
+      const organization = await switchOrganization(organizationId);
+
+      if (organization) {
+        set({
+          organization,
+          team: null, // Reset team when changing organization
+          isLoading: false,
+        });
+        return;
+      }
+
+      throw new Error("Failed to switch organization");
     } catch (error: any) {
       set({ error: error.message });
+      throw error;
     } finally {
       set({ isLoading: false });
     }

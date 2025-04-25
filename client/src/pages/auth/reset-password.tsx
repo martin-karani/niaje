@@ -48,8 +48,17 @@ export default function ResetPassword() {
     setError(null);
 
     try {
-      await resetPassword(token, values.password);
-      setSubmitted(true);
+      const result = await resetPassword(
+        token,
+        values.password,
+        values.confirmPassword
+      );
+
+      if (result.success) {
+        setSubmitted(true);
+      } else {
+        setError(result.message || "An error occurred");
+      }
     } catch (err: any) {
       setError(err.message || "An error occurred");
       console.error("Password reset error:", err);

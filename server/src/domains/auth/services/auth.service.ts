@@ -1,6 +1,5 @@
 import {
   userEntity,
-  UserRole,
   verificationEntity,
   type User,
 } from "@/domains/users/entities/user.entity";
@@ -27,7 +26,6 @@ export class AuthService {
     email: string;
     password: string;
     name: string;
-    role: UserRole;
   }): Promise<{ user: User; sessionToken?: string }> {
     // Check if email already exists
     const existingUser = await db.query.userEntity.findFirst({
@@ -48,7 +46,6 @@ export class AuthService {
         email: data.email.toLowerCase(),
         passwordHash,
         name: data.name,
-        role: data.role,
         isActive: true,
         emailVerified: false,
         createdAt: new Date(),

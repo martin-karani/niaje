@@ -1,4 +1,3 @@
-import { userRoleEnum } from "@/domains/users/entities";
 import { z } from "zod";
 
 // DTO for user login
@@ -15,7 +14,6 @@ export const registerDto = z
     password: z.string().min(8, "Password must be at least 8 characters"),
     passwordConfirm: z.string().min(1, "Password confirmation is required"),
     name: z.string().min(2, "Name must be at least 2 characters"),
-    role: z.enum(userRoleEnum.enumValues).optional(),
   })
   .refine((data) => data.password === data.passwordConfirm, {
     message: "Passwords do not match",

@@ -9,16 +9,6 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 
-// User role enum
-export const userRoleEnum = pgEnum("user_role", [
-  "agent_owner",
-  "agent_staff",
-  "property_owner",
-  "caretaker",
-  "tenant_user",
-  "admin",
-]);
-
 // User entity
 export const userEntity = pgTable("users", {
   id: text("id").primaryKey().$defaultFn(createId),
@@ -26,7 +16,6 @@ export const userEntity = pgTable("users", {
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash"),
   phone: text("phone"),
-  role: userRoleEnum("role").default("agent_staff").notNull(),
   isActive: boolean("is_active").default(true),
   emailVerified: boolean("email_verified").default(false),
   image: text("image"),
@@ -219,10 +208,10 @@ export const teamEntity = pgTable("teams", {
 // Member role enum
 export const memberRoleEnum = pgEnum("member_role", [
   "owner",
+  "staff",
   "admin",
   "member",
   "caretaker",
-  "property_owner",
   "tenant",
 ]);
 

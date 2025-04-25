@@ -67,7 +67,6 @@ export const authResolvers = {
           email: input.email,
           password: input.password,
           name: input.name,
-          role: "tenant_user",
         });
 
         // If verification is required, no session token will be returned

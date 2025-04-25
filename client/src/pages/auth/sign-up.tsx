@@ -5,7 +5,6 @@ import {
   Checkbox,
   Divider,
   PasswordInput,
-  Select,
   Stack,
   Text,
   TextInput,
@@ -29,7 +28,6 @@ export default function SignUp() {
       email: "",
       password: "",
       confirmPassword: "",
-      role: "agent_owner",
       agreeToTerms: false,
     },
 
@@ -56,7 +54,7 @@ export default function SignUp() {
         name: values.name,
         email: values.email,
         password: values.password,
-        role: values.role,
+        passwordConfirm: values.confirmPassword,
       });
 
       // Redirect to login page after successful registration
@@ -119,16 +117,6 @@ export default function SignUp() {
           label="Confirm Password"
           placeholder="Confirm your password"
           {...form.getInputProps("confirmPassword")}
-        />
-
-        <Select
-          label="Role"
-          placeholder="Select your role"
-          data={[
-            { value: "agent_owner", label: "Property Manager (Agency Owner)" },
-            { value: "property_owner", label: "Property Owner" },
-          ]}
-          {...form.getInputProps("role")}
         />
 
         <Checkbox
