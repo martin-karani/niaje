@@ -6,6 +6,13 @@ import { useAuthStore } from "../state/auth-store";
 export const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   const { isAuthenticated, isLoading, organizations, organization } =
     useAuthStore();
+
+  console.log("ProtectedRoute", {
+    isAuthenticated,
+    isLoading,
+    organizations,
+    organization,
+  });
   const location = useLocation();
 
   if (isLoading) {
@@ -27,10 +34,10 @@ export const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
     !organization &&
     organizations &&
     organizations.length > 0 &&
-    location.pathname !== "/organization-selection"
+    location.pathname !== "/organizations"
   ) {
     // Redirect to organization selection page
-    return <Navigate to="/organization-selection" replace />;
+    return <Navigate to="/organizations" replace />;
   }
 
   return children;

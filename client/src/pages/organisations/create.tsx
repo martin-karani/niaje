@@ -3,10 +3,12 @@ import {
   Button,
   Card,
   Container,
+  FileInput,
   Grid,
   Group,
   List,
   Paper,
+  Select,
   Stack,
   Text,
   TextInput,
@@ -17,15 +19,17 @@ import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 import {
   IconBuildingSkyscraper,
-  IconCheck,
   IconCircleCheck,
+  IconCurrencyDollar,
   IconDeviceFloppy,
+  IconPhoto,
+  IconWorld,
 } from "@tabler/icons-react";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useAuthStore } from "../../state/auth-store";
 
-export default function OrganizationCreate() {
+const OrganizationCreate = () => {
   const navigate = useNavigate();
   const { user, createOrganization } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
@@ -37,11 +41,14 @@ export default function OrganizationCreate() {
       slug: "",
       timezone: "UTC",
       currency: "USD",
-      logo: "",
+      logo: null,
+      address: "",
     },
     validate: {
       name: (value) =>
-        value.length < 2 ? "Agency name must be at least 2 characters" : null,
+        value.length < 2
+          ? "Organization name must be at least 2 characters"
+          : null,
       slug: (value) => {
         if (!value) return null; // Optional
         if (value.length < 2) return "Identifier must be at least 2 characters";
@@ -52,8 +59,34 @@ export default function OrganizationCreate() {
     },
   });
 
+  // List of common timezones
+  const timezones = [
+    { value: "UTC", label: "UTC (Coordinated Universal Time)" },
+    { value: "America/New_York", label: "Eastern Time (US & Canada)" },
+    { value: "America/Chicago", label: "Central Time (US & Canada)" },
+    { value: "America/Denver", label: "Mountain Time (US & Canada)" },
+    { value: "America/Los_Angeles", label: "Pacific Time (US & Canada)" },
+    { value: "Europe/London", label: "London, Edinburgh" },
+    { value: "Europe/Paris", label: "Paris, Berlin, Rome" },
+    { value: "Asia/Tokyo", label: "Tokyo, Osaka" },
+    { value: "Asia/Shanghai", label: "Shanghai, Beijing" },
+    { value: "Australia/Sydney", label: "Sydney, Melbourne" },
+  ];
+
+  // List of currencies
+  const currencies = [
+    { value: "USD", label: "US Dollar ($)" },
+    { value: "EUR", label: "Euro (€)" },
+    { value: "GBP", label: "British Pound (£)" },
+    { value: "CAD", label: "Canadian Dollar (C$)" },
+    { value: "AUD", label: "Australian Dollar (A$)" },
+    { value: "JPY", label: "Japanese Yen (¥)" },
+    { value: "CNY", label: "Chinese Yuan (¥)" },
+    { value: "INR", label: "Indian Rupee (₹)" },
+  ];
+
   // Handle form submission
-  const handleSubmit = async (values: typeof form.values) => {
+  const handleSubmit = async (values) => {
     setIsLoading(true);
     try {
       const organization = await createOrganization({
@@ -62,6 +95,7 @@ export default function OrganizationCreate() {
         timezone: values.timezone,
         currency: values.currency,
         logo: values.logo || undefined,
+        address: values.address || undefined,
       });
 
       notifications.show({
@@ -72,10 +106,10 @@ export default function OrganizationCreate() {
 
       // Redirect to dashboard
       navigate("/dashboard");
-    } catch (error: any) {
+    } catch (error) {
       notifications.show({
         title: "Error",
-        message: error.message || "Failed to create agency",
+        message: error.message || "Failed to create organization",
         color: "red",
       });
     } finally {
@@ -121,10 +155,38 @@ export default function OrganizationCreate() {
                   {...form.getInputProps("slug")}
                 />
 
+                <Select
+                  label="Timezone"
+                  placeholder="Select your timezone"
+                  data={timezones}
+                  searchable
+                  clearable={false}
+                  icon={<IconWorld size={16} />}
+                  {...form.getInputProps("timezone")}
+                />
+
+                <Select
+                  label="Currency"
+                  placeholder="Select your default currency"
+                  data={currencies}
+                  searchable
+                  clearable={false}
+                  icon={<IconCurrencyDollar size={16} />}
+                  {...form.getInputProps("currency")}
+                />
+
                 <TextInput
-                  label="Logo URL"
-                  placeholder="https://example.com/logo.png"
-                  description="Enter a URL to your company logo (optional)"
+                  label="Address"
+                  placeholder="Your company's address"
+                  {...form.getInputProps("address")}
+                />
+
+                <FileInput
+                  label="Logo"
+                  placeholder="Upload your company logo"
+                  accept="image/png,image/jpeg,image/svg+xml"
+                  icon={<IconPhoto size={16} />}
+                  description="Recommended size: 300x300px, max 2MB"
                   {...form.getInputProps("logo")}
                 />
 
@@ -145,7 +207,13 @@ export default function OrganizationCreate() {
           {/* Right side - Benefits */}
           <Grid.Col span={{ base: 12, md: 6 }}>
             <Card withBorder radius="md" p="xl" style={{ height: "100%" }}>
-              <ThemeIcon size={60} radius={30} mb="lg">
+              <ThemeIcon
+                size={60}
+                radius={30}
+                mb="lg"
+                variant="light"
+                color="blue"
+              >
                 <IconBuildingSkyscraper size={30} />
               </ThemeIcon>
 
@@ -177,7 +245,7 @@ export default function OrganizationCreate() {
                 <Group position="apart" mb="xs">
                   <Text weight={700}>Free 14-day trial</Text>
                   <ThemeIcon variant="light" radius="xl" size="md" color="teal">
-                    <IconCheck size={16} />
+                    <IconCircleCheck size={16} />
                   </ThemeIcon>
                 </Group>
                 <Text size="sm" color="dimmed">
@@ -191,4 +259,6 @@ export default function OrganizationCreate() {
       </Paper>
     </Container>
   );
-}
+};
+
+export default OrganizationCreate;

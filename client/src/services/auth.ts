@@ -10,6 +10,7 @@ import {
   SWITCH_ORGANIZATION,
   VERIFY_EMAIL,
 } from "../graphql/auth";
+import { CREATE_ORGANIZATION } from "../graphql/organization";
 import { apolloClient } from "./api";
 
 // Define available roles to match server configuration
@@ -29,6 +30,8 @@ export const getSession = async () => {
       query: GET_CURRENT_USER,
       fetchPolicy: "network-only",
     });
+
+    console.log("Session data:", data);
 
     if (data?.me) {
       return {
@@ -164,6 +167,37 @@ export const getUserOrganizations = async () => {
   }
 };
 
+// Create a new organization
+export const createOrganization = async (organizationData: {
+  name: string;
+  slug?: string;
+  timezone?: string;
+  currency?: string;
+  dateFormat?: string;
+  logo?: string;
+  address?: string;
+}) => {
+  try {
+    const { data } = await apolloClient.mutate({
+      mutation: CREATE_ORGANIZATION,
+      variables: {
+        data: organizationData,
+      },
+    });
+
+    if (!data?.createOrganization?.success) {
+      throw new Error(
+        data?.createOrganization?.message || "Failed to create organization"
+      );
+    }
+
+    return data.createOrganization.organization;
+  } catch (error: any) {
+    console.error("Create organization error:", error);
+    throw error.message || "Failed to create organization";
+  }
+};
+
 // Switch active organization
 export const switchOrganization = async (organizationId: string) => {
   try {
@@ -261,6 +295,7 @@ export default {
   requestPasswordReset,
   resetPassword,
   getUserOrganizations,
+  createOrganization,
   switchOrganization,
   verifyEmail,
   resendVerificationEmail,

@@ -1,5 +1,6 @@
 import {
   Avatar,
+  Badge,
   Box,
   Button,
   Card,
@@ -13,7 +14,6 @@ import {
   Text,
   ThemeIcon,
   Title,
-  rem,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
@@ -27,40 +27,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useAuthStore } from "../../state/auth-store";
 
-// CSS classes for styling
-const cardStyles = {
-  root: {
-    transition: "transform 200ms ease, box-shadow 200ms ease",
-    cursor: "pointer",
-    "&:hover": {
-      transform: "scale(1.02)",
-    },
-  },
-};
-
-// Feature data for marketing section
-const features = [
-  {
-    icon: <IconBuildingSkyscraper size={rem(32)} />,
-    title: "Manage Your Properties",
-    description:
-      "Streamline management across your entire property portfolio with powerful tools designed specifically for property managers.",
-  },
-  {
-    icon: <IconUsers size={rem(32)} />,
-    title: "Tenant Satisfaction",
-    description:
-      "Improve tenant experiences with efficient maintenance requests and communication tools that keep your clients happy.",
-  },
-  {
-    icon: <IconCurrencyDollar size={rem(32)} />,
-    title: "Increase Revenue",
-    description:
-      "Track payments, manage finances, and identify opportunities to increase your property management revenue.",
-  },
-];
-
-export default function OrganizationSelect() {
+const OrganizationSelection = () => {
   const {
     user,
     organizations,
@@ -71,9 +38,16 @@ export default function OrganizationSelect() {
   } = useAuthStore();
   const navigate = useNavigate();
   const [selectLoading, setSelectLoading] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState(null);
 
   useEffect(() => {
+    console.log("OrganizationSelection", {
+      user,
+      organizations,
+      isLoading,
+      error,
+    });
+
     // If user isn't authenticated, redirect to login
     if (!user) {
       navigate("/auth/sign-in");
@@ -92,7 +66,7 @@ export default function OrganizationSelect() {
   }, [user, organizations, isLoading, navigate, fetchOrganizations]);
 
   // Handle organization selection
-  const handleOrganizationSelect = async (organizationId: string) => {
+  const handleOrganizationSelect = async (organizationId) => {
     try {
       setSelectedId(organizationId);
       setSelectLoading(true);
@@ -100,7 +74,14 @@ export default function OrganizationSelect() {
 
       // Redirect to dashboard after selection
       navigate("/dashboard");
-    } catch (error: any) {
+
+      // Show success notification
+      notifications.show({
+        title: "Organization Selected",
+        message: "You are now working in this organization",
+        color: "green",
+      });
+    } catch (error) {
       notifications.show({
         title: "Error",
         message: error.message || "Failed to select organization",
@@ -114,7 +95,7 @@ export default function OrganizationSelect() {
   // Display loading state
   if (isLoading) {
     return (
-      <Container size={600} my={40}>
+      <Container size="lg" my={40} className="org-selection-container">
         <Paper p="xl" radius="md" withBorder>
           <Stack align="center" spacing="xl" p="xl">
             <Loader size="lg" />
@@ -125,14 +106,18 @@ export default function OrganizationSelect() {
     );
   }
 
-  // State when user has no organizations - show marketing content
+  // When user has no organizations - show marketing content
   if (organizations.length === 0) {
     return (
-      <Container size={900} my={40}>
+      <Container size="lg" my={40} className="org-selection-container">
         <Paper p="xl" radius="md" withBorder>
           <Stack spacing="xl">
-            <Box className={classes.emptyState}>
-              <ThemeIcon size={80} radius={40} mb={20}>
+            <Box
+              className="empty-state"
+              py="xl"
+              style={{ textAlign: "center" }}
+            >
+              <ThemeIcon size={80} radius={40} mb={20} mx="auto">
                 <IconBuildingSkyscraper size={40} />
               </ThemeIcon>
               <Title order={2} mb="md">
@@ -160,22 +145,46 @@ export default function OrganizationSelect() {
             />
 
             <SimpleGrid cols={{ base: 1, md: 3 }} spacing="xl" mt="md">
-              {features.map((feature, index) => (
+              {[
+                {
+                  icon: <IconBuildingSkyscraper size={32} />,
+                  title: "Manage Your Properties",
+                  description:
+                    "Streamline management across your entire property portfolio with powerful tools designed specifically for property managers.",
+                },
+                {
+                  icon: <IconUsers size={32} />,
+                  title: "Tenant Satisfaction",
+                  description:
+                    "Improve tenant experiences with efficient maintenance requests and communication tools that keep your clients happy.",
+                },
+                {
+                  icon: <IconCurrencyDollar size={32} />,
+                  title: "Increase Revenue",
+                  description:
+                    "Track payments, manage finances, and identify opportunities to increase your property management revenue.",
+                },
+              ].map((feature, index) => (
                 <Card
                   key={index}
                   shadow="md"
                   radius="md"
-                  className={classes.featureCard}
+                  p="xl"
+                  className="feature-card"
                 >
                   <ThemeIcon
                     size={50}
                     radius={50}
-                    className={classes.featureIcon}
+                    mb="md"
+                    variant="light"
+                    color="blue"
                   >
                     {feature.icon}
                   </ThemeIcon>
-                  <Text className={classes.featureTitle}>{feature.title}</Text>
-                  <Text size="sm" color="dimmed" mt="sm">
+                  <Text fw={600} size="lg" mb="xs">
+                    {feature.title}
+                  </Text>
+                  <Text size="sm" color="dimmed">
                     {feature.description}
                   </Text>
                 </Card>
@@ -185,7 +194,7 @@ export default function OrganizationSelect() {
             <Card p="lg" radius="md" withBorder mt="lg">
               <Group position="apart">
                 <div>
-                  <Text weight={700}>Free 14-day trial</Text>
+                  <Text fw={700}>Free 14-day trial</Text>
                   <Text size="sm" color="dimmed">
                     Get started with all premium features
                   </Text>
@@ -203,7 +212,7 @@ export default function OrganizationSelect() {
 
   // Organization selection UI for users with existing organizations
   return (
-    <Container size={900} my={40}>
+    <Container size="lg" my={40} className="org-selection-container">
       <Paper p="xl" radius="md" withBorder>
         <Stack spacing="xl">
           <Title order={2} ta="center">
@@ -220,9 +229,14 @@ export default function OrganizationSelect() {
                 p="lg"
                 radius="md"
                 withBorder
-                styles={cardStyles}
                 style={{
                   opacity: selectLoading && selectedId !== org.id ? 0.7 : 1,
+                  cursor: "pointer",
+                  transition: "transform 200ms ease, box-shadow 200ms ease",
+                  "&:hover": {
+                    transform: "scale(1.02)",
+                    boxShadow: "0 10px 30px -10px rgba(0, 0, 0, 0.1)",
+                  },
                 }}
                 onClick={() =>
                   !selectLoading && handleOrganizationSelect(org.id)
@@ -240,9 +254,9 @@ export default function OrganizationSelect() {
                       @{org.slug}
                     </Text>
                     {org.subscriptionPlan && (
-                      <Text size="xs" c="dimmed">
+                      <Badge color="blue" variant="light" size="sm">
                         {org.subscriptionPlan} Plan
-                      </Text>
+                      </Badge>
                     )}
                   </div>
                   {selectLoading && selectedId === org.id && (
@@ -277,4 +291,6 @@ export default function OrganizationSelect() {
       </Paper>
     </Container>
   );
-}
+};
+
+export default OrganizationSelection;

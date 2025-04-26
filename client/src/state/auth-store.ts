@@ -1,4 +1,7 @@
+import { notifications } from "@mantine/notifications";
 import { create } from "zustand";
+import { CREATE_ORGANIZATION } from "../graphql/organization";
+import { apolloClient } from "../services/api";
 import {
   getSession,
   getUserOrganizations,
@@ -12,8 +15,8 @@ interface User {
   id: string;
   name: string;
   email: string;
-  role: string;
   image?: string;
+  emailVerified?: boolean;
 }
 
 // Organization type
@@ -53,6 +56,17 @@ interface AuthState {
 
   // New actions for organization selection
   fetchOrganizations: () => Promise<Organization[]>;
+
+  // New action for organization creation
+  createOrganization: (data: {
+    name: string;
+    slug?: string;
+    timezone?: string;
+    currency?: string;
+    dateFormat?: string;
+    logo?: string;
+    address?: string;
+  }) => Promise<Organization>;
 }
 
 // Create auth store
@@ -109,6 +123,53 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ error: error.message });
       console.error("Error fetching organizations:", error);
       return [];
+    }
+  },
+
+  // Create a new organization
+  createOrganization: async (data) => {
+    set({ isLoading: true, error: null });
+
+    try {
+      const response = await apolloClient.mutate({
+        mutation: CREATE_ORGANIZATION,
+        variables: { data },
+      });
+
+      const result = response.data.createOrganization;
+
+      if (!result.success) {
+        throw new Error(result.message || "Failed to create organization");
+      }
+
+      const newOrganization = result.organization;
+
+      // Update the organizations list
+      set((state) => ({
+        organizations: [...state.organizations, newOrganization],
+        isLoading: false,
+      }));
+
+      // Set this as the active organization
+      await get().setOrganization(newOrganization.id);
+
+      notifications.show({
+        title: "Success",
+        message: `${newOrganization.name} has been created successfully!`,
+        color: "green",
+      });
+
+      return newOrganization;
+    } catch (error: any) {
+      set({ error: error.message, isLoading: false });
+
+      notifications.show({
+        title: "Error",
+        message: error.message || "Failed to create organization",
+        color: "red",
+      });
+
+      throw error;
     }
   },
 

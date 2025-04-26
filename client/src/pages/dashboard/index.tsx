@@ -1,14 +1,19 @@
 import {
   Badge,
   Box,
+  Button,
   Card,
+  Container,
   Grid,
   Group,
+  Image,
   List,
   Paper,
   Select,
   SimpleGrid,
+  Skeleton,
   Stack,
+  Tabs,
   Text,
   ThemeIcon,
   Title,
@@ -17,12 +22,16 @@ import {
   IconAlertTriangle,
   IconBuildingSkyscraper,
   IconCheck,
+  IconChevronRight,
   IconClock,
   IconCurrencyDollar,
+  IconFileDescription,
   IconHome,
-  IconUsers,
+  IconPlus,
+  IconTools,
 } from "@tabler/icons-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Link } from "react-router";
 import {
   Bar,
   BarChart,
@@ -38,9 +47,10 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { StatsCard } from "../../components/ui/stats-card";
 import { useAuthStore } from "../../state/auth-store";
 
-// Mock data for the dashboard
+// Mock data - would be replaced with real API data
 const occupancyData = [
   { name: "Jan", occupancy: 82 },
   { name: "Feb", occupancy: 85 },
@@ -89,6 +99,51 @@ const COLORS = [
   "#82ca9d",
 ];
 
+// Sample properties - would be fetched from API
+const sampleProperties = [
+  {
+    id: "1",
+    name: "Sunset Apartments",
+    address: "123 Main St, New York, NY",
+    units: 24,
+    occupancyRate: 92,
+    image:
+      "https://images.unsplash.com/photo-1580041065738-e72023775cdc?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80",
+    type: "residential",
+  },
+  {
+    id: "2",
+    name: "Heritage Office Tower",
+    address: "456 Business Ave, Chicago, IL",
+    units: 12,
+    occupancyRate: 85,
+    image:
+      "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80",
+    type: "commercial",
+  },
+  {
+    id: "3",
+    name: "Riverside Condos",
+    address: "789 River Rd, Boston, MA",
+    units: 36,
+    occupancyRate: 95,
+    image:
+      "https://images.unsplash.com/photo-1460317442991-0ec209397118?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80",
+    type: "residential",
+  },
+  {
+    id: "4",
+    name: "Downtown Retail Plaza",
+    address: "101 Market St, San Francisco, CA",
+    units: 8,
+    occupancyRate: 88,
+    image:
+      "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80",
+    type: "commercial",
+  },
+];
+
+// Recent tasks/items that need attention
 const maintenanceRequests = [
   {
     id: 1,
@@ -96,13 +151,15 @@ const maintenanceRequests = [
     status: "pending",
     unit: "Apt 101",
     priority: "high",
+    property: "Sunset Apartments",
   },
   {
     id: 2,
     title: "AC not working",
-    status: "in progress",
+    status: "in_progress",
     unit: "Apt 205",
     priority: "medium",
+    property: "Riverside Condos",
   },
   {
     id: 3,
@@ -110,6 +167,7 @@ const maintenanceRequests = [
     status: "scheduled",
     unit: "Apt 302",
     priority: "low",
+    property: "Sunset Apartments",
   },
   {
     id: 4,
@@ -117,6 +175,7 @@ const maintenanceRequests = [
     status: "pending",
     unit: "Apt 104",
     priority: "high",
+    property: "Riverside Condos",
   },
 ];
 
@@ -127,6 +186,7 @@ const upcomingLeases = [
     unit: "Apt 101",
     endDate: "2025-05-15",
     status: "active",
+    property: "Sunset Apartments",
   },
   {
     id: 2,
@@ -134,61 +194,133 @@ const upcomingLeases = [
     unit: "Apt 205",
     endDate: "2025-06-01",
     status: "active",
+    property: "Riverside Condos",
   },
   {
     id: 3,
     tenant: "Robert Davis",
     unit: "Apt 302",
     endDate: "2025-06-15",
-    status: "renewal pending",
+    status: "renewal_pending",
+    property: "Sunset Apartments",
   },
 ];
 
-// Dashboard stats card component
-function StatCard({
-  title,
-  value,
-  description,
-  icon,
-  color,
-}: {
-  title: string;
-  value: string;
-  description?: string;
-  icon: React.ReactNode;
-  color: string;
-}) {
-  return (
-    <Card withBorder p="lg" radius="md">
-      <Group>
-        <ThemeIcon size="xl" color={color} variant="light" radius="md">
-          {icon}
-        </ThemeIcon>
-        <div>
-          <Text size="xs" color="dimmed">
-            {title}
-          </Text>
-          <Text fw={700} size="xl">
-            {value}
-          </Text>
-          {description && (
-            <Text size="xs" color="dimmed">
-              {description}
-            </Text>
-          )}
-        </div>
+const Dashboard = () => {
+  const { user, organization, team } = useAuthStore();
+  const [timeRange, setTimeRange] = useState("1year");
+  const [isLoading, setIsLoading] = useState(true);
+  const [properties, setProperties] = useState([]);
+  const [stats, setStats] = useState({
+    totalProperties: 0,
+    totalUnits: 0,
+    occupancyRate: 0,
+    activeLeases: 0,
+  });
+
+  // Simulate fetching data
+  useEffect(() => {
+    // Simulate API call
+    const timer = setTimeout(() => {
+      setProperties(sampleProperties);
+      setStats({
+        totalProperties: sampleProperties.length,
+        totalUnits: sampleProperties.reduce((acc, curr) => acc + curr.units, 0),
+        occupancyRate: 92,
+        activeLeases: 24,
+      });
+      setIsLoading(false);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case "pending":
+        return (
+          <ThemeIcon color="orange" size={24} radius="xl">
+            <IconClock size={16} />
+          </ThemeIcon>
+        );
+      case "in_progress":
+        return (
+          <ThemeIcon color="blue" size={24} radius="xl">
+            <IconAlertTriangle size={16} />
+          </ThemeIcon>
+        );
+      case "scheduled":
+      case "active":
+      case "completed":
+        return (
+          <ThemeIcon color="teal" size={24} radius="xl">
+            <IconCheck size={16} />
+          </ThemeIcon>
+        );
+      default:
+        return (
+          <ThemeIcon color="gray" size={24} radius="xl">
+            <IconCheck size={16} />
+          </ThemeIcon>
+        );
+    }
+  };
+
+  const PropertyCard = ({ property }) => (
+    <Card
+      withBorder
+      p="md"
+      radius="md"
+      shadow="sm"
+      component={Link}
+      to={`/properties/${property.id}`}
+      style={{
+        cursor: "pointer",
+        transition: "transform 0.2s, box-shadow 0.2s",
+        "&:hover": {
+          transform: "translateY(-5px)",
+          boxShadow: "0 10px 20px rgba(0,0,0,0.1)",
+        },
+      }}
+    >
+      <Card.Section>
+        <Image src={property.image} height={160} alt={property.name} />
+      </Card.Section>
+
+      <Group position="apart" mt="md" mb="xs">
+        <Text fw={700}>{property.name}</Text>
+        <Badge color={property.type === "residential" ? "blue" : "green"}>
+          {property.type === "residential" ? "Residential" : "Commercial"}
+        </Badge>
       </Group>
+
+      <Text size="sm" color="dimmed" mb="md">
+        {property.address}
+      </Text>
+
+      <Group position="apart">
+        <Text size="sm">
+          <b>{property.units}</b> Units
+        </Text>
+        <Text size="sm">
+          Occupancy: <b>{property.occupancyRate}%</b>
+        </Text>
+      </Group>
+
+      <Button
+        variant="light"
+        fullWidth
+        mt="md"
+        rightSection={<IconChevronRight size={14} />}
+      >
+        View Property
+      </Button>
     </Card>
   );
-}
-
-export default function Dashboard() {
-  const { user, organization } = useAuthStore();
-  const [timeRange, setTimeRange] = useState("1year");
 
   return (
-    <Stack spacing="lg">
-      <Group position="apart">
+    <Container size="lg" mt="md">
+      <Group position="apart" mb="lg">
         <div>
           <Title order={2} mb={5}>
             Dashboard
@@ -210,198 +342,338 @@ export default function Dashboard() {
       </Group>
 
       {/* Stats cards */}
-      <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="md">
-        <StatCard
-          title="Properties"
-          value="24"
-          description="+2 in the last month"
-          icon={<IconHome size={24} />}
-          color="blue"
-        />
+      <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="md" mb="xl">
+        {isLoading ? (
+          <>
+            <Skeleton height={120} radius="md" />
+            <Skeleton height={120} radius="md" />
+            <Skeleton height={120} radius="md" />
+            <Skeleton height={120} radius="md" />
+          </>
+        ) : (
+          <>
+            <StatsCard
+              title="Properties"
+              value={stats.totalProperties.toString()}
+              subtitle="Managed by your agency"
+              icon={<IconHome size={24} />}
+              color="blue"
+              onClick={() => navigator.navigate("/properties")}
+            />
 
-        <StatCard
-          title="Occupancy Rate"
-          value="92%"
-          description="152 out of 165 units"
-          icon={<IconBuildingSkyscraper size={24} />}
-          color="green"
-        />
+            <StatsCard
+              title="Occupancy Rate"
+              value={`${stats.occupancyRate}%`}
+              subtitle={`${stats.totalUnits} total units`}
+              icon={<IconBuildingSkyscraper size={24} />}
+              color="green"
+              progress={{
+                value: stats.occupancyRate,
+                color: "green",
+                size: 60,
+              }}
+            />
 
-        <StatCard
-          title="Active Tenants"
-          value="172"
-          description="15 pending applications"
-          icon={<IconUsers size={24} />}
-          color="violet"
-        />
+            <StatsCard
+              title="Active Leases"
+              value={stats.activeLeases.toString()}
+              subtitle="15 pending applications"
+              icon={<IconFileDescription size={24} />}
+              color="violet"
+            />
 
-        <StatCard
-          title="Monthly Income"
-          value="$45,750"
-          description="+5% from last month"
-          icon={<IconCurrencyDollar size={24} />}
-          color="cyan"
-        />
+            <StatsCard
+              title="Monthly Income"
+              value="$45,750"
+              subtitle="+5% from last month"
+              icon={<IconCurrencyDollar size={24} />}
+              color="cyan"
+              change={{
+                value: 5,
+                positive: true,
+                label: "vs last month",
+              }}
+            />
+          </>
+        )}
       </SimpleGrid>
 
-      {/* Charts row */}
-      <Grid>
-        {/* Occupancy trend */}
-        <Grid.Col span={{ base: 12, md: 6 }}>
-          <Paper withBorder p="md" radius="md">
-            <Title order={4} mb="md">
-              Occupancy Rate Trend
-            </Title>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={occupancyData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis domain={[70, 100]} />
-                <Tooltip formatter={(value) => `${value}%`} />
-                <Line
-                  type="monotone"
-                  dataKey="occupancy"
-                  stroke="var(--mantine-color-primary-6)"
-                  strokeWidth={2}
-                  activeDot={{ r: 8 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Grid.Col>
+      {/* Properties section */}
+      <Paper withBorder p="md" radius="md" mb="xl">
+        <Group position="apart" mb="md">
+          <Title order={4}>Your Properties</Title>
+          <Button
+            component={Link}
+            to="/properties"
+            variant="subtle"
+            rightSection={<IconChevronRight size={16} />}
+          >
+            View All Properties
+          </Button>
+        </Group>
 
-        {/* Income vs expenses */}
-        <Grid.Col span={{ base: 12, md: 6 }}>
-          <Paper withBorder p="md" radius="md">
-            <Title order={4} mb="md">
-              Income vs Expenses
-            </Title>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={incomeData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip formatter={(value) => `$${value}`} />
-                <Legend />
-                <Bar dataKey="income" fill="var(--mantine-color-primary-6)" />
-                <Bar dataKey="expenses" fill="var(--mantine-color-red-6)" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Grid.Col>
-      </Grid>
+        {isLoading ? (
+          <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="md">
+            <Skeleton height={300} radius="md" />
+            <Skeleton height={300} radius="md" />
+            <Skeleton height={300} radius="md" />
+            <Skeleton height={300} radius="md" />
+          </SimpleGrid>
+        ) : properties.length > 0 ? (
+          <>
+            <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="md">
+              {properties.map((property) => (
+                <PropertyCard key={property.id} property={property} />
+              ))}
+            </SimpleGrid>
 
-      {/* Bottom row */}
+            <Button
+              component={Link}
+              to="/properties/create"
+              mt="lg"
+              leftSection={<IconPlus size={16} />}
+              variant="outline"
+              fullWidth
+            >
+              Add New Property
+            </Button>
+          </>
+        ) : (
+          <Stack align="center" py="xl" spacing="md">
+            <ThemeIcon size={60} radius={100} color="blue" variant="light">
+              <IconBuildingSkyscraper size={30} />
+            </ThemeIcon>
+            <Text ta="center" fw={500} fz="lg">
+              No properties yet
+            </Text>
+            <Text ta="center" c="dimmed" maw={400}>
+              Start by adding properties to your portfolio to track units,
+              tenants, and income.
+            </Text>
+            <Button
+              component={Link}
+              to="/properties/create"
+              leftSection={<IconPlus size={16} />}
+            >
+              Add Your First Property
+            </Button>
+          </Stack>
+        )}
+      </Paper>
+
+      {/* Charts and activity tabs */}
       <Grid>
-        {/* Maintenance requests distribution */}
-        <Grid.Col span={{ base: 12, md: 4 }}>
-          <Paper withBorder p="md" radius="md" h="100%">
-            <Title order={4} mb="md">
-              Maintenance Categories
-            </Title>
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={maintenanceData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) =>
-                    `${name}: ${(percent * 100).toFixed(0)}%`
-                  }
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {maintenanceData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
+        {/* Charts section */}
+        <Grid.Col span={{ base: 12, md: 8 }}>
+          <Tabs defaultValue="income">
+            <Tabs.List mb="md">
+              <Tabs.Tab value="income">Income & Expenses</Tabs.Tab>
+              <Tabs.Tab value="occupancy">Occupancy Trends</Tabs.Tab>
+              <Tabs.Tab value="maintenance">Maintenance Analysis</Tabs.Tab>
+            </Tabs.List>
+
+            <Tabs.Panel value="income">
+              <Paper withBorder p="md" radius="md" h={400}>
+                <Title order={5} mb="md">
+                  Income vs Expenses (Annual)
+                </Title>
+                <ResponsiveContainer width="100%" height={320}>
+                  <BarChart data={incomeData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip formatter={(value) => `$${value}`} />
+                    <Legend />
+                    <Bar dataKey="income" fill="#339af0" name="Income" />
+                    <Bar dataKey="expenses" fill="#fa5252" name="Expenses" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </Paper>
+            </Tabs.Panel>
+
+            <Tabs.Panel value="occupancy">
+              <Paper withBorder p="md" radius="md" h={400}>
+                <Title order={5} mb="md">
+                  Occupancy Rate Trend
+                </Title>
+                <ResponsiveContainer width="100%" height={320}>
+                  <LineChart data={occupancyData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis domain={[70, 100]} />
+                    <Tooltip formatter={(value) => `${value}%`} />
+                    <Line
+                      type="monotone"
+                      dataKey="occupancy"
+                      stroke="#339af0"
+                      strokeWidth={2}
+                      activeDot={{ r: 8 }}
                     />
+                  </LineChart>
+                </ResponsiveContainer>
+              </Paper>
+            </Tabs.Panel>
+
+            <Tabs.Panel value="maintenance">
+              <Paper withBorder p="md" radius="md" h={400}>
+                <Title order={5} mb="md">
+                  Maintenance Requests by Category
+                </Title>
+                <ResponsiveContainer width="100%" height={320}>
+                  <PieChart>
+                    <Pie
+                      data={maintenanceData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="value"
+                      label={({ name, percent }) =>
+                        `${name}: ${(percent * 100).toFixed(0)}%`
+                      }
+                    >
+                      {maintenanceData.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => `${value}%`} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </Paper>
+            </Tabs.Panel>
+          </Tabs>
+        </Grid.Col>
+
+        {/* Activity and attention needed section */}
+        <Grid.Col span={{ base: 12, md: 4 }}>
+          <Tabs defaultValue="maintenance">
+            <Tabs.List mb="md">
+              <Tabs.Tab value="maintenance" icon={<IconTools size={14} />}>
+                Maintenance
+              </Tabs.Tab>
+              <Tabs.Tab value="leases" icon={<IconFileDescription size={14} />}>
+                Leases
+              </Tabs.Tab>
+            </Tabs.List>
+
+            <Tabs.Panel value="maintenance">
+              <Paper
+                withBorder
+                p="md"
+                radius="md"
+                h={400}
+                style={{ overflow: "auto" }}
+              >
+                <Group position="apart" mb="xs">
+                  <Title order={5}>Recent Maintenance</Title>
+                  <Badge color="blue">{maintenanceRequests.length} New</Badge>
+                </Group>
+
+                <List spacing="md" size="sm" mb="xs">
+                  {maintenanceRequests.map((request) => (
+                    <List.Item
+                      key={request.id}
+                      icon={getStatusIcon(request.status)}
+                    >
+                      <Box>
+                        <Group position="apart">
+                          <Text size="sm" fw={500}>
+                            {request.title}
+                          </Text>
+                          <Badge
+                            color={
+                              request.priority === "high"
+                                ? "red"
+                                : request.priority === "medium"
+                                ? "yellow"
+                                : "green"
+                            }
+                            size="xs"
+                          >
+                            {request.priority}
+                          </Badge>
+                        </Group>
+                        <Text size="xs" color="dimmed">
+                          {request.property} • {request.unit}
+                        </Text>
+                      </Box>
+                    </List.Item>
                   ))}
-                </Pie>
-                <Tooltip formatter={(value) => `${value}%`} />
-              </PieChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Grid.Col>
+                </List>
 
-        {/* Maintenance requests */}
-        <Grid.Col span={{ base: 12, md: 4 }}>
-          <Paper withBorder p="md" radius="md" h="100%">
-            <Group position="apart" mb="xs">
-              <Title order={4}>Recent Maintenance</Title>
-              <Badge color="blue">4 New</Badge>
-            </Group>
-
-            <List spacing="xs" size="sm" center>
-              {maintenanceRequests.map((request) => (
-                <List.Item
-                  key={request.id}
-                  icon={
-                    request.status === "pending" ? (
-                      <ThemeIcon color="orange" size={24} radius="xl">
-                        <IconClock size={16} />
-                      </ThemeIcon>
-                    ) : request.status === "in progress" ? (
-                      <ThemeIcon color="blue" size={24} radius="xl">
-                        <IconAlertTriangle size={16} />
-                      </ThemeIcon>
-                    ) : (
-                      <ThemeIcon color="teal" size={24} radius="xl">
-                        <IconCheck size={16} />
-                      </ThemeIcon>
-                    )
-                  }
+                <Button
+                  component={Link}
+                  to="/maintenance"
+                  variant="light"
+                  fullWidth
+                  mt="md"
                 >
-                  <Box>
-                    <Text size="sm" fw={500}>
-                      {request.title}
-                    </Text>
-                    <Text size="xs" color="dimmed">
-                      {request.unit} • Priority: {request.priority}
-                    </Text>
-                  </Box>
-                </List.Item>
-              ))}
-            </List>
-          </Paper>
-        </Grid.Col>
+                  View All Maintenance Requests
+                </Button>
+              </Paper>
+            </Tabs.Panel>
 
-        {/* Upcoming lease expirations */}
-        <Grid.Col span={{ base: 12, md: 4 }}>
-          <Paper withBorder p="md" radius="md" h="100%">
-            <Group position="apart" mb="xs">
-              <Title order={4}>Upcoming Lease Expirations</Title>
-              <Badge color="red">3 Soon</Badge>
-            </Group>
+            <Tabs.Panel value="leases">
+              <Paper
+                withBorder
+                p="md"
+                radius="md"
+                h={400}
+                style={{ overflow: "auto" }}
+              >
+                <Group position="apart" mb="xs">
+                  <Title order={5}>Upcoming Lease Expirations</Title>
+                  <Badge color="red">3 Soon</Badge>
+                </Group>
 
-            <List spacing="xs" size="sm" center>
-              {upcomingLeases.map((lease) => (
-                <List.Item key={lease.id}>
-                  <Box>
-                    <Group position="apart">
-                      <Text size="sm" fw={500}>
-                        {lease.tenant}
-                      </Text>
-                      <Badge
-                        color={lease.status === "active" ? "green" : "orange"}
-                        size="sm"
-                      >
-                        {lease.status}
-                      </Badge>
-                    </Group>
-                    <Text size="xs" color="dimmed">
-                      {lease.unit} • Expires:{" "}
-                      {new Date(lease.endDate).toLocaleDateString()}
-                    </Text>
-                  </Box>
-                </List.Item>
-              ))}
-            </List>
-          </Paper>
+                <List spacing="md" size="sm">
+                  {upcomingLeases.map((lease) => (
+                    <List.Item key={lease.id}>
+                      <Box>
+                        <Group position="apart">
+                          <Text size="sm" fw={500}>
+                            {lease.tenant}
+                          </Text>
+                          <Badge
+                            color={
+                              lease.status === "active" ? "green" : "orange"
+                            }
+                            size="xs"
+                          >
+                            {lease.status === "active"
+                              ? "Active"
+                              : "Renewal Pending"}
+                          </Badge>
+                        </Group>
+                        <Text size="xs" color="dimmed">
+                          {lease.property} • {lease.unit} • Expires:{" "}
+                          {new Date(lease.endDate).toLocaleDateString()}
+                        </Text>
+                      </Box>
+                    </List.Item>
+                  ))}
+                </List>
+
+                <Button
+                  component={Link}
+                  to="/leases"
+                  variant="light"
+                  fullWidth
+                  mt="md"
+                >
+                  View All Leases
+                </Button>
+              </Paper>
+            </Tabs.Panel>
+          </Tabs>
         </Grid.Col>
       </Grid>
-    </Stack>
+    </Container>
   );
-}
+};
+
+export default Dashboard;

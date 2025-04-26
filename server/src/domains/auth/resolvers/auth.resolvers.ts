@@ -51,6 +51,38 @@ export const authResolvers = {
         };
       }
     },
+    me: async (_: any, __: any, context: GraphQLContext) => {
+      // If user is not authenticated, return null
+      if (!context.user) {
+        return null;
+      }
+
+      // Get user organizations
+      const organizations = await organizationService.getUserOrganizations(
+        context.user.id
+      );
+
+      // Get active organization if available
+      let activeOrganization = null;
+      let activeTeam = null;
+
+      if (context.organization) {
+        activeOrganization = context.organization;
+        activeTeam = context.team;
+      }
+
+      return {
+        user: context.user,
+        organizations: organizations.map((org) => ({
+          id: org.id,
+          name: org.name,
+          slug: org.slug,
+          logo: org.logo,
+        })),
+        activeOrganization,
+        activeTeam,
+      };
+    },
   },
 
   Mutation: {

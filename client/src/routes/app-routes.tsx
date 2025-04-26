@@ -21,7 +21,7 @@ import SignUp from "../pages/auth/sign-up";
 // App pages
 import VerifyEmail from "../pages/auth/verify-email";
 import Dashboard from "../pages/dashboard";
-import OrganizationSelect from "../pages/organisations";
+import OrganizationSelection from "../pages/organisations";
 import OrganizationCreate from "../pages/organisations/create";
 import { ProtectedRoute } from "./protected-routes";
 
@@ -98,9 +98,9 @@ export default function AppRoutes() {
       <Route
         path="/organizations"
         element={
-          <ProtectedRoute>
-            <OrganizationSelect />
-          </ProtectedRoute>
+          // <ProtectedRoute>
+          <OrganizationSelection />
+          // </ProtectedRoute>
         }
       />
 
