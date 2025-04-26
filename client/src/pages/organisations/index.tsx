@@ -36,18 +36,12 @@ const OrganizationSelection = () => {
     fetchOrganizations,
     setOrganization,
   } = useAuthStore();
+
   const navigate = useNavigate();
   const [selectLoading, setSelectLoading] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
 
   useEffect(() => {
-    console.log("OrganizationSelection", {
-      user,
-      organizations,
-      isLoading,
-      error,
-    });
-
     // If user isn't authenticated, redirect to login
     if (!user) {
       navigate("/auth/sign-in");
@@ -80,6 +74,7 @@ const OrganizationSelection = () => {
         title: "Organization Selected",
         message: "You are now working in this organization",
         color: "green",
+        icon: <IconCheck size={16} />,
       });
     } catch (error) {
       notifications.show({
@@ -87,7 +82,6 @@ const OrganizationSelection = () => {
         message: error.message || "Failed to select organization",
         color: "red",
       });
-    } finally {
       setSelectLoading(false);
     }
   };
@@ -117,16 +111,16 @@ const OrganizationSelection = () => {
               py="xl"
               style={{ textAlign: "center" }}
             >
-              <ThemeIcon size={80} radius={40} mb={20} mx="auto">
+              <ThemeIcon size={80} radius={40} mb={20} mx="auto" color="blue">
                 <IconBuildingSkyscraper size={40} />
               </ThemeIcon>
               <Title order={2} mb="md">
                 Welcome to PropManage Pro
               </Title>
               <Text size="lg" color="dimmed" mb="xl" maw={600} mx="auto">
-                Create your first agency to start managing properties more
-                efficiently. Our platform helps property management companies
-                streamline their operations and grow their business.
+                You don't have any organizations yet. Create your first agency
+                to start managing properties more efficiently, or wait to be
+                invited to an existing organization.
               </Text>
               <Button
                 component={Link}
@@ -244,7 +238,7 @@ const OrganizationSelection = () => {
               >
                 <Group>
                   <Avatar src={org.logo} size="lg" radius="md" color="blue">
-                    {!org.logo && <IconBuildingSkyscraper size={24} />}
+                    {!org.logo && org.name.substring(0, 2).toUpperCase()}
                   </Avatar>
                   <div style={{ flex: 1 }}>
                     <Text fw={700} size="lg">

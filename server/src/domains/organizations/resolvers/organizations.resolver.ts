@@ -1,4 +1,5 @@
 import { sessionService } from "@/domains/auth/services/session.service";
+import { checkOrganizationPermissions } from "@/domains/auth/utils/permission-utils";
 import { GraphQLContext } from "@/infrastructure/graphql/context/types";
 import { AuthorizationError } from "@/shared/errors/authorization.error";
 import {
@@ -17,7 +18,7 @@ import {
 export const organizationsResolvers = {
   Query: {
     myOrganizations: async (_: any, __: any, context: GraphQLContext) => {
-      const { userId } = checkOrganizationPermissions(context, "view");
+      const { userId } = await checkOrganizationPermissions(context, "view");
       return organizationService.getUserOrganizations(userId);
     },
 
@@ -26,7 +27,7 @@ export const organizationsResolvers = {
       { id }: OrganizationIdDto,
       context: GraphQLContext
     ) => {
-      checkOrganizationPermissions(context, "view");
+      await checkOrganizationPermissions(context, "view");
       return organizationService.getOrganizationById(id);
     },
 
@@ -35,7 +36,7 @@ export const organizationsResolvers = {
       { slug }: { slug: string },
       context: GraphQLContext
     ) => {
-      checkOrganizationPermissions(context, "view");
+      await checkOrganizationPermissions(context, "view");
       return organizationService.getOrganizationBySlug(slug);
     },
 
@@ -44,7 +45,7 @@ export const organizationsResolvers = {
       { organizationId }: { organizationId: string },
       context: GraphQLContext
     ) => {
-      checkOrganizationPermissions(context, "view");
+      await checkOrganizationPermissions(context, "view");
       return membersService.getOrganizationMembers(organizationId);
     },
 
@@ -53,7 +54,7 @@ export const organizationsResolvers = {
       { organizationId }: { organizationId: string },
       context: GraphQLContext
     ) => {
-      checkOrganizationPermissions(context, "view");
+      await checkOrganizationPermissions(context, "view");
       return teamsService.getOrganizationTeams(organizationId);
     },
 
@@ -62,7 +63,7 @@ export const organizationsResolvers = {
       { organizationId }: { organizationId: string },
       context: GraphQLContext
     ) => {
-      const { userId } = checkOrganizationPermissions(context, "manage");
+      const { userId } = await checkOrganizationPermissions(context, "manage");
       return invitationsService.getOrganizationInvitations(organizationId);
     },
 
@@ -109,7 +110,7 @@ export const organizationsResolvers = {
       { data }: { data: CreateOrganizationDto },
       context: GraphQLContext
     ) => {
-      const { userId } = checkOrganizationPermissions(context, "view");
+      const { userId } = await checkOrganizationPermissions(context, "view");
       return organizationService.createOrganization({ ...data, userId });
     },
 
@@ -118,7 +119,7 @@ export const organizationsResolvers = {
       { data }: { data: UpdateOrganizationDto },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkOrganizationPermissions(
+      const { organizationId } = await checkOrganizationPermissions(
         context,
         "manage"
       );
@@ -138,7 +139,10 @@ export const organizationsResolvers = {
       { id }: OrganizationIdDto,
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkOrganizationPermissions(context, "admin");
+      const { organizationId } = await checkOrganizationPermissions(
+        context,
+        "admin"
+      );
 
       // Only delete current organization
       if (id !== organizationId) {
@@ -156,7 +160,7 @@ export const organizationsResolvers = {
       { id }: SwitchOrganizationDto,
       context: GraphQLContext
     ) => {
-      const { userId } = checkOrganizationPermissions(context, "view");
+      const { userId } = await checkOrganizationPermissions(context, "view");
 
       // Check if user is a member of the organization
       const isMember = await organizationService.isUserMemberOfOrganization(
@@ -195,7 +199,7 @@ export const organizationsResolvers = {
       context: GraphQLContext
     ) => {
       const { userId, organizationId: activeOrgId } =
-        checkOrganizationPermissions(context, "manage");
+        await checkOrganizationPermissions(context, "manage");
 
       // Only invite to current organization
       if (organizationId !== activeOrgId) {
@@ -218,7 +222,7 @@ export const organizationsResolvers = {
       { id }: { id: string },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkOrganizationPermissions(
+      const { organizationId } = await checkOrganizationPermissions(
         context,
         "manage"
       );
@@ -230,7 +234,7 @@ export const organizationsResolvers = {
       { id }: { id: string },
       context: GraphQLContext
     ) => {
-      const { organizationId } = checkOrganizationPermissions(
+      const { organizationId } = await checkOrganizationPermissions(
         context,
         "manage"
       );
@@ -242,7 +246,7 @@ export const organizationsResolvers = {
       { token }: { token: string },
       context: GraphQLContext
     ) => {
-      const { userId } = checkOrganizationPermissions(context, "view");
+      const { userId } = await checkOrganizationPermissions(context, "view");
       const { organizationId, teamId } =
         await invitationsService.acceptInvitation(token, userId);
 
@@ -278,7 +282,7 @@ export const organizationsResolvers = {
       },
       context: GraphQLContext
     ) => {
-      checkOrganizationPermissions(context, "admin");
+      await checkOrganizationPermissions(context, "admin");
       return membersService.updateMember(id, { role, status, teamId });
     },
 
@@ -287,10 +291,8 @@ export const organizationsResolvers = {
       { userId, organizationId }: { userId: string; organizationId: string },
       context: GraphQLContext
     ) => {
-      const { organizationId: activeOrgId } = checkOrganizationPermissions(
-        context,
-        "admin"
-      );
+      const { organizationId: activeOrgId } =
+        await checkOrganizationPermissions(context, "admin");
 
       // Only remove from current organization
       if (organizationId !== activeOrgId) {
@@ -312,7 +314,7 @@ export const organizationsResolvers = {
       context: GraphQLContext
     ) => {
       const { userId, organizationId: activeOrgId } =
-        checkOrganizationPermissions(context, "admin");
+        await checkOrganizationPermissions(context, "admin");
 
       // Only transfer current organization
       if (organizationId !== activeOrgId) {
@@ -342,10 +344,8 @@ export const organizationsResolvers = {
       },
       context: GraphQLContext
     ) => {
-      const { organizationId: activeOrgId } = checkOrganizationPermissions(
-        context,
-        "manage"
-      );
+      const { organizationId: activeOrgId } =
+        await checkOrganizationPermissions(context, "manage");
 
       // Only create in current organization
       if (organizationId !== activeOrgId) {
@@ -374,7 +374,7 @@ export const organizationsResolvers = {
       },
       context: GraphQLContext
     ) => {
-      checkOrganizationPermissions(context, "manage");
+      await checkOrganizationPermissions(context, "manage");
       return teamsService.updateTeam(id, { name, description });
     },
 
@@ -383,7 +383,7 @@ export const organizationsResolvers = {
       { id }: { id: string },
       context: GraphQLContext
     ) => {
-      checkOrganizationPermissions(context, "manage");
+      await checkOrganizationPermissions(context, "manage");
       await teamsService.deleteTeam(id);
       return true;
     },
@@ -397,10 +397,8 @@ export const organizationsResolvers = {
       }: { teamId: string; userId: string; organizationId: string },
       context: GraphQLContext
     ) => {
-      const { organizationId: activeOrgId } = checkOrganizationPermissions(
-        context,
-        "manage"
-      );
+      const { organizationId: activeOrgId } =
+        await checkOrganizationPermissions(context, "manage");
 
       // Only add to current organization
       if (organizationId !== activeOrgId) {
@@ -418,7 +416,7 @@ export const organizationsResolvers = {
       { teamId, userId }: { teamId: string; userId: string },
       context: GraphQLContext
     ) => {
-      checkOrganizationPermissions(context, "manage");
+      await checkOrganizationPermissions(context, "manage");
       await teamsService.removeUserFromTeam(teamId, userId);
       return true;
     },
@@ -436,10 +434,8 @@ export const organizationsResolvers = {
       },
       context: GraphQLContext
     ) => {
-      const { organizationId: activeOrgId } = checkOrganizationPermissions(
-        context,
-        "manage"
-      );
+      const { organizationId: activeOrgId } =
+        await checkOrganizationPermissions(context, "manage");
 
       // Only assign in current organization
       if (organizationId !== activeOrgId) {

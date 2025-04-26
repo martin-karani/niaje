@@ -17,26 +17,16 @@ import ForgotPassword from "../pages/auth/forgot-password";
 import ResetPassword from "../pages/auth/reset-password";
 import SignIn from "../pages/auth/sign-in";
 import SignUp from "../pages/auth/sign-up";
+import VerifyEmail from "../pages/auth/verify-email";
 
 // App pages
-import VerifyEmail from "../pages/auth/verify-email";
 import Dashboard from "../pages/dashboard";
 import OrganizationSelection from "../pages/organisations";
 import OrganizationCreate from "../pages/organisations/create";
+import PropertiesList from "../pages/properties";
+import PropertyCreate from "../pages/properties/create";
+import PropertyDetail from "../pages/properties/details";
 import { ProtectedRoute } from "./protected-routes";
-
-// Placeholder components for routes
-const Properties = () => <div>Properties Page</div>;
-const PropertyDetail = () => <div>Property Detail Page</div>;
-const Units = () => <div>Units Page</div>;
-const Tenants = () => <div>Tenants Page</div>;
-const TenantDetail = () => <div>Tenant Detail Page</div>;
-const Leases = () => <div>Leases Page</div>;
-const LeaseDetail = () => <div>Lease Detail Page</div>;
-const Maintenance = () => <div>Maintenance Page</div>;
-const Billing = () => <div>Billing Page</div>;
-const Reports = () => <div>Reports Page</div>;
-const Settings = () => <div>Settings Page</div>;
 
 export default function AppRoutes() {
   const {
@@ -45,26 +35,32 @@ export default function AppRoutes() {
     isLoading,
     organizations,
     organization,
+    isInitialized,
   } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
 
   // Initialize auth state
   useEffect(() => {
-    initialize();
-  }, [initialize]);
+    if (!isInitialized) {
+      initialize();
+    }
+  }, [initialize, isInitialized]);
 
   // Handle redirection based on auth state
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || !isInitialized) return;
 
     // If authenticated
     if (isAuthenticated) {
       // If user is on auth route, redirect to dashboard or org selection
-      if (location.pathname.startsWith("/auth")) {
+      if (
+        location.pathname.startsWith("/auth") &&
+        location.pathname !== "/auth/verify-email"
+      ) {
         // Check if user needs to select organization
-        if (!organization && organizations && organizations.length > 0) {
-          navigate("/organization-selection");
+        if (!organization) {
+          navigate("/organizations");
         } else {
           navigate("/dashboard");
         }
@@ -77,6 +73,7 @@ export default function AppRoutes() {
   }, [
     isAuthenticated,
     isLoading,
+    isInitialized,
     location.pathname,
     navigate,
     organization,
@@ -91,20 +88,19 @@ export default function AppRoutes() {
         <Route path="sign-up" element={<SignUp />} />
         <Route path="forgot-password" element={<ForgotPassword />} />
         <Route path="reset-password" element={<ResetPassword />} />
-        <Route path="sign-up" element={<SignUp />} />
         <Route path="verify-email" element={<VerifyEmail />} />
       </Route>
 
+      {/* Organization selection/creation routes */}
       <Route
         path="/organizations"
         element={
-          // <ProtectedRoute>
-          <OrganizationSelection />
-          // </ProtectedRoute>
+          <ProtectedRoute>
+            <OrganizationSelection />
+          </ProtectedRoute>
         }
       />
 
-      {/* Organization creation route */}
       <Route
         path="/organizations/create"
         element={
@@ -128,66 +124,19 @@ export default function AppRoutes() {
 
         {/* Properties routes */}
         <Route path="properties">
-          <Route index element={<Properties />} />
+          <Route index element={<PropertiesList />} />
+          <Route path="create" element={<PropertyCreate />} />
           <Route path=":id" element={<PropertyDetail />} />
-          <Route path="units" element={<Units />} />
         </Route>
 
-        {/* Tenants routes */}
-        <Route path="tenants">
-          <Route index element={<Tenants />} />
-          <Route path=":id" element={<TenantDetail />} />
-        </Route>
+        {/* Add other routes here */}
 
-        {/* Leases routes */}
-        <Route path="leases">
-          <Route index element={<Leases />} />
-          <Route path=":id" element={<LeaseDetail />} />
-        </Route>
-
-        {/* Maintenance routes */}
-        <Route path="maintenance">
-          <Route index element={<Maintenance />} />
-        </Route>
-
-        {/* Billing routes */}
-        <Route path="billing">
-          <Route index element={<Billing />} />
-          <Route path="payments" element={<div>Payments</div>} />
-          <Route path="expenses" element={<div>Expenses</div>} />
-          <Route path="utilities" element={<div>Utilities</div>} />
-        </Route>
-
-        {/* Reports routes */}
-        <Route path="reports">
-          <Route index element={<Reports />} />
-          <Route path="financial" element={<div>Financial Reports</div>} />
-          <Route path="occupancy" element={<div>Occupancy Reports</div>} />
-          <Route path="maintenance" element={<div>Maintenance Reports</div>} />
-        </Route>
-
-        {/* Settings routes */}
-        <Route path="settings">
-          <Route index element={<Settings />} />
-          <Route path="profile" element={<div>Profile Settings</div>} />
-          <Route
-            path="organization"
-            element={<div>Organization Settings</div>}
-          />
-        </Route>
-
-        {/* Organization routes */}
-        <Route path="organization">
-          <Route index element={<div>Organization</div>} />
-          <Route path="members" element={<div>Team Members</div>} />
-          <Route path="teams" element={<div>Teams</div>} />
-          <Route path="subscription" element={<div>Subscription</div>} />
-          <Route path="create" element={<div>Create Organization</div>} />
-        </Route>
+        {/* Fallback route */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
 
       {/* Catch-all route */}
-      <Route path="*" element={<div>Page Not Found</div>} />
+      <Route path="*" element={<Navigate to="/auth/sign-in" replace />} />
     </Routes>
   );
 }
