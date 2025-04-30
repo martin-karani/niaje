@@ -17,6 +17,9 @@ const API_URL =
 const httpLink = createHttpLink({
   uri: API_URL,
   credentials: "include", // Important for cookie-based authentication
+  fetchOptions: {
+    credentials: "include", // Redundant but adding for clarity
+  },
 });
 
 // Error handling link
@@ -26,6 +29,15 @@ const errorLink = onError(({ graphQLErrors, networkError }) => {
       console.error(
         `[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`
       );
+
+      // Don't show error notifications for authentication errors when checking status
+      if (
+        path?.[0] === "myOrganizations" &&
+        message.includes("Authentication required")
+      ) {
+        console.log("User not authenticated yet, skipping error notification");
+        return;
+      }
 
       // Show error notification
       notifications.show({
@@ -78,6 +90,7 @@ export const apolloClient = new ApolloClient({
       errorPolicy: "all",
     },
   },
+  connectToDevTools: true, // Enable Apollo DevTools for debugging
 });
 
 // Re-export common Apollo hooks with proper typing
